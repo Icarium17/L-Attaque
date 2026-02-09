@@ -1,0 +1,102 @@
+Class Node (moveFromParent:Move, parent:Node)
+	moveFromParent = moveFromParent
+	visitCount = 0
+	value = 0
+	childNodes = {}
+	possibleChildren : List[Moves] = generate_possible_moves() ## list of possible moves from the game at that state. every time the node is visited, 		check if the list has a length. if not, UCT. else, randomly pick one
+	parent = parent
+	
+	fun get_best_child_move() -> Move:
+		get the Node in childNodes that has the best value
+
+	fun uct() -> double:
+		get the score of the node
+
+	fun generate_possible_moves():
+		fills self.possibleChildren when the node is created
+	
+Class Move(piece:Piece, movement:tuple(axe, dist)) ====== tuple mouvement (x or y, + ou - 1)
+	self.piece = piece
+	self.mouvement = mouvement
+	
+
+Class Piece(type = None, position)
+	self.type = type
+	self.possibilities -> dictionnary of type and possibilities
+	self.position = position === tuple (x, y)
+	
+	fun can_be_type(type) -> boolean	
+		return self.possibilities[type] > 0
+		
+	fun random_type()
+		return random type based on its possibility
+		
+	fun move(move:Move) -> boolean:
+		self.position += movement
+	
+	
+Class Game(belief_state:List[Pieces])
+	self.types = dictionnary containing each player's dictionnary of every type with their numbers left
+	self.game_state = either go through self.types and randomly pick a piece, check if it can be type and append it or for every piece in belief_state, random_type and append
+	
+	
+	fun update(move:Move) -> None:
+		apply move to game_state
+		
+	fun check_final() -> boolean:
+		return (end_conditions are met)
+
+	fun get_opponent_board() -> None:
+		randomly generates the opponent`s pieces
+
+Class MCTS
+	belief_state = list of ennemy pieces
+	game_state
+	iteration_total
+	
+	fun algo() -> Move:
+		node_0 = Mode(None, None)
+		node_now = node_0
+		iteration = iteration_total
+		final = false
+		game = None
+		while (iteration > 0):
+			game = Game()
+			while (!final):
+				child = select_child(node_now, game)
+				if (!child[1])
+					node_now.childNodes.append(child)
+				node_now = childNodes
+				node_now.visitCount ++
+				if (game.check_final())
+					node_now.value += whatever
+					back_propagate(node_now, whatever)
+					final = true
+					iteration -= 1
+					
+		return node_0.get_best_child_move() ==== send to the server to check if its fine			
+				
+	
+	fun select_child(node : Node, game:Game) -> (Node, boolean):
+		legalMoves = check_legal_moves(game)
+		if (at least 1 legalMoves not in node.childNodes):
+			return (Node(random(legaMove), false)
+		else
+			return (UCT(node), true)
+
+		
+	fun check_legal_moves(game:Game) -> List[Move]
+		for all pieces in game, check if there are possible moves
+	
+	fun UCT(node) -> Node:
+		return apply UCT to node.childNodes. returns the best child node
+		
+	fun check_final(game:Game) -> boolean:
+		return (end_conditions are met)
+		
+	fun back_propagate(node:Node, value:Double) -> None:
+		node_now = node
+		while (node_now.parent is not None):
+			node_now = node.parent
+			node_now.value += whatever
+	
