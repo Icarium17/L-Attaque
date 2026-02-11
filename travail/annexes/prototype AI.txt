@@ -1,10 +1,10 @@
-Class Node (moveFromParent:Move, parent:Node)
-	moveFromParent = moveFromParent
+Class Node (moveFromParent:Move, parent:Node, info_set)
+	info_set = info_set
 	visitCount = 0
 	value = 0
 	childNodes = {}
 	possibleChildren : List[Moves] = generate_possible_moves() ## list of possible moves from the game at that state. every time the node is visited, 		check if the list has a length. if not, UCT. else, randomly pick one
-	parent = parent
+	parent = parent //dependament de si ça prend trop d'espace mémoire, soit ça ou garder une liste de nodes visitées à chaque itération pour rendre le backpropagation plus facile
 	
 	fun get_best_child_move() -> Move:
 		get the Node in childNodes that has the best value
@@ -18,9 +18,22 @@ Class Node (moveFromParent:Move, parent:Node)
 Class Move(piece:Piece, movement:tuple(axe, dist)) ====== tuple mouvement (x or y, + ou - 1)
 	self.piece = piece
 	self.mouvement = mouvement
+
+class InfoSet (observed_pieces, player_to_move):
+        self.player_to_move = player_to_move
+        self.pieces = tuple(
+            sorted(
+                (
+                    p.owner,
+                    tuple (p.pos[0],p.pos[1]),
+                    p.rank.value //either a rank or unknown if there is no observable data
+                )
+                for p in observed_pieces
+            )
+        )
 	
 
-Class Piece(type = None, position)
+Class Piece(type = None, position) //chose qui reste constante dans le temps, permet de faire la determination, et garde lesquelles sont lesquelles
 	self.type = type
 	self.possibilities -> dictionnary of type and possibilities
 	self.position = position === tuple (x, y)
@@ -33,6 +46,12 @@ Class Piece(type = None, position)
 		
 	fun move(move:Move) -> boolean:
 		self.position += movement
+
+class ObservedPiece: //pour l'info set, juste ce qu'on sait for sure
+    def __init__(self, owner, pos, rank):
+        self.owner = owner        # 0 = me, 1 = opponent
+        self.pos = pos            # (x, y)
+        self.rank = rank          # ObsRank or UNKNOWN
 	
 	
 Class Game(belief_state:List[Pieces])
