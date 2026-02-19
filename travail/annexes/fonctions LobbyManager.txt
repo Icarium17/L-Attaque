@@ -1,0 +1,18 @@
+start_game_ai(player_id) : ajout dans la liste, mais si la liste n'est pas vide, démarre une partie avec le joueur existant
+start_game_player(player_id)
+get_active_players(player_id) -> List[player.name]
+challenge(player_id, challenged_id)
+answer_challenge(player_id, answer)
+restart_game(player_id)
+place_pieces(game_id, player_id, List[Pieces])
+move(game_id, player_id, Move)
+surrender(game_id, player_id)
+save(game_id)
+chat(player_id, message)
+leaderboard() -> List[(player.name, score)]
+modify_profile(player_id, parameter, value) // modify_options is the same
+login(username, password) -> player_id (randomly assigns a number)
+logout(player_id)
+delete_profile(player_id)
+
+
