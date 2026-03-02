@@ -1,6 +1,6 @@
 ds vs code : strl + shift + p
 remote-ssh: connect to host
-root@63.183.195.223
+root@68.183.195.223
 linux 
 stratego + enter
 
@@ -8,3 +8,4 @@ file + open folders
 
 
 lancer dans CMD!!!!
+
