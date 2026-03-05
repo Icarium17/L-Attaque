@@ -47,6 +47,8 @@ fuser -k 5000/tcp
 
 /root/venv/bin/python3 main.py
 
+cd /root/LAttaque/Backend && /root/venv/bin/python3 main.py
+
 ___________________________________________________
 Pour gerer le serveur depuis vscode:
 
