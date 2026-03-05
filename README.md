@@ -5,10 +5,9 @@
 * DUPRAS, Charlotte
 * HUART, Eddy
 
-## Prérequis : Installation de PHP (Client)
+## Prérequis : Installations sur le client
 
 # Installation PHP 
-Pour faire fonctionner le client sur Windows, suivez ces étapes :
 
 Téléchargement : Allez sur php.net/downloads, cliquez sur "Windows downloads" et téléchargez le Zip VS17 x64 Thread Safe.
 
@@ -19,7 +18,14 @@ Configuration : Dans C:\php, faites une copie de php.ini-development et nommez-l
 PATH : Ouvrez PowerShell en tant qu'administrateur et lancez la commande suivante: [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\php", "Machine")
 
 Test : Tapez php -v dans un nouveau terminal qui retourne la version installée.
- 
+
+# Installation Node.js
+
+Téléchargement : Allez sur nodejs.org et télécharger la version LTS.
+
+Lance l'installeur .msi.
+
+PATH : Durant l'installation, avoir l'option "Add to PATH" cochée (elle l'est par défaut). 
 ________________________________________________________________
 ## Lancement du Serveur (Backend Python)
 
