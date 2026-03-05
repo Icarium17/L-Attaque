@@ -42,15 +42,22 @@ cd /root/LAttaque/Backend && /root/venv/bin/python3 main.py
 Pour libérer le port 5000 si le serveur ne veut pas redémarrer :
 `fuser -k 5000/tcp`
 
+_______________________________________________________________
+## Lancement du frontend client
+
+Ouvrez le dossier client dans **VS Code**.
+Ouvrez un terminal dans le répertoire : `L-Attaque\src\client\frontend`.
+Exécutez les commandes :
+
+npm install
+npm run dev
 ________________________________________________________________
-## Lancement du client
+## Lancement du backend client
 
 Ouvrez le dossier client dans **VS Code**.
 Ouvrez un terminal dans le répertoire : `L-Attaque\src\client\backend`.
 Lancez la commande :
-```bash
-    php -S localhost:8000
-```
+php -S localhost:8000
 
 Ou utilisez le fichier `Lancer_Jeu.bat` qui automatise cette tâche.
 
