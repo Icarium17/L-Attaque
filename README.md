@@ -157,3 +157,29 @@ ufw delete limit 22/tcp
 ufw allow 22/tcp         
 ufw reload   
 ________________________________________________________________            
+## Se connecter à la base de données mysql lattaque
+
+Infos SQL:
+    * user : lattaque_user
+    * password: stratego
+    * base de données: lattaque
+
+Dans l'invite de commande (connecté en tant que root)
+    * sudo mysql
+
+Pour le backend python: 
+    * pip install mysql-connector-python 
+    * pip install bcrypt
+
+
+    import mysql.connector
+
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="lattaque_user",
+        password="stratego",
+        database="lattaque"
+    )
+
+
+________________________________________________________________   

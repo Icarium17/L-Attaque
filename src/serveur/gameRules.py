@@ -17,12 +17,18 @@ class GameRules():
         self.last_moves = [] ##liste contenant la liste des derniers moves de chaque joueur, juste
         
     ##Positionnement initial
-    def validate_placement(self, player, pieces) -> str :        
+    def validate_placement(self, player_order, pieces) -> tuple[int, str] :
+                
         if len(pieces) != self.max_pieces[self.game_type]:
-            return (0, "Pas assez de pièces")
+            if len(pieces) < self.max_pieces[self.game_type]:
+                return (0, "Pas assez de pièces")
+            else:
+                return (0, "Trop de pièces")
+            
+
+        ##Ajouter un check que tous les types de pièces sont présents en bon nombre
         
-        order_player = player.order
-        start, end = self.zones[self.game_type][order_player]        
+        start, end = self.zones[self.game_type][player_order]        
         valid_rows = range(start, end)
 
         if not self.check_positions(valid_rows, pieces):
@@ -39,15 +45,15 @@ class GameRules():
     
 
     def validate_move(self, move, player):
-        piece, moveTo = move.getParams()
-
-        x_0, y_0 = piece.position
-        x_1, y_1= moveTo
+        x_0, y_0, x_1, y_1 = move.getParams()
 
         d_x = abs(x_1 - x_0)
         d_y = abs(y_1 - y_0)
-
+        
+        tileFrom = self.board.tiles[y_0][x_0]
         tileTo = self.board.tiles[y_1][x_1]
+       
+        piece = tileFrom.piece
 
         if d_x == 0 and d_y == 0: ## if the mouvement is null
             return (0, "Pas de mouvement")

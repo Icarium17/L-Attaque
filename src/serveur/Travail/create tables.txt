@@ -1,0 +1,73 @@
+create table users (
+    _id int auto_increment primary key,
+    username varchar(20) unique not null,
+    hashed_password varchar(255) not null,
+    score int default 0,
+    last_logged_in timestamp not null default current_timestamp,
+    preferred_language enum('French', 'English') not null,
+    game_status enum('Disconnected', 'Idle', 'Awaiting game', 'Playing') not null default 'Idle',
+    id_avatar int not null default 0,
+    banned timestamp default null,
+    rights enum('User', 'Admin') default 'User',
+    animation boolean not null default true,
+    contrast boolean not null default true
+    );
+
+INSERT INTO users (_id, username, hashed_password, score, last_logged_in, preferred_language, 
+    game_status, id_avatar, banned, rights)
+VALUES (0, 'MCTS_AI', 'AAAaaa111', 0, CURRENT_TIMESTAMP, 'French', 'Idle', 0, NULL, 'Admin');
+
+
+INSERT INTO users (
+    _id, username, hashed_password, score, last_logged_in, preferred_language, 
+    game_status, id_avatar, banned, rights
+) VALUES (
+    0, 'MCTS_AI', 'AAAaaa111', 0, CURRENT_TIMESTAMP, 'French',
+    'Idle', 0, NULL, 'Admin'
+);
+
+	
+create table games (
+    _id int auto_increment primary key,
+    end_time timestamp default null,
+    id_winner int default null,
+
+    foreign key (id_winner) references users(_id) on delete set null
+    );
+
+create table game_player(
+    _id int auto_increment primary key,
+    id_user int not null,
+    id_game int not null,
+    time_remaining int not null,
+    score int not null default 0,
+
+    foreign key (id_user) references users(_id) on delete cascade,
+    foreign key (id_game) references games(_id) on delete cascade
+    );
+
+create table saved_game(
+    _id int auto_increment primary key,
+    id_game int not null,
+    ai_difficulty int NOT NULL CHECK (ai_difficulty IN (0,1,2)),
+    board json not null,
+    player_to_move int not null,
+    save_time timestamp not null default current_timestamp,
+    
+    foreign key (id_game) references games(_id),
+    foreign key (player_to_move) references users(_id)
+    );
+
+create table chat(
+    _id int auto_increment primary key,
+    id_user int not null,
+    message varchar(127) not null,
+    time timestamp not null default current_timestamp,
+    foreign key(id_user) references users(_id)
+    );
+
+create table banned_words(
+	_id int auto_increment primary key,
+	word varchar(127)
+);
+	

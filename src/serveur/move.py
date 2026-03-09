@@ -1,13 +1,15 @@
 class Move():
-    def __init__(self, piece, moveTo):
-        self.piece = piece
+    def __init__(self, moveFrom, moveTo):
+        self.moveFrom = moveFrom ## tuple(x, y)
         self.moveTo = moveTo ## tuple(x, y)
 
     def getParams(self):
-        return self.piece, self.moveTo
+        x_0, y_0 = self.moveFrom
+        x_1, y_1 = self.moveTo
+        return x_0, x_1, y_0, y_1
     
 
     def __eq__(self, other):
             if not isinstance(other, Move):
                 return False
-            return self.piece == other.piece and self.moveTo == other.moveTo
+            return self.moveFrom == other.moveFrom and self.moveTo == other.moveTo

@@ -1,11 +1,17 @@
+from gameManager import GameManager
+from player import Player
+from aiPlayer import AIPlayer
+import bcrypt
+
 class LobbyManager():
     def __init__(self):
-        self.games = {}
+        self.games = {} ## dict, pour chaque player_id, donne la game. donc 2 entrées pour chaque jeu
         self.wait_list = []
         self.active_users = {}
         self.active_challenges = []
 
         self.actions = {
+            "createprofile" : self.create_profile,
             "login" : self.login,
             "logout" : self.logout,
             "deleteProfile" : self.logout,
@@ -31,6 +37,12 @@ class LobbyManager():
             
 
     ## Authentication
+    def create_profile(self, args):
+        print("create_profile called")
+        username, password, preferred_language, id_avatar, rights, animation, contrast = args
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+
     def login(self):
         print("login called")
 
@@ -45,11 +57,22 @@ class LobbyManager():
 
 
     ## Start/End Game
-    def start_game(self):
+    def start_game(self, args): ## tout à changer une fois que les joueurs pourront se connecter et loop awaiting player
         print("start_game called")
+        my_id = args[0]
+        player = Player(self.active_users[my_id], 0)
 
-    def get_active_players(self, my_id) -> list[str]:
+        player_ai = AIPlayer()
+
+        game = GameManager([player, player_ai])
+        self.games[my_id] = game
+        self.games[0] = game
+
+        return "Le jeu est commencé"
+
+    def get_active_players(self, args) -> list[str]:
         print("get_active_players called")
+        my_id = args[0]
         list_users = [user for key, user in self.active_users.items() if key != my_id]
         return list_users
     
@@ -73,11 +96,24 @@ class LobbyManager():
 
 
     ## Play Game
-    def set_pieces(self):
+    def set_pieces(self, args):
         print("set_pieces called")
+        my_id = args[0]
+        pieces = args[1]
 
-    def move(self):
+        game = self.games[my_id]
+        valid = game.check_valid_setup(my_id, pieces)
+        if valid:
+            return valid
+
+
+    def move(self, args):
         print("move called")
+        my_id = args[0]
+        move = args[1]
+
+
+
 
     
     ## Other
