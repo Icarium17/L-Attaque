@@ -27,7 +27,7 @@ const VARIANTS = {
   danger: {
     border: '#c0392b,#ff6b5a,#8b1a1a,#c0392b,#ff6b5a',
     bg:     ['#1e1111,#150b0b', '#2a1515,#1e0e0e', '#120909,#0a0505'],
-    color:  ['#e74c3c', '#ff7b6a', '#a33025'],
+    color:  ["#eFFFFF", '#ff7b6a', '#a33025'],
     glow:   '231,76,60',
   },
   ghost: {
@@ -133,9 +133,9 @@ export default function Button({
     border: 'none',
     borderRadius: '9px',
     textTransform: 'uppercase',
-    letterSpacing: '3px',
+    letterSpacing: '4px',
     fontFamily: "'Georgia', 'Times New Roman', serif",
-    fontWeight: '600',
+    fontWeight: '700',
     textShadow: `0 0 ${state == 1 ? 20 : 12}px rgba(${g},${state == 1 ? 0.7 : 0.4})`,
     width: '100%',
     position: 'relative',
@@ -147,10 +147,12 @@ export default function Button({
   };
 
   return (
-    //  Bordure dorée ─
-    <div style={{
+    //  Bordure dorée 
+    <div 
+    className={className}
+    style={{
       ...borderStyle,
-      display: fullWidth ? 'block' : 'inline-block',
+      display: fullWidth || className?.includes('w-') ? 'flex' : 'inline-flex',
       transition: 'all 0.3s ease',
       ...(disabled ? { opacity: 0.45, filter: 'grayscale(0.6)' } : {}),
     }}>
@@ -165,10 +167,10 @@ export default function Button({
         onMouseDown={() => setPressed(true)}
         onMouseUp={() => setPressed(false)}
         className={
-          "px-8 py-3 font-semibold text-sm tracking-wide "
+          "px-8 py-4 font-semibold text-sm tracking-wide whitespace-nowrap "
           + (fullWidth ? "w-full " : "")
           + (disabled || loading ? "" : "cursor-pointer ")
-          + (className || "")
+          
         }
         style={btnStyle}
       >
