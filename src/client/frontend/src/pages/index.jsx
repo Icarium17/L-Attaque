@@ -1,4 +1,5 @@
 import Button from "../components/button.jsx";
+import Error from "../components/error.jsx";
 
 export default function Index() {
   return (
@@ -12,6 +13,7 @@ export default function Index() {
 
       <Button variant="primary" icon="⚔️">Combattre</Button>
 
+      <Error>pb de pion</Error>
  
     </div>
   );
