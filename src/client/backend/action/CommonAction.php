@@ -62,8 +62,8 @@ abstract class CommonAction {
         $context  = stream_context_create($options);
         $result = file_get_contents($url, false, $context);
         
-        // Décodage de la réponse JSON en tableau associatif PHP
-        return json_decode($result, true);
+       
+       return json_decode($result);
     }
  
     protected abstract function executeAction();

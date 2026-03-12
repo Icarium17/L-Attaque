@@ -42,6 +42,8 @@ export default function Index() {
     })
       .then((response) => response.json())
       .then((data) => {
+
+
         if (data.result.error) {
           setError(data.result.error);
           setTimeout(() => setError(""), 2000);
@@ -191,7 +193,7 @@ export default function Index() {
                 />
                 <Button 
                   className="w-full" 
-                  variant="danger" 
+                  variant="secondary" 
                   onClick={register}      
                 >
                   Créer un compte

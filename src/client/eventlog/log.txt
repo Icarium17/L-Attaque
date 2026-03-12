@@ -1,0 +1,21 @@
+//  DEBUG  DEBUG  DEBUG  DEBUG   DEBUG  DEBUG  DEBUG 
+console.log("Retour du serveur PHP :", data);
+
+retour python:
+
+Object
+isLoggedIn
+: 
+true
+result
+: 
+key
+: 
+"thekeyhere"
+success
+: 
+true
+username
+: 
+"eddy"
+ 
