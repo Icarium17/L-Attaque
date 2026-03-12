@@ -178,6 +178,7 @@ if (!message && !children) return null;
                   fontSize: "24px",
                   lineHeight: 1.5,
                   opacity: 0.85,
+                  textAlign: "center"
                 }}
               >
                 {children || message}
