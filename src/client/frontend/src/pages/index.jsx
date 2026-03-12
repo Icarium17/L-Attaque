@@ -66,7 +66,29 @@ export default function Index() {
   };
 
 
-    // Fonction register To do
+  const register = () => {
+    let formData = new FormData();
+    formData.append("action", "register");
+    formData.append("nom", registerForm.nom);
+    formData.append("motDePasse", registerForm.motDePasse);
+
+    fetch("/api/index.php", { method: "POST", body: formData })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.result.error) {
+          setError(data.result.error);
+          setTimeout(() => setError(""), 3000);
+        } else {
+          // Succès : connexion automatique
+          localStorage.setItem("sessionKey", data.result.key);
+          localStorage.setItem("username", data.result.username);
+          setSession({ username: data.result.username, key: data.result.key });
+          setRegisterForm({ nom: "", motDePasse: "" });
+          navigate("/lobby");
+        }
+      })
+      .catch(() => setError("Erreur d'inscription."));
+  };
 
 
    // Affichage pendant la session
@@ -170,7 +192,7 @@ export default function Index() {
                 <Button 
                   className="w-full" 
                   variant="danger" 
-                   //* onClick={register}      
+                  onClick={register}      
                 >
                   Créer un compte
                 </Button>
