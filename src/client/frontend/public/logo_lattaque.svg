@@ -1,0 +1,77 @@
+<svg width="100%" viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5C842"/>
+      <stop offset="50%" stop-color="#D4922A"/>
+      <stop offset="100%" stop-color="#8B5E0A"/>
+    </linearGradient>
+    <linearGradient id="shield-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1208"/>
+      <stop offset="100%" stop-color="#0a0804"/>
+    </linearGradient>
+    <filter id="glow-gold">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Bouclier principal -->
+  <path d="M340 30 L430 55 L430 160 Q430 230 340 270 Q250 230 250 160 L250 55 Z"
+        fill="url(#shield-bg)" stroke="url(#gold)" stroke-width="2.5"/>
+
+  <!-- Bordure interne du bouclier -->
+  <path d="M340 44 L418 66 L418 158 Q418 218 340 254 Q262 218 262 158 L262 66 Z"
+        fill="none" stroke="#D4922A" stroke-width="1" opacity="0.5"/>
+
+  <!-- Croix militaire centrale -->
+  <rect x="327" y="85" width="26" height="80" rx="2" fill="url(#gold)" opacity="0.9"/>
+  <rect x="300" y="112" width="80" height="26" rx="2" fill="url(#gold)" opacity="0.9"/>
+
+  <!-- Étoiles aux coins de la croix -->
+  <polygon points="340,82 343,90 351,90 345,95 347,103 340,98 333,103 335,95 329,90 337,90"
+           fill="#F5C842" opacity="0.8"/>
+
+  <!-- Lauriers gauche -->
+  <g stroke="#C8821A" stroke-width="1.2" fill="none" opacity="0.8">
+    <path d="M255 150 Q240 130 248 115"/>
+    <path d="M255 150 Q235 145 237 128"/>
+    <path d="M255 150 Q232 155 238 170"/>
+    <path d="M255 150 Q237 165 245 178"/>
+    <path d="M255 150 Q244 175 255 185"/>
+  </g>
+  <!-- Lauriers droite -->
+  <g stroke="#C8821A" stroke-width="1.2" fill="none" opacity="0.8">
+    <path d="M425 150 Q440 130 432 115"/>
+    <path d="M425 150 Q445 145 443 128"/>
+    <path d="M425 150 Q448 155 442 170"/>
+    <path d="M425 150 Q443 165 435 178"/>
+    <path d="M425 150 Q436 175 425 185"/>
+  </g>
+
+  <!-- Titre principal -->
+  <text x="340" y="308"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="48"
+        font-weight="700"
+        letter-spacing="8"
+        fill="url(#gold)"
+        filter="url(#glow-gold)">L'ATTAQUE</text>
+
+  <!-- Sous-titre -->
+  <text x="340" y="332"
+        text-anchor="middle"
+        font-family="Georgia, serif"
+        font-size="13"
+        letter-spacing="6"
+        fill="#8B6A20"
+        opacity="0.9">⚔  JEU DE STRATÉGIE  ⚔</text>
+
+  <!-- Ligne décorative sous le titre -->
+  <line x1="180" y1="316" x2="240" y2="316" stroke="#D4922A" stroke-width="0.8" opacity="0.6"/>
+  <line x1="440" y1="316" x2="500" y2="316" stroke="#D4922A" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- Points décoratifs -->
+  <circle cx="175" cy="316" r="2.5" fill="#D4922A" opacity="0.7"/>
+  <circle cx="505" cy="316" r="2.5" fill="#D4922A" opacity="0.7"/>
+</svg>
