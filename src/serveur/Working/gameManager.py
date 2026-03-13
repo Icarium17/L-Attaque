@@ -1,5 +1,5 @@
-from board import Board
-from gameRules import GameRules
+from GAME.board import Board
+from GAME.gameRules import GameRules
 
 class GameManager():
     def __init__(self, players, game_type = "original"):

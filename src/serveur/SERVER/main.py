@@ -4,20 +4,21 @@ from lobbyManager import LobbyManager
 app = Flask(__name__)
 lobby = LobbyManager()
 
-# Tests signup sigin signout **Eddy**
+# Test connexion Eddy (Inscription)
 @app.route('/signup', methods=['POST'])
 def handle_signup():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
-    account_created = lobby.execute_action("signup", (username, password))
-    
+    logged_in = lobby.execute_action("signup", (username, password))
+
     return jsonify({
-        "status":  account_created,
+        "status": logged_in[0],
+        "key" : logged_in[1],
         "username": username
     })
- 
+
 @app.route('/signin', methods=['POST'])
 def handle_signin():
     data = request.get_json()
@@ -25,7 +26,7 @@ def handle_signin():
     password = data.get('password')
 
     logged_in = lobby.execute_action("signin", (username, password))
-    
+
     return jsonify({
         "status": logged_in[0],
         "key": logged_in[1],
@@ -35,15 +36,12 @@ def handle_signin():
 @app.route('/sigout', methods=['POST'])
 def handle_sigout():
     data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    
+    key = data.get('key')
+
+    result = lobby.execute_action("signout", (key,))
     return jsonify({
-        "status": "success",
-        "key": "thekeyhere",
-        "username": username
+        "result" : result
     })
- 
 
 
 # Service pour les mouvements des pieces

@@ -1,4 +1,4 @@
-from player import Player
+from USERS.player import Player
 from move import Move
 from board import Board
 
