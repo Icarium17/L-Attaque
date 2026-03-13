@@ -1,8 +1,8 @@
 from gameManager import GameManager
-from player import Player
-from aiPlayer import AIPlayer
-from connexion import ConnexionUsers
-from user import User
+from USERS.player import Player
+from USERS.aiPlayer import AIPlayer
+from DAO.DAOUsers import DAOUsers
+from USERS.user import User
 
 class LobbyManager():
     def __init__(self):
@@ -31,39 +31,47 @@ class LobbyManager():
             "leaderboard" : self.leaderboard            
         }
 
-        self.connexionUsers = ConnexionUsers()
+        self.DAOUsers = DAOUsers()
     
     def execute_action(self, player_action, *args):
         action = self.actions.get(player_action)
         if action:
             return action(*args)
-            
 
     ## Authentication
-    def create_profile(self, args) -> bool:
+    def create_profile(self, args) -> str:
         print("create_profile called")
-        
+
         username, password = args
-        user_created = self.connexionUsers.create_user(username, password, 'French', 0, 'User', True, True)
-        ##username, password, preferred_language, id_avatar, rights, animation, contrast = args
-        ##user_created = self.connexionUsers.create_user(username, password, preferred_language, id_avatar, rights, animation, contrast)
-        if user_created:
-            return "User created!"
-        return "Error"
+        user_id = self.DAOUsers.create_user(
+            username, password, 'French', 0, 'User', True, True
+        )
+
+        if user_id[0] == True:
+            user = User(user_id[1], user_id[2], username, user_id[3], "IDLE")
+            self.active_users[user.unique_id] = user
+            return "USER_CREATED", user_id[1]
+        return "ERROR", 0
 
     def login(self, args):
         print("login called")
         username, password = args
-        user_id = self.connexionUsers.connect(username, password)
+        user_id = self.DAOUsers.connect(username, password)
         if user_id[0] == True:
-            user = User(user_id[1], username)
+            user = User(user_id[1], user_id[2], username, user_id[3], "IDLE")
             self.active_users[user.unique_id] = user
-            return "User connected", user_id[1]
-        
-        return "Error, the username and the password do not match", 0
+            return "USER_CONNECTED", user_id[1]
 
-    def logout(self):
+        return "INVALID_USERNAME_PASSWORD", 0
+
+    def logout(self, args):
         print("logout called")
+        session_id = args
+        if session_id in self.active_users:
+            del self.active_users[session_id]
+            return "USER_DISCONNECTED"
+        return "INVALID_KEY"
+        
 
     def delete_profile(self):
         print("delete_profile called")
@@ -129,9 +137,6 @@ class LobbyManager():
         move = args[1]
 
 
-
-
-    
     ## Other
     def chat(self):
         print("chat called")

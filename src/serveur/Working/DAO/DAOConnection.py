@@ -1,6 +1,6 @@
-import mysql
+import mysql.connector
 
-class Connexion:
+class DAOConnection():
     def __enter__(self):
         self.conn = mysql.connector.connect(
             host="localhost",
