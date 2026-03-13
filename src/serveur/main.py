@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
+from lobbyManager import LobbyManager
 
 app = Flask(__name__)
+lobby = LobbyManager()
 
 # Tests signup sigin signout **Eddy**
 @app.route('/signup', methods=['POST'])
@@ -8,10 +10,11 @@ def handle_signup():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+
+    account_created = lobby.execute_action("signup", (username, password))
     
     return jsonify({
-        "status": "success",
-        "key": "thekeyhere",
+        "status":  account_created,
         "username": username
     })
  
@@ -20,10 +23,12 @@ def handle_signin():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+
+    logged_in = lobby.execute_action("signin", (username, password))
     
     return jsonify({
-        "status": "success",
-        "key": "thekeyhere",
+        "status": logged_in[0],
+        "key": logged_in[1],
         "username": username
     })
 
