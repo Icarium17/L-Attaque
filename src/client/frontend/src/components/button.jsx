@@ -31,10 +31,10 @@ const VARIANTS = {
     glow:   '231,76,60',
   },
   ghost: {
-    border: null,
-    bg:     ['transparent', 'rgba(212,164,74,0.06)', 'rgba(212,164,74,0.1)'],
-    color:  ['#d4a44a', '#e0b45a', '#b8902e'],
-    glow:   '212,164,74',
+    border: null, 
+    bg: ['transparent', 'transparent', 'transparent'],
+    color: ['#000000', '#333333', '#FF0000'], 
+    glow: '0,0,0',  
   },
 };
 
@@ -114,9 +114,12 @@ export default function Button({
       ? `0 2px 10px rgba(0,0,0,0.6)`
       : `0 4px 20px rgba(0,0,0,0.6), 0 0 25px rgba(${g},0.2)`,
   } : {
-    padding: '2px',
+    padding: '0px',
     borderRadius: '12px',
-    border: `1px solid rgba(${g},${state == 1 ? 0.5 : 0.25})`,
+    border: 'none', 
+    boxShadow: 'none',  
+    background: 'transparent',
+    ...(variant == 'ghost' ? { boxShadow: 'none !important' } : {})
   };
 
   /*
@@ -167,7 +170,7 @@ export default function Button({
         onMouseDown={() => setPressed(true)}
         onMouseUp={() => setPressed(false)}
         className={
-          "px-8 py-4 font-semibold text-sm tracking-wide whitespace-nowrap "
+          "px-8 py-4 font-semibold tracking-wide whitespace-nowrap "
           + (fullWidth ? "w-full " : "")
           + (disabled || loading ? "" : "cursor-pointer ")
           
@@ -181,7 +184,7 @@ export default function Button({
           <span style={{
             position: 'absolute', top: 0, left: `${anim.shine}%`,
             width: '60%', height: '100%',
-            background: `linear-gradient(90deg, transparent, rgba(${g},0.15), transparent)`,
+            background: `linear-gradient(90deg, transparent, rgba(${g},0.2), transparent)`,
             transform: 'skewX(-20deg)', pointerEvents: 'none',
           }} />
         )}

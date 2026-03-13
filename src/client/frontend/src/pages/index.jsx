@@ -1,7 +1,7 @@
 import Button from "../components/button.jsx";
 import Error from "../components/error.jsx";
 import MainLayout from "../layouts/main-layout";
-import background from '../assets/images/background-image.png';
+import background from '../assets/images/background-index.png';
 import logo from '../assets/images/logo.png';
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
