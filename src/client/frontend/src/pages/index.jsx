@@ -28,46 +28,61 @@ export default function Index() {
     setRegisterForm({ nom: "", motDePasse: "" });
   }, []);
 
-  // Fonction gérer le signin et le signout
-  const auth = (action, data1 = "", data2 = "") => {
-    let formData = new FormData();
-    formData.append("action", action);
+// Fonction gérer le signin et le signout
+const auth = (action, data1 = "", data2 = "") => {
+  setLoading(true);
+  let formData = new FormData();
+  formData.append("action", action);
 
-    if (action == "signin") {
-      formData.append("nom", data1);
-      formData.append("motDePasse", data2);
-    } else if (action == "signout") {
-      formData.append("key", data1);
-    }
+  if (action == "signin") {
+    formData.append("nom", data1);
+    formData.append("motDePasse", data2);
+  } else {
+    formData.append("key", data1);
+  }
 
-    fetch("/api/index.php", {
-      method: "POST",
-      body: formData
+  fetch("/api/index.php", { method: "POST", body: formData })
+    .then(res => res.json())
+    .then(data => {
+      setLoading(false);
+
+      // SIGNIN REUSSI
+      if (action == "signin" && data.result.success) {
+        setRedirecting(true);
+        setSuccess(`Ravi de vous revoir, ${data.result.username} !`);
+        localStorage.setItem("sessionKey", data.result.key);
+        localStorage.setItem("username", data.result.username);
+        setTimeout(() => {
+          setSession({ username: data.result.username, key: data.result.key });
+          navigate("/lobby");
+          setRedirecting(false);
+        }, 3000);
+      }
+
+      // SIGNOUT REUSSI
+      else if (action == "signout" && data.response_svr.status == "USER_DISCONNECTED") {
+        setRedirecting(true);
+        setSuccess("Déconnexion réussie.");
+        setTimeout(() => {
+          localStorage.removeItem("sessionKey");
+          localStorage.removeItem("username");
+          setSession(null);
+          setRedirecting(false);
+        }, 1000);
+      }
+
+      // Erreurs
+      else if (data.result.error) {
+        setError(data.result.error);
+        setTimeout(() => setError(""), 2000);
+        if (action == "signin") setLoginForm({ nom: "", motDePasse: "" });
+      }
     })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.result.error) {
-          setError(data.result.error);
-          setTimeout(() => setError(""), 2000);
-          setLoginForm({ nom: "", motDePasse: "" });
-        } else if (data.result.success) {
-          if (action == "signin") {
-            localStorage.setItem("sessionKey", data.result.key);
-            localStorage.setItem("username", data.result.username);
-            setSession({
-              username: data.result.username,
-              key: data.result.key
-            });
-            setLoginForm({ nom: "", motDePasse: "" });
-            navigate("/lobby");
-          } else if (action == "signout") {
-            localStorage.removeItem("sessionKey");
-            localStorage.removeItem("username");
-            setSession(null);
-          }
-        }
-      });
-  };
+    .catch(() => {
+      setLoading(false);
+      setError("Erreur serveur");
+    });
+};
 
   const register = () => {
     setLoading(true); 

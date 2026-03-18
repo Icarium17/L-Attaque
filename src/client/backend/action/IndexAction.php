@@ -92,43 +92,40 @@ class IndexAction extends CommonAction {
             return ["result" => compact("success", "key", "username"), "response_svr" => $apiResult];
         }
 
-        // Signin
+        // SIGNIN (CONNEXION)
         else {
-            $nom = isset($_POST["nom"]) ? trim($_POST["nom"]) : "";
-            $motDePasse = isset($_POST["motDePasse"]) ? trim($_POST["motDePasse"]) : "";
+                $nom = isset($_POST["nom"]) ? trim($_POST["nom"]) : "";
+                $motDePasse = isset($_POST["motDePasse"]) ? trim($_POST["motDePasse"]) : "";
 
-            if (empty($nom) || empty($motDePasse)) {
-                $error = "Veuillez saisir les informations";
-                return ["result" => compact("error")];
-            }
+                if (empty($nom) || empty($motDePasse)) {
+                    $error = "Veuillez saisir les informations";
+                    return ["result" => compact("error")];
+                }
 
-            $data = [
-                "username" => $nom,
+                $data = [
+                "username" => $nom, 
                 "password" => $motDePasse
-            ];
+                ];
+                $apiResult = parent::callPython("signin", $data);
 
-            $apiResult = parent::callPython("signin", $data);
+                if ($apiResult == null) {
+                    $error = "Serveur injoignable";
+                    return ["result" => compact("error")];
+                }
 
-            if ($apiResult == null) {
-                $error = "Serveur injoignable";
-                return ["result" => compact("error")];
-            }
+                if ($apiResult->status == "User connected") {
+                    $_SESSION["visibility"] = self::$VISIBILITY_MEMBER;
+                    $_SESSION["username"] = $nom;
+                    $_SESSION["key"] = $apiResult->key;
 
-            if ($apiResult->status == "INVALID_USERNAME_PASSWORD") {
-                $error = "Authentification échouée";
+                    $success  = true;
+                    $key      = $apiResult->key;
+                    $username = $nom;
+                    return ["result" => compact("success", "key", "username"), "response_svr" => $apiResult];
+                }
+
+                $error = "Erreur Login ou mot de passe ";
                 return ["result" => compact("error"), "response_svr" => $apiResult];
             }
-
-            // Connexion réussie
-            $_SESSION["visibility"] = self::$VISIBILITY_MEMBER;
-            $_SESSION["username"] = $nom;
-            $_SESSION["key"] = $apiResult->key;
-
-            $success  = true;
-            $key      = $apiResult->key;
-            $username = $nom;
-
-            return ["result" => compact("success", "key", "username"), "response_svr" => $apiResult];
         }
     }
-}
