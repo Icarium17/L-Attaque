@@ -1,5 +1,6 @@
 import Button from "../components/button.jsx";
-import Error from "../components/error.jsx";
+import Notification from "../components/notification.jsx";
+import Loading from "../components/loading.jsx";
 import MainLayout from "../layouts/main-layout";
 import background from '../assets/images/background-index.png';
 import logo from '../assets/images/logo.png';
@@ -11,7 +12,10 @@ export default function Index() {
   const [error, setError] = useState("");
   const [loginForm, setLoginForm] = useState({ nom: "", motDePasse: "" });
   const [registerForm, setRegisterForm] = useState({ nom: "", motDePasse: "" });
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   // Vérifier session au chargement
   useEffect(() => {
@@ -20,6 +24,8 @@ export default function Index() {
     if (key && username) {
       setSession({ username, key });
     }
+    setLoginForm({ nom: "", motDePasse: "" });
+    setRegisterForm({ nom: "", motDePasse: "" });
   }, []);
 
   // Fonction gérer le signin et le signout
@@ -64,6 +70,7 @@ export default function Index() {
   };
 
   const register = () => {
+    setLoading(true); 
     let formData = new FormData();
     formData.append("action", "register");
     formData.append("nom", registerForm.nom);
@@ -72,31 +79,39 @@ export default function Index() {
     fetch("/api/index.php", { method: "POST", body: formData })
       .then((response) => response.json())
       .then((data) => {
+        setLoading(false); 
+        setRedirecting(true);  
         if (data.result.error) {
-          setError(data.result.error);
-          setTimeout(() => setError(""), 3000);
+          setError(data.result.error);                  
+          setRegisterForm({ nom: "", motDePasse: "" });
+          setTimeout(() => setError(""), 5000);
         } else {
-          // Succès : connexion automatique
           localStorage.setItem("sessionKey", data.result.key);
           localStorage.setItem("username", data.result.username);
-          setSession({ username: data.result.username, key: data.result.key });
-          setRegisterForm({ nom: "", motDePasse: "" });
-          navigate("/lobby");
+          setSuccess(`Compte "${data.result.username}" créé avec succès!`);
+          setTimeout(() => {
+            setSession({ username: data.result.username, key: data.result.key });  
+            navigate("/lobby");
+          }, 3000);
         }
-      })
-      .catch(() => setError("Erreur d'inscription."));
+      })   
+      .catch(() => {
+      setLoading(false);  
+      setError("Erreur d'inscription.");
+    });
   };
 
   // Affichage pendant la session
-  if (session) {
+if (session) {
     return (
       <MainLayout title="Accueil" background={background} session={session} hideMenu={true}>
         <div className="relative flex flex-col justify-center items-center min-h-screen w-full overflow-hidden">
           <div className="absolute inset-0 bg-gray-950/70" />
-          <div className="relative z-10 flex flex-col items-center gap-8 p-8 bg-white/10 rounded-lg">
-            <img src={logo} alt="Logo du Jeu" className="max-w-2xl h-auto drop-shadow-2xl" />
+          
+          <div className="relative z-10 flex flex-col items-center gap-8 p-8 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+            <img src={logo} alt="Logo" className="max-w-2xl h-auto drop-shadow-2xl" />
             <h1 className="text-white text-3xl font-bold text-center">
-              Bienvenue dans l'Attaque, {session.username} !
+              Bienvenue dans l'Attaque, <span className="text-primary">{session.username}</span> !
             </h1>
             <Button
               className="w-64"
@@ -106,7 +121,18 @@ export default function Index() {
               Se déconnecter
             </Button>
           </div>
+          {error && (
+            <div className="absolute bottom-10 z-50 w-full max-w-md">
+              <Notification variant="error" message={error} onClose={() => setError("")} />
+            </div>
+          )}
+          {success && (
+            <div className="absolute bottom-10 z-50 w-full max-w-md">
+              <Notification variant="success" message={success} onClose={() => setSuccess("")} />
+            </div>
+          )}
         </div>
+        {(loading || redirecting) && <Loading silent={true} />}
       </MainLayout>
     );
   }
@@ -139,6 +165,7 @@ export default function Index() {
                 <input
                   type="text"
                   placeholder="Nom d'utilisateur"
+                  autoComplete="off"
                   value={loginForm.nom}
                   onChange={(e) => setLoginForm({ ...loginForm, nom: e.target.value })}
                   className="w-full p-4 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
@@ -193,7 +220,7 @@ export default function Index() {
 
           {error && (
             <div className="mt-6 w-full max-w-md">
-              <Error
+              <Notification
                 variant="error"
                 message={error}
                 autoClose={3000}
@@ -201,8 +228,21 @@ export default function Index() {
               />
             </div>
           )}
+
+        {success && (
+        <div className="mt-6 w-full max-w-md">
+          <Notification
+            variant="success"
+            message={success}
+            autoClose={5000}
+            onClose={() => setSuccess("")}
+          />
+        </div>
+      )}
         </div>
       </div>
+
+     {(loading || redirecting) && <Loading silent={true} />}
     </MainLayout>
   );
 }

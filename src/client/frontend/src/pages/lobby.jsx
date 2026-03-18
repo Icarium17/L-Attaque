@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import MainLayout from "../layouts/main-layout";
 import Button from "../components/button.jsx";
-import Error from "../components/error.jsx";
+import Notification from "../components/notification.jsx";
 
 import backgroundLobby from '../assets/images/background-lobby.jpg';
 import logo from '../assets/images/logo.png';
@@ -129,7 +129,7 @@ export default function Lobby() {
 
 
  
-          {error && <div className="mt-4"><Error message={error} /></div>}
+          {error && <div className="mt-4"><Notification message={error} /></div>}
           
        
      

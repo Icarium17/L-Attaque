@@ -23,11 +23,18 @@ const VARIANTS = {
     colorSecond:  "#eFFFFF",
     glow: "91,155,255",
   },
+  success: {
+  border: "#27ae60,#6ddb95,#1a6b3a,#27ae60,#6ddb95",
+  bg: "linear-gradient(to bottom, #0f1e14, #0a150d, #060d08)",
+  color: "#2ecc71",
+  colorSecond: "#eFFFFF",
+  glow: "46,204,113",
+},
 };
 
 
 
-export default function Error({
+export default function Notification({
   variant = "error",
   title,
   message,

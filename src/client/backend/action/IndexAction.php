@@ -15,29 +15,39 @@ class IndexAction extends CommonAction {
 
         // Déconnexion
         if ($action == "signout") {
+            $key = $_SESSION["key"] ?? $_POST["key"] ?? null;
 
-            if (!isset($_SESSION["key"])) {
-                $error = "Session non active";
-                return ["result" => compact("error")];
+            if (empty($key)) {
+                $success = true; 
+                $message = "Aucune session active";
+                return ["result" => compact("success", "message")];
             }
 
-            $data = ["key" => $_SESSION["key"]];
+            $data = ["key" => $key];
             $apiResult = parent::callPython("signout", $data);
 
-            if ($apiResult == "INVALID_KEY") {
-                $error = "Clé de session invalide";
-                return ["result" => compact("error")];
-            }
+            if ($apiResult != null) {
+                if ($apiResult->status == "USER_DISCONNECTED") {
+                    session_destroy();
+                    session_start();
+                    $success = true;
+                    $message = "Déconnexion réussie";
+                    return ["result" => compact("success", "message"), "response_svr" => $apiResult];
+                } 
 
-            // Réinitialisation de la variable session
-            session_destroy();
-            session_start();
+            if ($apiResult->status == "INVALID_KEY") {                 
+                $error = "Clef invalide";
+                return ["result" => compact("error"), "response_svr" => $apiResult];
+                 }
 
-            $success = true;
-            $message = "Déconnexion réussie";
-            return ["result" => compact("success", "message")];
+                $error = "Erreur serveur : " . $apiResult->status;
+                return ["result" => compact("error"), "response_svr" => $apiResult];
+            } 
+
+            $error = "Serveur Python hors-ligne";
+            return ["result" => compact("error")];
         }
-
+ 
         // Register
         elseif ($action == "register") {
             $nom = isset($_POST["nom"]) ? trim($_POST["nom"]) : "";
@@ -56,18 +66,18 @@ class IndexAction extends CommonAction {
             $apiResult = parent::callPython("signup", $data); 
  
             if ($apiResult == null) {
-                $error = "Impossible de joindre le serveur.";
+                $error = "Serveur injoignable";
                 return ["result" => compact("error")];
             }
 
-            if ($apiResult == "INVALID_USERNAME_PASSWORD") {
+            if ($apiResult->status == "INVALID_USERNAME_PASSWORD") {  
                 $error = "Mauvais mot de passe";
-                return ["result" => compact("error")];
+                return ["result" => compact("error"), "response_svr" => $apiResult];
             }
 
-            if ($apiResult == "USER_ALREADY_EXISTS") {
-                $error = "Le compte existe  déjà";
-                return ["result" => compact("error")];
+            if ($apiResult->status == "ERROR" || $apiResult->status == "USER_ALREADY_EXISTS") {
+                $error = "Le compte existe";
+                return ["result" => compact("error"), "response_svr" => $apiResult];
             }
 
             // Inscription /connexion réussie
@@ -79,10 +89,10 @@ class IndexAction extends CommonAction {
             $key      = $apiResult->key;
             $username = $nom;
 
-            return ["result" => compact("success", "key", "username")];
+            return ["result" => compact("success", "key", "username"), "response_svr" => $apiResult];
         }
 
-        // Sigin
+        // Signin
         else {
             $nom = isset($_POST["nom"]) ? trim($_POST["nom"]) : "";
             $motDePasse = isset($_POST["motDePasse"]) ? trim($_POST["motDePasse"]) : "";
@@ -99,9 +109,14 @@ class IndexAction extends CommonAction {
 
             $apiResult = parent::callPython("signin", $data);
 
-            if ($apiResult == "INVALID_USERNAME_PASSWORD") {
-                $error = "Authentification échouée";
+            if ($apiResult == null) {
+                $error = "Serveur injoignable";
                 return ["result" => compact("error")];
+            }
+
+            if ($apiResult->status == "INVALID_USERNAME_PASSWORD") {
+                $error = "Authentification échouée";
+                return ["result" => compact("error"), "response_svr" => $apiResult];
             }
 
             // Connexion réussie
@@ -113,7 +128,7 @@ class IndexAction extends CommonAction {
             $key      = $apiResult->key;
             $username = $nom;
 
-            return ["result" => compact("success", "key", "username")];
+            return ["result" => compact("success", "key", "username"), "response_svr" => $apiResult];
         }
     }
 }

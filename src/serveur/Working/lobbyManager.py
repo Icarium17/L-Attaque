@@ -14,7 +14,7 @@ class LobbyManager():
         self.actions = {
             "signup" : self.create_profile,
             "signin" : self.login,
-            "logout" : self.logout,
+            "signout" : self.logout,
             "deleteProfile" : self.logout,
             "modifyProfile" : self.modify_profile,
             "startGame" : self.start_game,
@@ -66,7 +66,7 @@ class LobbyManager():
 
     def logout(self, args):
         print("logout called")
-        session_id = args
+        session_id = args[0]
         if session_id in self.active_users:
             del self.active_users[session_id]
             return "USER_DISCONNECTED"

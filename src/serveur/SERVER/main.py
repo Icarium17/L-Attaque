@@ -33,16 +33,19 @@ def handle_signin():
         "username": username
     })
 
-@app.route('/sigout', methods=['POST'])
-def handle_sigout():
+@app.route('/signout', methods=['POST'])
+def handle_signout():
     data = request.get_json()
     key = data.get('key')
 
     result = lobby.execute_action("signout", (key,))
     return jsonify({
-        "result" : result
+        "status" : result
     })
 
+@app.route('/')
+def index():
+    return "Serveur Python Flask OK"
 
 # Service pour les mouvements des pieces
 @app.route('/move', methods=['POST'])
