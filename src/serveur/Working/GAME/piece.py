@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 class PieceType(Enum):
     Maréchal = (10, 1)
     Général = (9, 1)

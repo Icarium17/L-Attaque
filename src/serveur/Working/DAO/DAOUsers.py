@@ -1,4 +1,4 @@
-from .DAOConnection import DAOConnection
+from DAO.DAOConnection import DAOConnection
 import bcrypt
 import secrets
 

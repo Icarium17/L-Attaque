@@ -1,8 +1,10 @@
+from GAME.move import Move
 from gameManager import GameManager
 from USERS.player import Player
 from USERS.aiPlayer import AIPlayer
 from DAO.DAOUsers import DAOUsers
 from USERS.user import User
+from GAME.piece import Piece, PieceType
 
 class LobbyManager():
     def __init__(self):
@@ -84,13 +86,14 @@ class LobbyManager():
     def start_game(self, args): ## tout à changer une fois que les joueurs pourront se connecter et loop awaiting player
         print("start_game called")
         my_id = args[0]
-        player = Player(self.active_users[my_id], 0)
+        their_id = args[1]
+        player1 = Player(self.active_users[my_id], 0)
 
-        player_ai = AIPlayer()
+        player2 = Player(self.active_users[their_id], 1)
 
-        game = GameManager([player, player_ai])
+        game = GameManager([player1, player2])
         self.games[my_id] = game
-        self.games[0] = game
+        self.games[their_id] = game
 
         return "Le jeu est commencé"
 
@@ -124,8 +127,9 @@ class LobbyManager():
         print("set_pieces called")
         my_id = args[0]
         pieces = args[1]
+        print(pieces)
 
-        game = self.games[my_id]
+        game = self.games[my_id] ##this might be a problem with how start_game works, but itll change so its fine for now
         valid = game.check_valid_setup(my_id, pieces)
         if valid:
             return valid
@@ -136,6 +140,9 @@ class LobbyManager():
         my_id = args[0]
         move = args[1]
 
+        game = self.games[my_id]
+        game.make_move(my_id, move)
+
 
     ## Other
     def chat(self):
@@ -144,6 +151,72 @@ class LobbyManager():
     def leaderboard(self):
         print("leaderboard called")
 
+    
+    def test(self):
+        user1 = User(0, "Player1")
+        user2 = User(1, "Player2")
+        lobby.active_users[user1.unique_id] = user1
+        lobby.active_users[user2.unique_id] = user2
+
+        # Start a game (simulate as user1)
+        lobby.start_game([user1.unique_id, user2.unique_id])
+
+        # Get the game instance
+        game = lobby.games[user1.unique_id]
+
+        # Simulate both players are ready (skip placement for test)
+        game.players_ready = 2
+
+        pieces1 = lobby.create_full_piece_setup(0, 0)   # Player 1, rows 0-3
+        pieces2 = lobby.create_full_piece_setup(1, 6)   # Player 2, rows 6-9
+        lobby.set_pieces([user1.unique_id, pieces1])
+        lobby.set_pieces([user2.unique_id, pieces2])
+
+
+        # Make a move for player 1
+        move = Move((0, 3), (0, 4))
+        game.make_move(user1.unique_id, move)
+
+        # Check if move was made and timer updated
+        print(f"Move made: {game.move_made}")
+        print(f"Player 1 time remaining: {game.players[0].time_remaining}")
+
+    def create_full_piece_setup(self, player_order, starting_row):
+        """
+        Returns a list of 40 Piece objects for a player.
+        player_order: 0 for player 1, 1 for player 2
+        starting_row: the row where the player's pieces start (e.g., 0 or 6)
+        """
+        from GAME.piece import Piece, PieceType
+
+        pieces = []
+        # Example: Place all pieces in the first 4 rows for each player
+        # You should adjust the types and positions to match your game rules
+        piece_types = [
+            PieceType.Maréchal, PieceType.Général, PieceType.Colonel, PieceType.Colonel,
+            PieceType.Major, PieceType.Major, PieceType.Major,
+            PieceType.Capitaine, PieceType.Capitaine, PieceType.Capitaine, PieceType.Capitaine,
+            PieceType.Lieutenant, PieceType.Lieutenant, PieceType.Lieutenant, PieceType.Lieutenant,
+            PieceType.Sergent, PieceType.Sergent, PieceType.Sergent, PieceType.Sergent,
+            PieceType.Démineur, PieceType.Démineur, PieceType.Démineur, PieceType.Démineur, PieceType.Démineur,
+            PieceType.Éclaireur, PieceType.Éclaireur, PieceType.Éclaireur, PieceType.Éclaireur,
+            PieceType.Éclaireur, PieceType.Éclaireur, PieceType.Éclaireur, PieceType.Éclaireur,
+            PieceType.Espion, PieceType.Bombe, PieceType.Bombe, PieceType.Bombe, PieceType.Bombe, PieceType.Bombe, PieceType.Bombe,
+            PieceType.Drapeau
+        ]
+        idx = 0
+        for row in range(starting_row, starting_row + 4):
+            for col in range(10):
+                if idx < 40:
+                    pieces.append(Piece(idx, piece_types[idx], (col, row), player_order))
+                    idx += 1
+        return pieces
+
+
+
+if __name__ == "__main__":
+    lobby = LobbyManager()
+    lobby.test()
     
 
     

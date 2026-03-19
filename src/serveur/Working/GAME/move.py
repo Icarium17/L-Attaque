@@ -6,7 +6,7 @@ class Move():
     def getParams(self):
         x_0, y_0 = self.moveFrom
         x_1, y_1 = self.moveTo
-        return x_0, x_1, y_0, y_1
+        return x_0, y_0, x_1, y_1
     
 
     def __eq__(self, other):

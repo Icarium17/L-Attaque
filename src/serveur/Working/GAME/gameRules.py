@@ -1,6 +1,6 @@
 from USERS.player import Player
-from move import Move
-from board import Board
+from GAME.move import Move
+from GAME.board import Board
 
 class GameRules():
     def __init__(self, board, game_type):
@@ -44,7 +44,7 @@ class GameRules():
         return True
     
 
-    def validate_move(self, move, player):
+    def validate_move(self, player, move):
         x_0, y_0, x_1, y_1 = move.getParams()
 
         d_x = abs(x_1 - x_0)
@@ -58,29 +58,32 @@ class GameRules():
         if d_x == 0 and d_y == 0: ## if the mouvement is null
             return (0, "Pas de mouvement")
         
+        if piece is None: ## if there`s no piece on the tile the player wants to move
+            return (0, "Il n'y a pas de pièce sur cette tuile")
+        
         if piece.owner != player.order: ## if a player is trying to move another`s piece
             return (0, "Cette pièce n'appartient pas à ce joueur")
         
         if d_x > 0 and d_y > 0: ## if the move is diagonal
             return (0, "Les pièces ne peuvent pas bouger diagonalement")
 
-        if not (0 <= x_1 < self.board.columns) or not (0 <= y_1 < self.board.rows): ## if the move makes the piece fall off the edge of the battlefield
+        if not (0 <= x_1 < self.board.cols) or not (0 <= y_1 < self.board.rows): ## if the move makes the piece fall off the edge of the battlefield
             return (0, "Piece a été bougée hors du plateau de jeu")
         
         if tileTo.piece and tileTo.piece.owner == player.order : ## if the piece stops on a tile where theres a piece belonging to the same player 
             return (0, "Cette tuile est occuppée par une pièce appartenant à ce joueur")
 
-        if piece.name == "Drapeau" or piece.name == "Bombe": ## if the player is trying to mvoe a bomb or a flag
+        if piece.type == "Drapeau" or piece.type == "Bombe": ## if the player is trying to mvoe a bomb or a flag
             if d_x != 0 or d_y != 0:
                 return (0, "Cette pièce ne peut pas bouger")
             
-        if not self.check_last_moves(player.order, move): ## if the move is identical to the last 4 moves
-            return (0, "La même pièce ne peut pas faire le même mouvement plus de 4 fois")
+        #if not self.check_last_moves(player.order, move): ## if the move is identical to the last 4 moves
+        #    return (0, "La même pièce ne peut pas faire le même mouvement plus de 4 fois")
         
         if tileTo.state == 1:
             return (0, "Cette tuile n'est pas praticable")
         
-        if piece.name != "Éclaireur": ## is a piece that`s not a scout tries to move more than 1 tile
+        if piece.type != "Éclaireur": ## is a piece that`s not a scout tries to move more than 1 tile
                 if d_x > 1 or d_y > 1:
                     return (0, "Cette pièce ne peut pas bouger d'autant de tuile")
                 
@@ -102,6 +105,7 @@ class GameRules():
 
 
     def check_last_moves(self, player_order, move):
+        
         last_moves = self.last_moves[player_order]
         if len(last_moves) == 0: ## on the first move, it will always be a legal move
             last_moves.append(move)
