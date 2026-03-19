@@ -4,7 +4,6 @@ from lobbyManager import LobbyManager
 app = Flask(__name__)
 lobby = LobbyManager()
 
-# Test connexion Eddy (Inscription)
 @app.route('/signup', methods=['POST'])
 def handle_signup():
     data = request.get_json()
@@ -47,9 +46,24 @@ def handle_signout():
 def index():
     return "Serveur Python Flask OK"
 
-# Service pour les mouvements des pieces
-@app.route('/move', methods=['POST'])
+@app.route('/get_all_users', methods=['POST'])
+def handle_get_all_users():
+    users = lobby.DAOUsers.get_all_users()
+    active_usernames = [user.username for user in lobby.active_users.values()]
 
+    for user in users:
+        user["connected"] = user["username"] in active_usernames
+
+    return jsonify({"users": users})
+
+@app.route('/delete_user', methods=['POST'])
+def handle_delete_user():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    result = lobby.DAOUsers.delete_user(user_id)
+    return jsonify({"deleted": result})
+ 
+@app.route('/make_move', methods=['POST'])
 def handle_valid_move():
     data = request.get_json()
     pion = data.get('pion')

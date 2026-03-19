@@ -35,3 +35,12 @@ class DAOUsers():
                 return True, user_id, session_key, score
 
             return False, 0
+        
+        
+    def get_all_users(self):
+        with DAOConnection() as db:
+            return db.fetch("SELECT _id, username FROM users")
+
+    def delete_user(self, user_id):
+        with DAOConnection() as db:
+            return db.execute("DELETE FROM users WHERE _id = %s", (user_id,))

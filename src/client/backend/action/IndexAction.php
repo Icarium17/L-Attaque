@@ -113,7 +113,7 @@ class IndexAction extends CommonAction {
                     return ["result" => compact("error")];
                 }
 
-                if ($apiResult->status == "User connected") {
+                if ($apiResult->status == "USER_CONNECTED") {
                     $_SESSION["visibility"] = self::$VISIBILITY_MEMBER;
                     $_SESSION["username"] = $nom;
                     $_SESSION["key"] = $apiResult->key;

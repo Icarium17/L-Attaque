@@ -30,7 +30,7 @@ class LobbyManager:
         )
 
         if user_id[0] == True:
-            return "User created!", user_id[1]
+            return "USER_CREATED", user_id[1]
         return "Error", 0
 
     def login(self, args):
@@ -40,7 +40,7 @@ class LobbyManager:
         if user_id[0] == True:
             user = User(user_id[1], username)
             self.active_users[user.unique_id] = user
-            return "User connected", user_id[1]
+            return "USER_CONNECTED", user_id[1]
 
         return "Error, the username and the password do not match", 0
 

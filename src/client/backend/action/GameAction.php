@@ -47,7 +47,7 @@ class GameAction extends CommonAction {
             }
 
             $success = true;
-            $message = "Move effectué";
+            $message = "Move effectue";
             return ["result" => compact("success", "message"), "response_svr" => $apiResult];
         }
 

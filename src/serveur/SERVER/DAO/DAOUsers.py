@@ -32,3 +32,12 @@ class ConnexionUsers():
                 return True, session_key
 
             return False, 0
+    
+    def get_all_users(self):
+        with Connection() as db:
+            return db.fetch("SELECT _id, username FROM users")
+
+
+    def delete_user(self, user_id):
+        with Connection() as db:
+            return db.execute("DELETE FROM users WHERE _id = %s", (user_id,))

@@ -6,6 +6,7 @@ import './css/global.css'
 import Index from './pages/index'
 import Lobby from './pages/lobby'
 import Game from './pages/game'
+import Admin from './pages/admin'
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')).render(
       <Route path="/" element={<Index />} />
       <Route path="/lobby" element={<Lobby />} />
       <Route path="/game" element={<Game />} />
+      <Route path="/admin" element={<Admin />} />
     </Routes>
   </BrowserRouter>
 )
