@@ -1,4 +1,4 @@
-from player import Player
+from USERS.player import Player
 
 class AIPlayer(Player):
     def __init__(self, difficulty, board):

@@ -1,5 +1,5 @@
-from user import User
-from GAME.board import board
+from USERS.user import User
+from GAME.board import Board
 
 class Player(User):
     def __init__(self, user_instance, order, time_remaining = (30*60)):
@@ -12,7 +12,7 @@ class Player(User):
         self.known_board.move(move)
 
     def position_pieces(self, pieces):
-        self.board.set_pieces(pieces)
+        self.known_board.set_pieces(pieces)
 
     def initialize_game(self):
         pass
@@ -22,5 +22,6 @@ class Player(User):
 
     def update_belief_state(self):
         pass
+
 
     

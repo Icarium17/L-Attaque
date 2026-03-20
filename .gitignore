@@ -30,3 +30,9 @@ Thumbs.db
 
 # Vite
 *.local
+
+# Python 
+__pycache__/ 
+*.pyc 
+*.pyo 
+*.pyd

@@ -1,4 +1,4 @@
-from tile import Tile
+from GAME.tile import Tile
 
 class Board():
     def __init__(self, game_type = "original"):
@@ -7,7 +7,7 @@ class Board():
             "original" : (10, 10)
         }
         self.rows = 0
-        self.columns = 0
+        self.cols = 0
         self.game_type = game_type
 
         self.initialise_tiles()
@@ -23,7 +23,7 @@ class Board():
 
     def set_pieces(self, pieces):
         for piece in pieces:
-            self.tiles[piece.y][piece.x].piece = piece
+            self.tiles[piece.position[1]][piece.position[0]].piece = piece
     
     def move(self, move):
         x_0, y_0, x_1, y_1 = move.getParams()
