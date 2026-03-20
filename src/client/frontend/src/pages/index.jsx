@@ -135,6 +135,14 @@ if (session) {
             >
               Se déconnecter
             </Button>
+          <Button 
+      
+          onClick={() => {
+            localStorage.clear();
+            window.location.reload();
+          }}
+        >RESET
+        </Button>
           </div>
           {error && (
             <div className="absolute bottom-10 z-50 w-full max-w-md">
