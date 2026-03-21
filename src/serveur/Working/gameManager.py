@@ -3,7 +3,7 @@ from time import time
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
-from GAME.beliefPiece import BeliefPiece
+from GAME.piece import BeliefPiece
 
 class GameManager():
     def __init__(self, players, game_type = "original"):
@@ -43,6 +43,7 @@ class GameManager():
     		belief_pieces.append(belief)
     	for opponent in self.players[player_id] + [self.players[player_id + 1:]:
     		opponent.setBoard(belief_pieces)
+        self.players[player_id].belief_pieces = belief_pieces
         
     def check_board(self):
         for y in range(self.board.rows):
