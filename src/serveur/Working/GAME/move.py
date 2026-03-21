@@ -12,9 +12,4 @@ class Move():
     def __eq__(self, other):
             if not isinstance(other, Move):
                 return False
-            return self.moveFrom == other.moveFrom and self.moveTo == other.moveTo
-
-    def __neg__(self, other):
-        if not isinstance(other, Move):
-            return False
-        return self.moveFrom == other.moveTo and self.moveTo == other.moveFrom
+            return self.moveFrom == other.moveTo and self.moveTo == other.moveFrom
