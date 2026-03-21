@@ -3,6 +3,7 @@ from time import time
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
+from GAME.beliefPiece import BeliefPiece
 
 class GameManager():
     def __init__(self, players, game_type = "original"):
@@ -17,11 +18,6 @@ class GameManager():
         self.game_active = False
         self.sleep_interval = 0.05
 
-
-    def set_player_boards(self):
-        for player in self.players:
-            player.board = self.board
-
     def check_valid_setup(self, player_id, pieces) -> str:
         player_order = self.get_order(player_id)
         if player_order == -1:
@@ -32,12 +28,22 @@ class GameManager():
             return positions
         
         self.board.set_pieces(pieces)
-        self.players[player_order].position_pieces(pieces) # TODO : after all players have set their pieces, set the unknown pieces of their board too
+        self.players[player_order].position_pieces(pieces) 
+        self.set_unknowns_pieces(player_id, pieces) ## TODO : Check if this works
         self.players_ready+=1
-        self.check_board()
-        return ("Les pièces sont correctement positionnées") ##ajouter un check si tous les joueurs sont prêts à jouer
+        self.check_board() ## TODO : Retirer une fois que tout fonctionne
+        if self.players_ready == len(self.players):
+            return ("Tous les joueurs sont prêts. Le jeu va commencer")
+        return ("Les pièces sont correctement positionnées. En attente d'un autre joueur.") 
+
+    def set_unknowns_pieces(self, player_id, pieces):
+    	belief_pieces = []
+    	for piece in pieces:
+    		belief = BeliefPiece(piece.id, piece.position, player_id)
+    		belief_pieces.append(belief)
+    	for opponent in self.players[player_id] + [self.players[player_id + 1:]:
+    		opponent.setBoard(belief_pieces)
         
-    
     def check_board(self):
         for y in range(self.board.rows):
             for x in range(self.board.cols):
