@@ -116,7 +116,15 @@ export default function Game() {
       setPool(newPool);
       setSelectedPoolIndex(null);
       return;
-    }}
+    }
+
+    // Inversion entre la pièce du board et du pool
+    if (!selectedCell && pieceSurCase) {
+      setSelectedCell({ row, col });
+      return;
+    }    
+  
+  }
 
     if (isLake(row, col)) return;
     if (loading) return;
