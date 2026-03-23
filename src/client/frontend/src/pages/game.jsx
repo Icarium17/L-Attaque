@@ -5,7 +5,6 @@ import Cell from "../components/cell.jsx";
 import backgroundGame from '../assets/images/background-game.png';
 import { makeMove ,submitPlacement} from "../services/gameService.js";
 
-
 const LAKES = [
   "4-2", "4-3", "5-2", "5-3",
   "4-6", "4-7", "5-6", "5-7",
@@ -74,7 +73,7 @@ export default function Game() {
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
   const [pool, setPool] = useState(() => createPieces("blue"));
   const [board, setBoard] = useState(() =>  Array.from({length:10},() =>Array(10).fill(null)))
-
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const key = localStorage.getItem("sessionKey");
@@ -95,6 +94,30 @@ export default function Game() {
   }
  
   const handleCellClick = (row, col) => {
+
+    // Phase placement
+    if (phase == "placement"){
+      if (row <6) return;
+      const piece = board [row][col];
+    
+
+    if(selectedPoolIndex != null){
+      const newBoard = board.map((r) =>[...r]);
+      const newPool = [...pool];
+
+      if(piece){
+        newPool.push(piece);
+      }
+    
+      newBoard[row][col] = newPool[selectedPoolIndex];
+      newPool.splice(selectedPoolIndex, 1);
+
+      setBoard(newBoard);
+      setPool(newPool);
+      setSelectedPoolIndex(null);
+      return;
+    }}
+
     if (isLake(row, col)) return;
     if (loading) return;
 
@@ -117,9 +140,28 @@ export default function Game() {
     });
   };
 
-  const  handleSubmitPlacement = () =>{
+  const  handleSubmitPlacement = () => {
+    if (pool.length > 0 ){
+      setError("Il reste des pièces à placer!");
+      return;
+    }
+    setLoading(true);
 
+    const placement = board.slice(6,10).map ((row) =>
+    row.map((cell) =>(cell? {rank:cell.rank, name: cell.name}: null)));
+
+    submitPlacement(placement).then((data) =>{
+      if (data?.result.error){
+        setError(data?.result.error);
+      }
+      else{
+        setPhase("playing");
+      }
+      setLoading(false);
+    })
   };
+
+
 
  
   return (
@@ -131,13 +173,13 @@ export default function Game() {
     >
       {/* ===== POOL À GAUCHE EN PHASE PLACEMENT ===== */}
       {phase == "placement" && (
-        <div className="flex flex-col items-center w-32 shrink-0">
+        <div className="flex flex-col items-center w-68 shrink-0">
           <h2 className="text-white text-sm font-bold mb-2 text-center">
             Pièces à placer
           </h2>
 
           {/* Grille 2 colonnes de boutons */}
-          <div className="grid grid-cols-2 gap-1 overflow-y-auto max-h-[80vh] mb-3">
+          <div className="grid grid-cols-2 gap-2 overflow-y-auto max-h-[80vh] mb-2">
             {pool.map((piece, idx) => (
               <button
                 key={idx}
