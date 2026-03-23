@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useAsyncError, useNavigate } from "react-router";
 import MainLayout from "../layouts/main-layout";
 import Cell from "../components/cell.jsx";
 import backgroundGame from '../assets/images/background-game.png';
+import { makeMove ,submitPlacement} from "../services/gameService.js";
 
-import { makeMove } from "../services/gameService.js";
 
 const LAKES = [
   "4-2", "4-3", "5-2", "5-3",
@@ -41,6 +41,7 @@ function createPieces(player) {
   return pieces;
 }
 
+// Fonction creer un board par défaut
 function createInitialBoard() {
   const board = Array.from({ length: 10 }, () => Array(10).fill(null));
 
@@ -66,10 +67,13 @@ function createInitialBoard() {
 export default function Game() {
   const [session, setSession] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
-  const [board, setBoard] = useState(() => createInitialBoard());
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [turn, setTurn] = useState("blue");
+  const [phase, setPhase] = useState("placement");
+  const [pool, setPool] =  useState(() => createPieces=("blue"));
+  const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
+  const [board, setBoard] = useState(() =>  Array.from({length:10},() =>Array(10).fill(null)))
 
 
   useEffect(() => {
