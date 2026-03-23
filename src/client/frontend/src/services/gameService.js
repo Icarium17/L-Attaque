@@ -12,8 +12,6 @@ function callApi(action, formData) {
     });
 }
 
-
-
 export function makeMove(fromRow, fromCol, toRow, toCol) {
   let formData = new FormData();
   formData.append("from_row", fromRow);
@@ -22,3 +20,11 @@ export function makeMove(fromRow, fromCol, toRow, toCol) {
   formData.append("to_col", toCol);
   return callApi("make_move", formData);
 }
+
+export function submitPlacement(pieces) {
+  const key = localStorage.getItem("SessionKey");
+  let formData = new FormData();
+  formData.append(pieces);
+  return callApi("submit_placement",formData);
+}
+
