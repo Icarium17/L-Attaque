@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAsyncError, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import MainLayout from "../layouts/main-layout";
 import Cell from "../components/cell.jsx";
 import backgroundGame from '../assets/images/background-game.png';
@@ -65,14 +65,14 @@ function createInitialBoard() {
 
 
 export default function Game() {
+  const navigate = useNavigate();
   const [session, setSession] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [turn, setTurn] = useState("blue");
   const [phase, setPhase] = useState("placement");
-  const [pool, setPool] =  useState(() => createPieces=("blue"));
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
+  const [pool, setPool] = useState(() => createPieces("blue"));
   const [board, setBoard] = useState(() =>  Array.from({length:10},() =>Array(10).fill(null)))
 
 
@@ -86,17 +86,14 @@ export default function Game() {
     }
   }, [navigate]);
 
-  useEffect(() => {
-      const key = localStorage.getItem("sessionKey");
-      const username = localStorage.getItem("username");
-      if (!key || !username) {
-        navigate("/");
-      } else {
-        setSession({ username, key });
-      }
-    }, [navigate]);
 
-
+  const handlePoolClick = (index) => {
+    if (phase != "placement")
+      return;
+    setSelectedPoolIndex(index);
+    setSelectedCell(null);
+  }
+ 
   const handleCellClick = (row, col) => {
     if (isLake(row, col)) return;
     if (loading) return;
@@ -120,6 +117,11 @@ export default function Game() {
     });
   };
 
+  const  handleSubmitPlacement = () =>{
+
+  };
+
+ 
   return (
     <MainLayout
       title="Game - L'Attaque"
