@@ -51,6 +51,9 @@ class GameAction extends CommonAction {
             return ["result" => compact("success", "message"), "response_svr" => $apiResult];
         }
 
+    
+
+
         $error = "Action inconnue";
         return ["result" => compact("error")];
     }
