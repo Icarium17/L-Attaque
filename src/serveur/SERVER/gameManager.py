@@ -29,6 +29,7 @@ class GameManager():
     def set_player_boards(self):
         for player in self.players:
             player.known_board = Board(self.game_type)
+            player.user.status = "SETTING_UP"
 
     def check_valid_setup(self, player_id, pieces) -> str:
         player_order = self.get_order(player_id)
@@ -47,8 +48,11 @@ class GameManager():
         ##self.check_board() ## TODO : Retirer une fois que tout fonctionne
         if self.players_ready == len(self.players):
             self.timers.start(0)  # Start with player 0
-            return ("Tous les joueurs sont prêts. Le jeu va commencer")
-        return ("Les pièces sont correctement positionnées. En attente d'un autre joueur.") 
+            for player in self.players:
+                player.user.status = "GAME_READY"
+        else :
+            self.players[player_order].user.status = "WAITING_FOR_OPPONENT"
+        return ("SETUP_SUCCESS") 
 
     def set_unknowns_pieces(self, player_id, pieces):
         belief_pieces = []
@@ -81,7 +85,7 @@ class GameManager():
     def make_move(self, player_id, move):
         player = self.players[self.get_order(player_id)]
         if player.order == -1:
-            return (0, "Le joueur n'est pas valide")
+            return (0, "INVALID_KEY")
         
         valid_move = self.game_rules.validate_move(player, move)
         if valid_move[0] == 0:
@@ -99,7 +103,7 @@ class GameManager():
         self.timers.switch_player(self.player_to_move)
         self.move_made = True
         
-        return (1, "Le mouvement a été effectué avec succès")
+        return (1, "MOVE_SUCCESS")
     
     def combat(self, attacker, defender):
         pass

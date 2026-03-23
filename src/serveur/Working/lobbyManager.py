@@ -73,15 +73,18 @@ class LobbyManager():
 
     def logout(self, args):
         print("logout called")
-        session_id = args
+        (session_id,) = args
         if session_id in self.active_users:
             del self.active_users[session_id]
             return "USER_DISCONNECTED"
         return "INVALID_KEY"
         
 
-    def delete_profile(self):
+    def delete_profile(self, args):
         print("delete_profile called")
+        (my_key,) = args
+
+        return self.DAOUsers.delete_user(my_key)
     
     def modify_profile(self):
         print("modify_profile called")
@@ -101,11 +104,15 @@ class LobbyManager():
 
         return "Le jeu est commencé"
 
-    def get_active_players(self, args) -> list[str]:
+    def get_active_players(self):
         print("get_active_players called")
-        my_key = args
-        list_users = [user for key, user in self.active_users.items() if key != my_key]
-        return list_users
+        users = self.DAOUsers.get_all_users()
+        active_usernames = [user.username for user in self.active_users.values()]
+
+        for user in users:
+            user["connected"] = user["username"] in active_usernames
+        
+        return users
     
     def start_game_specific_player(self):
         print("start_game_specific_player called")

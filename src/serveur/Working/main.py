@@ -57,8 +57,8 @@ def handle_get_all_users():
 @app.route('/delete_user', methods=['POST'])
 def handle_delete_user():
     data = request.get_json()
-    user_id = data.get('user_id')
-    result = lobby.DAOUsers.delete_user(user_id)
+    my_key = data.get('user_id')
+    result = lobby.execute_action("deleteProfile", (my_key,))
     return jsonify({"deleted": result})
  
 @app.route('/make_move', methods=['POST'])
