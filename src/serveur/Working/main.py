@@ -10,11 +10,11 @@ def handle_signup():
     username = data.get('username')
     password = data.get('password')
 
-    logged_in = lobby.execute_action("signup", (username, password))
+    status, key = lobby.execute_action("signup", (username, password))
 
     return jsonify({
-        "status": logged_in[0],
-        "key" : logged_in[1],
+        "status": status,
+        "key" : key,
         "username": username
     })
 
@@ -24,11 +24,11 @@ def handle_signin():
     username = data.get('username')
     password = data.get('password')
 
-    logged_in = lobby.execute_action("signin", (username, password))
+    status, key = lobby.execute_action("signin", (username, password))
 
     return jsonify({
-        "status": logged_in[0],
-        "key": logged_in[1],
+        "status": status,
+        "key": key,
         "username": username
     })
 
@@ -48,12 +48,10 @@ def index():
 
 @app.route('/get_all_users', methods=['POST'])
 def handle_get_all_users():
-    users = lobby.DAOUsers.get_all_users()
-    active_usernames = [user.username for user in lobby.active_users.values()]
-
-    for user in users:
-        user["connected"] = user["username"] in active_usernames
-
+    
+    data = request.get_json()
+    my_key = data.get('key')
+    users = lobby.execute_action("getActivePlayers", (my_key,))
     return jsonify({"users": users})
 
 @app.route('/delete_user', methods=['POST'])
@@ -66,18 +64,26 @@ def handle_delete_user():
 @app.route('/make_move', methods=['POST'])
 def handle_valid_move():
     data = request.get_json()
-    pion = data.get('pion')
-    col = data.get('colonne')
-    lig = data.get('ligne')
-    destination = data.get('destination')
+    user_key = data.get('user_key')
+    x_0 = data.get('colonne')
+    y_0 = data.get('ligne')
+    x_1 = data.get('destination_colonne')
+    y_1 = data.get('destination_ligne')
 
-    print(f"Mouvement reçu : {pion} vers {col}{lig}")
+    result = lobby.execute_action("move", (user_key, x_0, y_0, x_1, y_1))
 
     return jsonify({
-        "status": "success",
-        "message_serveur": f"Le deplacement est valide pour : {pion}",
-        "data_recue": data
+        "status": result[0],
+        "message": result[1]
     })
+
+    # print(f"Mouvement reçu : {pion} vers {col}{lig}")
+
+    # return jsonify({
+    #     "status": "success",
+    #     "message_serveur": f"Le deplacement est valide pour : {pion}",
+    #     "data_recue": data
+    # })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

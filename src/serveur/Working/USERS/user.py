@@ -1,4 +1,7 @@
 class User():
-    def __init__(self, unique_id, username):
-        self.unique_id = unique_id
+    def __init__(self, account_id, key, username, score, status = "IDLE"):
+        self.account_id = account_id
+        self.key = key
         self.username = username
+        self.score = score
+        self.status = status

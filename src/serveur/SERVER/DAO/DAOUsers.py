@@ -13,14 +13,14 @@ class ConnexionUsers():
 
         params = (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast)
 
-        with Connexion() as db:
+        with Connection() as db:
             if db.execute(sql, params):
                 session_key = secrets.token_hex(32)
                 return True, session_key
             return False, 0
 
     def connect(self, username, password):
-        with Connexion() as db:
+        with Connection() as db:
             user = db.fetch("SELECT * FROM users WHERE username=%s", (username,))
 
             if not user:

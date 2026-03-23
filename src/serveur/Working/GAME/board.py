@@ -1,5 +1,3 @@
-from GAME.tile import Tile
-
 class Board():
     def __init__(self, game_type = "original"):
         self.tiles = [] ## Liste 2D. Il faut faire self.tiles[y][x] pur bien y accéder
@@ -37,6 +35,12 @@ class Board():
         tileTo.piece = piece
         piece.position = (move.moveTo)
 
-    
 
-        
+
+class Tile():
+    def __init__(self, id, x, y, state = 0):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.state = state
+        self.piece = None

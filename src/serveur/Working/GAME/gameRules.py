@@ -1,6 +1,7 @@
 from USERS.player import Player
 from GAME.move import Move
 from GAME.board import Board
+from GAME.piece import PieceType
 
 class GameRules():
     def __init__(self, board, game_type):
@@ -14,37 +15,34 @@ class GameRules():
 
         self.board = board
         self.game_type = game_type
-        self.last_moves = [] ##liste contenant la liste des derniers moves de chaque joueur, juste
+        self.last_moves = [] ##liste contenant la liste des derniers moves de chaque joueur pour éviter les répétitions de mouvements
         
     ##Positionnement initial
     def validate_placement(self, player_order, pieces) -> tuple[int, str] :
-                
-        if len(pieces) != self.max_pieces[self.game_type]:
-            if len(pieces) < self.max_pieces[self.game_type]:
-                return (0, "Pas assez de pièces")
-            else:
-                return (0, "Trop de pièces")
-            
+        piece_counts = {ptype: 0 for ptype in PieceType}
+        for piece in pieces:
+            piece_counts[piece.type] += 1
+        for ptype, count in piece_counts.items():
+            if count != ptype.count:
+                print(ptype, count, ptype.count)
+                return (0, f"Nombre incorrect de pièces de type {ptype}")
 
-        ##Ajouter un check que tous les types de pièces sont présents en bon nombre
-        
         start, end = self.zones[self.game_type][player_order]        
         valid_rows = range(start, end)
 
-        if not self.check_positions(valid_rows, pieces):
+        if not self._check_positions(valid_rows, pieces):
             return (0, "Les pièces ne sont pas positionnées correctement")
 
         else:
             return (1, "Les pièces sont positionnées correctement")
         
-    def check_positions(self, valid_rows, pieces) -> bool:
+    def _check_positions(self, valid_rows, pieces) -> bool:
         for piece in pieces:
             if piece.position[1] not in valid_rows:
                 return False
         return True
-    
 
-    def validate_move(self, player, move):
+    def validate_move(self, player, move) -> tuple[int, str]:
         x_0, y_0, x_1, y_1 = move.getParams()
 
         d_x = abs(x_1 - x_0)
@@ -77,8 +75,8 @@ class GameRules():
             if d_x != 0 or d_y != 0:
                 return (0, "Cette pièce ne peut pas bouger")
             
-        #if not self.check_last_moves(player.order, move): ## if the move is identical to the last 4 moves
-        #    return (0, "La même pièce ne peut pas faire le même mouvement plus de 4 fois")
+        if not self._check_last_moves(player.order, move): ## if the move is identical to the last 4 moves
+            return (0, "La même pièce ne peut pas faire le même mouvement plus de 4 fois")
         
         if tileTo.state == 1:
             return (0, "Cette tuile n'est pas praticable")
@@ -93,6 +91,9 @@ class GameRules():
                 for x in range(x_0 + step, x_1, step):
                     if self.board.tiles[y_0][x].piece is not None:
                         return (0, "L'Éclaireur ne peut pas sauter par-dessus une pièce")
+                    
+                    if self.board.tiles[y_0][x].state == 1:
+                        return (0, "L'Éclaireur ne peut pas sauter par-dessus une tuile impraticable")
             
             elif x_0 == x_1:
                 step = 1 if y_1 > y_0 else -1
@@ -100,27 +101,84 @@ class GameRules():
                     if self.board.tiles[y][x_0].piece is not None:
                         return (0, "L'Éclaireur ne peut pas sauter par-dessus une pièce")
                 
+                    if self.board.tiles[y][x_0].state == 1:
+                        return (0, "L'Éclaireur ne peut pas sauter par-dessus une tuile impraticable")
         return (1, "Ce mouvement est légal")
-        
 
-
-    def check_last_moves(self, player_order, move):
+    def _check_last_moves(self, player_order, move) -> bool:
         
+        if len(self.last_moves) <= player_order:
+            self.last_moves.append([])
+
         last_moves = self.last_moves[player_order]
-        if len(last_moves) == 0: ## on the first move, it will always be a legal move
+        if len(last_moves) == 0: 
             last_moves.append(move)
             return True
         
-        if last_moves[0] == move: ## if the list contains at least 1 move that`s identical to the current move
-            if len(last_moves) == 4: ## if there`s already 4 identical moves (this move would be the fifth) = not legal move
+        if last_moves[0] == move: 
+            if len(last_moves) == 4: 
                 return False
-            last_moves.append(move) ## else, append the current move
+            last_moves.append(move) 
         
-        else: ## if the move(s) in the list arent identical to the current move
-            last_moves.clear() ## erases the list and adds the current move instead
+        else: 
+            last_moves.clear() 
             last_moves.append(move)
 
         return True
+
+    def check_impassable_bomb_wall(self, player, opponent):
+        if player.pieces[PieceType.Démineur] == 0:
+            if opponent.pieces_left[PieceType.Bombe] > 0:
+                x_flag, y_flag = opponent.pieces[PieceType.Drapeau].position
+                directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+                for dx, dy in directions:
+                    nx, ny = x_flag + dx, y_flag + dy
+                    if 0 <= nx < self.board.cols and 0 <= ny < self.board.rows:
+                        tile = self.board.tiles[ny][nx]
+                        if not (tile.piece and tile.piece.type == PieceType.Bombe and tile.piece.owner == opponent.order):
+                            return False  # Found a non-bomb or empty tile
+                return True  # All adjacent tiles are bombs
+        return False  
     
+    def check_no_mobile_pieces(self, player):
+        for type in PieceType:
+            if type != PieceType.Drapeau and type != PieceType.Bombe:
+                if player.pieces_left[type] > 0:
+                    return False
+        return True
+                               
+    def check_flag_captured(self, player):
+        if player.pieces_left[PieceType.Drapeau] == 0:
+            return True
+        return False
+    
+    def check_remaining_moves(self, player):
+        if len(player.pieces) == 0:
+            return True
+        
+        for piece in player.pieces.values():
+            if piece.type == "Drapeau" or piece.type == "Bombe":
+                continue
+            if piece.type != "Éclaireur":
+                for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                    new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
+                    if self.validate_move(player, Move(piece.position, (new_x, new_y)))[0] == 1:
+                        return True
+            if piece.type == "Éclaireur":
+                for i in range(1, max(self.board.rows, self.board.cols)):
+                    for dx, dy in [(0, i), (i, 0), (0, -i), (-i, 0)]:
+                        new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
+                        if self.validate_move(player, Move(piece.position, (new_x, new_y)))[0] == 1:
+                            return True
+                        
+        return False
+    
+    ## TODO : Add an actual scoring system
+    def calc_score(self, player):
+        score = 0
+        for piece_type, count in player.pieces_left.items():
+            score += piece_type.score * count
+            
+        return score
 
 

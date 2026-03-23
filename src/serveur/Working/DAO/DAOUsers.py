@@ -44,3 +44,7 @@ class DAOUsers():
     def delete_user(self, user_id):
         with DAOConnection() as db:
             return db.execute("DELETE FROM users WHERE _id = %s", (user_id,))
+        
+    def update_score(self, user_id, new_score):
+        with DAOConnection() as db:
+            return db.execute("UPDATE users SET score = %s WHERE _id = %s", (new_score, user_id))
