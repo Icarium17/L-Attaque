@@ -127,6 +127,51 @@ export default function Game() {
       session={session}
       hideMenu={true}
     >
+      {/* ===== POOL À GAUCHE EN PHASE PLACEMENT ===== */}
+      {phase == "placement" && (
+        <div className="flex flex-col items-center w-32 shrink-0">
+          <h2 className="text-white text-sm font-bold mb-2 text-center">
+            Pièces à placer
+          </h2>
+
+          {/* Grille 2 colonnes de boutons */}
+          <div className="grid grid-cols-2 gap-1 overflow-y-auto max-h-[80vh] mb-3">
+            {pool.map((piece, idx) => (
+              <button
+                key={idx}
+                onClick={() => handlePoolClick(idx)}
+                className={`w-12 h-12 text-xs font-bold rounded border-2 
+                  ${selectedPoolIndex == idx
+                    ? "border-yellow-400 bg-blue-600 text-white scale-110"
+                    : "border-gray-400 bg-blue-800 text-white hover:border-blue-400"
+                  }`}
+              >
+                {piece.rank}
+                <div className="text-[8px]">{piece.name}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Bouton Prêt */}
+          <button
+            onClick={handleSubmitPlacement}
+            disabled={pool.length > 0 || loading}
+            className="px-4 py-2 bg-green-600 text-white rounded font-bold text-sm
+              disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-500"
+          >
+            {loading ? "Envoi..." : "Prêt!"}
+          </button>
+
+          {/* Pièces restantes */}
+          {pool.length > 0 && (
+            <p className="text-gray-300 text-xs mt-1">
+              Reste: {pool.length}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ===== BOARD ===== */}
       <div className="grid grid-cols-10 gap-0.5 w-full max-w-[min(600px,80vh)] aspect-square border-[6px] border-yellow-400 mx-auto bg-gray-300 rounded-sm shadow-2xl">
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
