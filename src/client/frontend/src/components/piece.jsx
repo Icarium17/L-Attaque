@@ -2,7 +2,7 @@ import pieceBlue from '../assets/images/piece-blue.png';
 import pieceRed from '../assets/images/piece-red.png';
 
 export default function Piece({ rank, player, revealed }) {
-  const isBlue = player == "blue";
+  const isBlue = player == "BLUE";
 
   return (
     <div

@@ -41,7 +41,8 @@ Routes (endpoint -> HTTP method):
 
 - POST /get_status
     - Payload: {"key": session_key}
-    - Response: {"status": ...}
+    - Response: {"status": "playing", "board": [...], "turn": "blue"}
+ 
 
 Notes:
  - All endpoints expect JSON payloads unless noted otherwise.
@@ -155,10 +156,9 @@ def handle_get_status():
     data = request.get_json()
     key = data.get('key')
 
+    # result : {"status": "playing", "board": [...], "turn": "blue"}
     result = lobby.execute_action("getStatus", (key,))
-    return jsonify({
-        "status" : result
-    })
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

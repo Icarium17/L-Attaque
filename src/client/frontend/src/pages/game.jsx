@@ -1,11 +1,12 @@
-import { useRef,useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { getGameStatus ,makeMove ,submitPlacement} from "../services/gameService.js";
-
+import Notification from "../components/notification.jsx";
 import MainLayout from "../layouts/main-layout";
 import backgroundGame from '../assets/images/background-game.png';
 import Cell from "../components/cell.jsx";
 import Button from "../components/Button.jsx";
+import Loading from "../components/loading.jsx";
 import GameMessage from "../components/gameMessage.jsx";
 
 /*
@@ -68,87 +69,81 @@ export default function Game() {
   const [session, setSession] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [turn, setTurn] = useState("blue");
-  const [phase, setPhase] = useState("placement");
+  const [turn, setTurn] = useState("BLUE");
+  const [phase, setPhase] = useState("PLACEMENT");
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
-  const [pool, setPool] = useState(() => createPieces("blue"));  // on definit pour l instant le joueur comme blue
+  const [pool, setPool] = useState(() => createPieces("BLUE"));  // on definit pour l instant le joueur comme blue
   const [board, setBoard] = useState(() => createEmptyBoard());
   const [error, setError] = useState("");
-  const stateTimeout = useRef(null);
 
   /*
     Vérifie la session au chargement si l'utilisateur n'a pas de session retour accueil.
   */
   useEffect(() => {
-    const key = localStorage.getItem("sessionKey");
-    const username = localStorage.getItem("username");
-    if (!key || !username) {
-      navigate("/");
-    } else {
-      setSession({ username, key });
-      stateTimeout.current = setTimeout(fetchState, 500);
-    }
-  }, [navigate]);
+  const key = localStorage.getItem("sessionKey");
+  const username = localStorage.getItem("username");
 
-  /*
-    Vérifie le statut de la partie en boucle.
-  */ 
-const fetchState = () => {
-      const currentKey = localStorage.getItem("sessionKey");
-      
-      if (!currentKey) {
+  if (!key || !username) {
+    navigate("/");
+    return;
+  }
+
+  setSession({ username, key });
+}, [navigate]);
+
+useEffect(() => {
+  if (phase == "PLACEMENT") return;
+
+  let cancelled = false;
+  let timerId;
+
+  const pull = () => {
+    getGameStatus()
+      .then((result) => {
+        if (cancelled) return;
+
+        if (!result || !result.response_svr) {
+          timerId = setTimeout(pull, 2000);
           return;
-      }
+        }
 
-      getGameStatus()
-      .then(result => {
-          if (!result || !result.response_svr) {
-              stateTimeout.current = setTimeout(fetchState, 2000); 
-              return;
-          }
+        const gameData = result.response_svr;
+        if (
+          result.result?.error == "Session inactive" ||gameData?.status == "INVALID_KEY"
+        ) {
+          return navigate("/");
+        }
 
-          const gameData = result.response_svr;
-          const loop = (stateName, msg) => {
-              setPhase(stateName); 
-              setError(msg); 
-              setLoading(false);
-              stateTimeout.current = setTimeout(fetchState, 2000);
-          };
+        if (gameData?.status) setPhase(gameData.status.toUpperCase());
+        if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
 
-          if (result.result?.error == "Session inactive" || gameData?.status == "INVALID_KEY") {
-              return navigate("/");
-          }
-
-          if (gameData?.status == "WAITING") {
-              return loop("waiting", "En attente...");
-          }
-          // Recupere le boad
-          if (gameData && gameData.board) {
+        if (gameData?.status?.toUpperCase() != "PLACEMENT" && gameData?.board) {
           setBoard(gameData.board);
-          
-          // Recupere le tour
-          if (gameData.turn) {
-            setTurn(gameData.turn.toLowerCase());
-          }
-          if (gameData.status) {
-              setPhase(gameData.status); 
-          }                    
-          setError("");
-         }
-          setLoading(false);
-          stateTimeout.current = setTimeout(fetchState, 2000);
+        }
+
+        timerId = setTimeout(poll, 2000);
       })
-      .catch(err => {
-          stateTimeout.current = setTimeout(fetchState, 3000);
+      .catch(() => {
+        if (!cancelled) {
+          timerId = setTimeout(poll, 3000);
+        }
       });
   };
+
+  timerId = setTimeout(poll, 500);
+
+  return () => {
+    cancelled = true;
+    clearTimeout(timerId);
+  };
+}, [phase, navigate]);
 
 
   /*
     Clic sur une pièce du pool alors sélection.
   */
   const handlePoolClick = (index) => {
-    if (phase != "placement")
+    if (phase != "PLACEMENT")
       return;
     setSelectedPoolIndex(index);
     setSelectedCell(null);
@@ -165,7 +160,7 @@ const fetchState = () => {
 const handleCellClick = (row, col) => {
     if (loading) return;
 
-    if (phase == "placement") {
+    if (phase == "PLACEMENT") {
       if (row < 6) return; 
       const clickedPiece = board[row][col];
 
@@ -181,7 +176,6 @@ const handleCellClick = (row, col) => {
 
         newBoard[row][col] = newPool[selectedPoolIndex];
         newPool.splice(selectedPoolIndex, 1);
-
         setBoard(newBoard);
         setPool(newPool);
         setSelectedPoolIndex(null);
@@ -238,9 +232,8 @@ const handleCellClick = (row, col) => {
    /*
     Placement automatique aléatoire 
   */
-
   const handleAutoPlacement = () => {
-      if (phase != "placement" || pool.length == 0) return;
+      if (phase != "PLACEMENT" || pool.length == 0) return;
       const newBoard = board.map((r) => [...r]);
       let currentPool = [...pool];  
  
@@ -262,9 +255,9 @@ const handleCellClick = (row, col) => {
     Réinitialise complètement le placement 
     */
   const handleResetPlacement = () => {
-    if (phase != "placement") return;
+    if (phase != "PLACEMENT") return;
     setBoard(createEmptyBoard());
-    setPool(createPieces("blue"));
+    setPool(createPieces("BLUE"));
     setSelectedPoolIndex(null);
     setSelectedCell(null);
     setError("");
@@ -279,10 +272,8 @@ const handleCellClick = (row, col) => {
       setError("Il reste des pièces à placer!");
       return;
     }   
-
     setLoading(true);
     setError("");
-
     const placement = [];
 
     // On parcourt tout le board 
@@ -298,47 +289,46 @@ const handleCellClick = (row, col) => {
         });
       });
 
-    submitPlacement(placement)
-      .then((data) => {
-        if (data?.result?.error) {
-          setError(data.result.error);
-        } else {
-          setPhase("playing");
-        }
-      })
-      .catch(() => {
-        setError("Erreur de connexion au serveur.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
+  submitPlacement(placement)
+    .then((data) => {
+      if (data?.result?.error) {
+        setError(data.result.error);
+        return;
+      }
 
-  return (
-    <MainLayout
-      title="Game - L'Attaque"
-      background={backgroundGame}
-      session={session}
-      hideMenu={true}
-    >
-      {phase == "placement" && (
-        <div className="flex flex-col items-center w-110 shrink-0 px-4  space-y-5">
-          <GameMessage variant="title" title="Pièces à placer"></GameMessage>
-          <Button
-            variant="primary"
-            onClick={handleAutoPlacement}
-            disabled={pool.length == 0}
-            fullWidth
-            text="Placement Auto"
-          />
-          <Button
-            variant="danger"
-            onClick={handleResetPlacement}
-            disabled={pool.length == 40}
-            fullWidth
-            text="Annuler"
-          />
-     
+      const gameData = data.response_svr;
+
+      if (gameData && gameData.status) {
+        setPhase(gameData.status);
+        if (gameData.board) setBoard(gameData.board);
+        if (gameData.turn) setTurn(gameData.turn);        
+        setError("");
+      }
+    })
+    .catch(() => {
+      setError("Erreur serveur.");
+    })
+    .finally(() => {
+      setLoading(false);
+    });}
+
+return (
+  <MainLayout
+    title="Game - L'Attaque"
+    background={backgroundGame}
+    session={session}
+    hideMenu={true}
+  >
+    <div className="flex flex-col items-center w-110 shrink-0 px-4 space-y-5">
+      
+      {/* PLACEMENT*/}
+      {phase == "PLACEMENT" && (
+        <>
+          <GameMessage variant="title" title="Pièces à placer" />
+          <Button variant="primary" onClick={handleAutoPlacement} disabled={pool.length == 0} fullWidth text="Placement Auto" />
+          <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
+
+          {/* POOL*/}
           <div className="grid grid-cols-5 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded">
             {pool.map((piece, idx) => (
               <button
@@ -351,40 +341,64 @@ const handleCellClick = (row, col) => {
                   }`}
               >
                 <span className="text-xs">{piece.rank}</span>
-                <span className="text-[7px] leading-none opacity-80 mt-0.5">{piece.name}</span>
+                <span className="text-[7px] leading-none opacity-80 mt-0.5">{piece.type}</span>
               </button>
             ))}
           </div>
 
-          {error && <p className="text-red-400 text-[10px] mb-2 font-bold animate-pulse">{error}</p>}
-
           {pool.length == 0 && (
-            <Button
-              variant="success"
-              onClick={handleSubmitPlacement}
-              loading={loading}
-              fullWidth
-              text={loading ? "Chargement..." : "Valider"}
-            />
+            <Button variant="success" onClick={handleSubmitPlacement} loading={loading} fullWidth text="Valider" />
+          )}
+        </>
+      )}
+
+      {/*WAITING */}
+      {phase == "WAITING" && (
+        <div className="w-full py-10 flex flex-col items-center justify-center bg-black/30 rounded-lg border border-yellow-500/20 backdrop-blur-sm">
+          <Loading message="Attente..." size={80} />
+        </div>
+      )}
+
+      {/*PLAYING */}
+      {phase == "PLAYING" && (
+      <div className="flex flex-col items-center w-full">
+        <GameMessage 
+          variant="title" 
+          title={turn.toUpperCase() == "BLUE" ? "VOTRE TOUR" : "TOUR ADVERSE"} 
+        /> 
+        {error && <p >{error}</p>}
+      </div>
+      )}
+
+    {error && (
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">
+        <Notification
+          variant="error"
+          message={error}
+          autoClose={3000}
+          onClose={() => setError("")}
+          className="w-full"
+        />
+      </div>
+    )}
+    </div>
+
+  {/*BOARD*/}
+        <div className="grid grid-cols-10 gap-0.5 w-full max-w-[min(600px,80vh)] aspect-square border-[6px] border-yellow-500/50 ml-42 bg-gray-800 p-0.5 rounded shadow-2xl">
+          {board.map((row, rowIndex) =>
+            row.map((cell, colIndex) => (
+              <Cell
+                key={`${rowIndex}-${colIndex}`}
+                row={rowIndex}
+                col={colIndex}
+                isLake={isLake(rowIndex, colIndex)}
+                isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
+                piece={cell}
+                onClick={handleCellClick}
+              />
+            ))
           )}
         </div>
-      )}        
-
-      <div className="grid grid-cols-10 gap-0.5 w-full max-w-[min(600px,80vh)] aspect-square border-[6px] border-yellow-500/50 ml-42 bg-gray-800 p-0.5 rounded shadow-2xl">
-        {board.map((row, rowIndex) =>
-          row.map((cell, colIndex) => (
-            <Cell
-              key={`${rowIndex}-${colIndex}`}
-              row={rowIndex}
-              col={colIndex}
-              isLake={isLake(rowIndex, colIndex)}
-              isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
-              piece={cell}
-              onClick={handleCellClick}
-            />
-          ))
-        )}
-      </div>
     </MainLayout>
-  );
+  );  
 }
