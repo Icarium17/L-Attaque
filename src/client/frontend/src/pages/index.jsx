@@ -129,15 +129,15 @@ if (session) {
               Bienvenue dans l'Attaque, <span className="text-primary">{session.username}</span> !
             </h1>
             <Button
-              className="w-64"
+              className="w-full max-w-xs mx-auto"
               variant="secondary"
               onClick={() => auth("signout", session.key)}
             >
               Se déconnecter
             </Button>
           <Button 
-      
-          onClick={() => {
+          className="w-full max-w-xs mx-auto"
+            onClick={() => {
             localStorage.clear();
             window.location.reload();
           }}

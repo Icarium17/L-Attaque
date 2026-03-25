@@ -14,8 +14,8 @@ Ex: Button style={{ color: '#fff', backgroundImage: 'url(...)' }}
 const VARIANTS = {
   primary: {
     border: '#d4a44a,#f5d78e,#8b6914,#d4a44a,#f5d78e',
-    bg:     ['#1e2333,#141928,#0d1117', '#272d42,#1a2030,#111722', '#0d1117,#080b10'],
-    color:  ['#d4a44a', '#f0c860', '#b8902e'],
+    bg:     ['#1e2333,#141928,#0d1117','#272d42,#1a2030,#111722','#0d1117,#080b10'],
+    color:  ['#d4a44a','#f0c860','#b8902e'],
     glow:   '212,164,74',
   },
   secondary: {
@@ -29,6 +29,12 @@ const VARIANTS = {
     bg:     ['#1e1111,#150b0b', '#2a1515,#1e0e0e', '#120909,#0a0505'],
     color:  ["#eFFFFF", '#ff7b6a', '#a33025'],
     glow:   '231,76,60',
+  },
+  success: {
+  border: '#27ae60,#6fcf97,#1a7a42,#27ae60,#6fcf97',
+  bg:     ['#111e16,#0b150e', '#1a2e20,#112218', '#0b150e,#060d08'],
+  color:  ['#6fcf97', '#8ee4ad', '#4da86e'],
+  glow:   '111,207,151',
   },
   ghost: {
     border: null, 
@@ -155,7 +161,8 @@ export default function Button({
     className={className}
     style={{
       ...borderStyle,
-      display: fullWidth || className?.includes('w-') ? 'flex' : 'inline-flex',
+      display: 'flex',
+      width: '100%',
       transition: 'all 0.3s ease',
       ...(disabled ? { opacity: 0.45, filter: 'grayscale(0.6)' } : {}),
     }}>

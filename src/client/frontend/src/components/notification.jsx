@@ -166,11 +166,11 @@ if (!message && !children) return null;
                 style={{
                   color: v.color,
                   fontFamily: "'Georgia', 'Times New Roman', serif",
-                  fontWeight: 600,
-                  fontSize: "24px",
-                  letterSpacing: "1.5px",
+                  fontWeight: 700,
+                  fontSize: "16px",
+                  letterSpacing: "3px",
                   textTransform: "uppercase",
-                  textShadow: `0 0 12px rgba(${g},0.5)`,
+                  textShadow: `0 0 16px rgba(${g},0.6)`,
                   marginBottom: children || message ? "6px" : 0,
                 }}
               >
@@ -182,10 +182,11 @@ if (!message && !children) return null;
                 style={{
                   color: v.colorSecond,
                   fontFamily: "'Georgia', 'Times New Roman', serif",
-                  fontSize: "24px",
+                  fontSize: "16px",
                   lineHeight: 1.5,
                   opacity: 0.85,
-                  textAlign: "center"
+                  textAlign: "center",
+                  textTransform: "uppercase",
                 }}
               >
                 {children || message}
@@ -203,9 +204,9 @@ if (!message && !children) return null;
                   borderRadius: "8px",
                   color: v.color,
                   fontFamily: "'Georgia', 'Times New Roman', serif",
-                  fontSize: "24px",
+                  fontSize: "14px",
                   fontWeight: 600,
-                  letterSpacing: "2px",
+                  letterSpacing: "3px",
                   textTransform: "uppercase",
                   padding: "6px 16px",
                   cursor: "pointer",

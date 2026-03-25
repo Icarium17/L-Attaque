@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { makeMove ,submitPlacement} from "../services/gameService.js";
+
 import MainLayout from "../layouts/main-layout";
 import Cell from "../components/cell.jsx";
+import Button from "../components/Button.jsx";
 import backgroundGame from '../assets/images/background-game.png';
-import { makeMove ,submitPlacement} from "../services/gameService.js";
+
 const LAKES = [
   "4-2", "4-3", "5-2", "5-3",
   "4-6", "4-7", "5-6", "5-7",
@@ -207,26 +210,24 @@ const handleCellClick = (row, col) => {
       hideMenu={true}
     >
       {phase == "placement" && (
-        <div className="flex flex-col items-center w-80 shrink-0 px-4">
+        <div className="flex flex-col items-center w-80 shrink-0 px-4  space-y-5">
           <h2 className="text-white text-sm font-bold mb-2 text-center uppercase tracking-wider">
             Pièces à placer
           </h2>
-
-          <button
+          <Button
+            variant="primary"
             onClick={handleAutoPlacement}
             disabled={pool.length == 0}
-            className="w-full mb-2 px-3 py-2 bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold rounded shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Placement Auto
-          </button>
-
-          <button
+            fullWidth
+            text="Placement Auto"
+          />
+          <Button
+            variant="danger"
             onClick={handleResetPlacement}
             disabled={pool.length == 40}
-            className="w-full mb-4 px-3 py-2 bg-red-500 hover:bg-red-400 text-white text-xs font-bold rounded shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Annuler
-          </button>
+            fullWidth
+            text="Annuler"
+          />
      
           <div className="grid grid-cols-4 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded">
             {pool.map((piece, idx) => (
@@ -247,16 +248,15 @@ const handleCellClick = (row, col) => {
 
           {error && <p className="text-red-400 text-[10px] mb-2 font-bold animate-pulse">{error}</p>}
 
-         {pool.length == 0 && (
-        <button
-          onClick={handleSubmitPlacement}
-          disabled={loading}
-          className="w-full px-4 py-3 bg-green-600 text-white rounded font-black text-sm uppercase
-            disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600
-            hover:bg-green-500 shadow-lg"
-        >{loading ? "Chargement..." : "Valider"}
-        </button>
-      )}
+          {pool.length == 0 && (
+            <Button
+              variant="success"
+              onClick={handleSubmitPlacement}
+              loading={loading}
+              fullWidth
+              text={loading ? "Chargement..." : "Valider"}
+            />
+          )}
         </div>
       )}        
 
