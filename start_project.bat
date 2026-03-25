@@ -1,3 +1,5 @@
+:: --- SCRIPT PARTIELLEMENT CONCU AVEC L AIDE DE GROK.COM ---
+
 @echo off
 setlocal enabledelayedexpansion
 

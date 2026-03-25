@@ -16,6 +16,7 @@ export default function Index() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [mode, setMode] = useState("login"); //  mode de formulaire login ou register
 
   // Vérifier session au chargement
   useEffect(() => {
@@ -104,7 +105,7 @@ const auth = (action, data1 = "", data2 = "") => {
         } else {
           localStorage.setItem("sessionKey", data.result.key);
           localStorage.setItem("username", data.result.username);
-          setSuccess(`Compte "${data.result.username}" créé avec succès!`);
+          setSuccess(`Compte "${data.result.username}" créé`);
           setTimeout(() => {
             setSession({ username: data.result.username, key: data.result.key });  
             navigate("/lobby");
@@ -162,26 +163,27 @@ if (session) {
   }
 
 
-  return (
-    <MainLayout
-      title="Accueil"
-      background={background}
-      session={session}
-      hideMenu={true}
-    >
-      <div className="relative flex flex-col justify-start items-center min-h-screen w-full overflow-hidden">
-        <div className="absolute inset-0 bg-gray-950/70" />
+return (
+  <MainLayout
+    title="Accueil"
+    background={background}
+    session={session}
+    hideMenu={true}
+  >
+    <div className="relative flex flex-col justify-start items-center min-h-screen w-full overflow-hidden">
+      <div className="absolute inset-0 bg-gray-950/70" />
 
-        <div className="relative z-10 flex flex-col items-center mt-40 w-full max-w-7xl">
-          <img
-            src={logo}
-            alt="Logo du Jeu"
-            className="max-w-2xl h-auto drop-shadow-2xl mb-12"
-          />
+      <div className="relative z-10 flex flex-col items-center mt-40 w-full max-w-7xl">
+        <img
+          src={logo}
+          alt="Logo du Jeu"
+          className="max-w-2xl h-auto drop-shadow-2xl mb-12"
+        />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 w-full max-w-4xl">
-            {/* Section Connexion */}
-            <div className="flex flex-col items-center gap-6 p-8 bg-white/10 backdrop-blur-md rounded-xl shadow-2xl">
+        <div className="flex flex-col items-center gap-6 p-8 bg-white/10 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-md">
+          {mode == "login" ? (
+            <>
+              {/* Section Connexion */}
               <h1 className="text-white text-2xl font-bold text-center">
                 Vous avez déjà un compte
               </h1>
@@ -201,7 +203,7 @@ if (session) {
                   onChange={(e) => setLoginForm({ ...loginForm, motDePasse: e.target.value })}
                   className="w-full p-4 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
                 />
-                <Button
+                <Button 
                   className="w-full"
                   variant="primary"
                   onClick={() => auth("signin", loginForm.nom, loginForm.motDePasse)}
@@ -209,10 +211,16 @@ if (session) {
                   Se connecter
                 </Button>
               </div>
-            </div>
-
-            {/* Section Inscription */}
-            <div className="flex flex-col items-center gap-6 p-8 bg-white/10 backdrop-blur-md rounded-xl shadow-2xl">
+              <p className="text-gray-300 text-sm">
+                Pas de compte ?{" "}
+                <span className="text-blue-500 cursor-pointer underline hover:text-blue-900" onClick={() => setMode("register")}>
+                  Créer un compte
+                </span>
+              </p>
+            </>
+          ) : (
+            <>
+              {/* Section Inscription */}
               <h1 className="text-white text-2xl font-bold text-center">
                 Nouveau compte
               </h1>
@@ -239,34 +247,40 @@ if (session) {
                   Créer un compte
                 </Button>
               </div>
-            </div>
-          </div>
-
-          {error && (
-            <div className="mt-6 w-fit">
-              <Notification
-                variant="error"
-                message={error}
-                autoClose={3000}
-                onClose={() => setError("")}
-              />
-            </div>
+              <p className="text-gray-300 text-sm">
+                Déjà un compte ?{" "}
+                <span className="text-blue-500 cursor-pointer underline hover:text-blue-900" onClick={() => setMode("login")}>
+                  Se connecter
+                </span>
+              </p>
+            </>
           )}
+        </div>
+
+        {error && (
+          <div className="mt-6 w-fit">
+            <Notification
+              variant="error"
+              message={error}
+              autoClose={3000}
+              onClose={() => setError("")}
+            />
+          </div>
+        )}
 
         {success && (
-        <div className="mt-6 w-fit">
-          <Notification
-            variant="success"
-            message={success}
-            autoClose={5000}
-            onClose={() => setSuccess("")}
-          />
-        </div>
-      )}
-        </div>
+          <div className="mt-6 w-fit">
+            <Notification
+              variant="success"
+              message={success}
+              autoClose={5000}
+              onClose={() => setSuccess("")}
+            />
+          </div>
+        )}
       </div>
+    </div>
 
-     {(loading || redirecting) && <Loading silent={true} />}
-    </MainLayout>
-  );
-}
+    {(loading || redirecting) && <Loading silent={true} />}
+  </MainLayout>
+);}
