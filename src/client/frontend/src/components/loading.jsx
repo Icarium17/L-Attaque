@@ -86,7 +86,6 @@ export default function Loading({ message = "", size = 48, overlay = false, sile
       {message && (
         <p style={{
           color,
-          fontFamily: "'Georgia', 'Times New Roman', serif",
           fontSize: "16px",
           letterSpacing: "2px",
           textTransform: "uppercase",

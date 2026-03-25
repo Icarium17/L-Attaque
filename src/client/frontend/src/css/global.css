@@ -1,18 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Coming+Soon&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
 @import "tailwindcss";
-
-.font-quicksand{
-  font-family: 'Quicksand', cursive, sans-serif;
-}
-
-.font-police{
-  font-family: 'Coming Soon', cursive, sans-serif;
-}
-
-.font-manga {
-  font-family: 'Permanent Marker', cursive, sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Almendra:wght@400;700&display=swap');
+@theme {
+  --font-sans: 'Almendra', 'Georgia', serif;
 }
 
 .container{

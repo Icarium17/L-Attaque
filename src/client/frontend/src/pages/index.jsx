@@ -49,7 +49,7 @@ const auth = (action, data1 = "", data2 = "") => {
       // SIGNIN REUSSI
       if (action == "signin" && data.result.success) {
         setRedirecting(true);
-        setSuccess(`Ravi de vous revoir, ${data.result.username} !`);
+        setSuccess(`Bienvenue ${data.result.username} !`);
         localStorage.setItem("sessionKey", data.result.key);
         localStorage.setItem("username", data.result.username);
         setTimeout(() => {
@@ -62,12 +62,13 @@ const auth = (action, data1 = "", data2 = "") => {
       // SIGNOUT REUSSI
       else if (action == "signout" && data.response_svr.status == "USER_DISCONNECTED") {
         setRedirecting(true);
-        setSuccess("Déconnexion réussie.");
+        setSuccess("Déconnexion réussie");
         setTimeout(() => {
           localStorage.removeItem("sessionKey");
           localStorage.removeItem("username");
           setSession(null);
           setRedirecting(false);
+          setSuccess("");
         }, 1000);
       }
 
@@ -242,7 +243,7 @@ if (session) {
           </div>
 
           {error && (
-            <div className="mt-6 w-full max-w-md">
+            <div className="mt-6 w-fit">
               <Notification
                 variant="error"
                 message={error}
@@ -253,7 +254,7 @@ if (session) {
           )}
 
         {success && (
-        <div className="mt-6 w-full max-w-md">
+        <div className="mt-6 w-fit">
           <Notification
             variant="success"
             message={success}

@@ -142,7 +142,6 @@ export default function Button({
     borderRadius: '9px',
     textTransform: 'uppercase',
     letterSpacing: '4px',
-    fontFamily: "'Georgia', 'Times New Roman', serif",
     fontWeight: '700',
     textShadow: `0 0 ${state == 1 ? 20 : 12}px rgba(${g},${state == 1 ? 0.7 : 0.4})`,
     width: '100%',

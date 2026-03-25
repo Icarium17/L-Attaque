@@ -172,7 +172,6 @@ if (!message && !children && !title) return null;
               <div
                 style={{
                   color: v.color,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
                   fontWeight: 700,
                   fontSize: variant == "title" ? "20px" : "16px",
                   letterSpacing: variant == "title" ? "6px" : "3px",
@@ -192,7 +191,6 @@ if (!message && !children && !title) return null;
               <div
                 style={{
                   color: v.colorSecond,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
                   fontSize: "16px",
                   lineHeight: 1.5,
                   opacity: 0.85,
@@ -214,7 +212,6 @@ if (!message && !children && !title) return null;
                   border: `2px solid rgba(${g},0.3)`,
                   borderRadius: "8px",
                   color: v.color,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
                   fontSize: "14px",
                   fontWeight: 600,
                   letterSpacing: "3px",
