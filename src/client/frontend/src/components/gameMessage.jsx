@@ -1,10 +1,10 @@
 import Panel from "../components/panel.jsx";
 
-export default function Notification(props) {
+export default function GameMessage(props) {
   return (
     <Panel
       {...props}
-      autoClose={props.autoClose ?? 3000}
+      autoClose={0}
     />
   );
 }

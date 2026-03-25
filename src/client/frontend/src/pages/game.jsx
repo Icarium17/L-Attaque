@@ -6,6 +6,7 @@ import MainLayout from "../layouts/main-layout";
 import Cell from "../components/cell.jsx";
 import Button from "../components/Button.jsx";
 import backgroundGame from '../assets/images/background-game.png';
+import GameMessage from "../components/gameMessage.jsx";
 
 const LAKES = [
   "4-2", "4-3", "5-2", "5-3",
@@ -211,9 +212,7 @@ const handleCellClick = (row, col) => {
     >
       {phase == "placement" && (
         <div className="flex flex-col items-center w-80 shrink-0 px-4  space-y-5">
-          <h2 className="text-white text-sm font-bold mb-2 text-center uppercase tracking-wider">
-            Pièces à placer
-          </h2>
+          <GameMessage variant="title" title="Pièces à placer"></GameMessage>
           <Button
             variant="primary"
             onClick={handleAutoPlacement}
