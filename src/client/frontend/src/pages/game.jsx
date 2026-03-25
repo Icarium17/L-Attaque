@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useRef,useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { makeMove ,submitPlacement} from "../services/gameService.js";
+import { getGameStatus ,makeMove ,submitPlacement} from "../services/gameService.js";
 
 import MainLayout from "../layouts/main-layout";
 import backgroundGame from '../assets/images/background-game.png';
@@ -74,8 +74,9 @@ export default function Game() {
   const [pool, setPool] = useState(() => createPieces("blue"));  // on definit pour l instant le joueur comme blue
   const [board, setBoard] = useState(() => createEmptyBoard());
   const [error, setError] = useState("");
+  const stateTimeout = useRef(null);
 
-   /*
+  /*
     Vérifie la session au chargement si l'utilisateur n'a pas de session retour accueil.
   */
   useEffect(() => {
@@ -85,8 +86,62 @@ export default function Game() {
       navigate("/");
     } else {
       setSession({ username, key });
+      stateTimeout.current = setTimeout(fetchState, 500);
     }
   }, [navigate]);
+
+  /*
+    Vérifie le statut de la partie en boucle.
+  */ 
+const fetchState = () => {
+      const currentKey = localStorage.getItem("sessionKey");
+      
+      if (!currentKey) {
+          return;
+      }
+
+      getGameStatus()
+      .then(result => {
+          if (!result || !result.response_svr) {
+              stateTimeout.current = setTimeout(fetchState, 2000); 
+              return;
+          }
+
+          const gameData = result.response_svr;
+          const loop = (stateName, msg) => {
+              setPhase(stateName); 
+              setError(msg); 
+              setLoading(false);
+              stateTimeout.current = setTimeout(fetchState, 2000);
+          };
+
+          if (result.result?.error == "Session inactive" || gameData?.status == "INVALID_KEY") {
+              return navigate("/");
+          }
+
+          if (gameData?.status == "WAITING") {
+              return loop("waiting", "En attente...");
+          }
+          // Recupere le boad
+          if (gameData && gameData.board) {
+          setBoard(gameData.board);
+          
+          // Recupere le tour
+          if (gameData.turn) {
+            setTurn(gameData.turn.toLowerCase());
+          }
+          if (gameData.status) {
+              setPhase(gameData.status); 
+          }                    
+          setError("");
+         }
+          setLoading(false);
+          stateTimeout.current = setTimeout(fetchState, 2000);
+      })
+      .catch(err => {
+          stateTimeout.current = setTimeout(fetchState, 3000);
+      });
+  };
 
 
   /*

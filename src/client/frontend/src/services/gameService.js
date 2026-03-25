@@ -23,7 +23,7 @@ export function makeMove(fromRow, fromCol, toRow, toCol) {
 
 export function submitPlacement(pieces) {
   let formData = new FormData();
- formData.append("pieces", JSON.stringify(pieces)); // Conversion en JSON
+  formData.append("pieces", JSON.stringify(pieces)); // Conversion en JSON
   return callApi("submit_placement",formData);
 }
 
@@ -31,3 +31,5 @@ export function getGameStatus() {
   let formData = new FormData();
   return callApi("get_game_status", formData);
 }
+
+ 
