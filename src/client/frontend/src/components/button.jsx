@@ -1,11 +1,10 @@
-// components/Button.jsx
 import { useState, useEffect, useRef } from "react";
 
 /*
  Variantes de boutons avec 4 props:
 - border → Couleurs de la bordure 
 - bg → Les couleurs de fond du bouton: base, hover, pressed 
-- color →  Couleur du texte : base, hover, pressed 
+- color →  Couleur du texte : normal, hover, pressed 
 - glow  → "Couleur pour les effets lumineux : rgb
 
 Pour personnaliser : la prop `style` écrase tout.
@@ -33,7 +32,7 @@ const VARIANTS = {
   success: {
   border: '#27ae60,#6fcf97,#1a7a42,#27ae60,#6fcf97',
   bg:     ['#111e16,#0b150e', '#1a2e20,#112218', '#0b150e,#060d08'],
-  color:  ['#6fcf97', '#8ee4ad', '#4da86e'],
+  color:  ['#eafff1', '#6fcf97', '#27ae60'],
   glow:   '111,207,151',
   },
   ghost: {
@@ -69,7 +68,7 @@ export default function Button({
   const [pressed, setPressed] = useState(false);
 
   /*
-   Animation des 3 effets derrière le texte quand Le bouton est hovered ou loading  ou diasbled 
+   Animation des 3 effets derrière le texte quand Le bouton est hovered ou loading  ou disabled 
    shine → Position X du trait de lumière (-100% à +200%)
    glow    → Opacité  entre 0.3 et 0.6
    spin    → Angle de rotation du spinner de chargement 
