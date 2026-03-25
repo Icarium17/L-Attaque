@@ -121,7 +121,7 @@ def handle_start_game():
         "opponent_username": result[1]
     })
 
-@app.route('set_pieces', methods=['POST'])
+@app.route('/set_pieces', methods=['POST'])
 def handle_set_pieces():
     data = request.get_json()
     my_key = data.get('key')
@@ -155,7 +155,7 @@ def handle_get_status():
     data = request.get_json()
     key = data.get('key')
 
-    result = lobby.execute("getStatus", (key,))
+    result = lobby.execute_action("getStatus", (key,))
     return jsonify({
         "status" : result
     })

@@ -1,12 +1,7 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Almendra:wght@400;700&display=swap');
-@theme {
-  --font-sans: 'Almendra', 'Georgia', serif;
-}
 
-.container{
-    margin:auto auto;
-    font-family: 'Quicksand, sans-serif';
+@theme {
+  --font-sans: 'Lora', Georgia, serif;
 }
 
 html, body {
@@ -14,6 +9,9 @@ html, body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;  
+  overflow-x: hidden;
 }
 
+body {
+  font-family: var(--font-sans);
+}

@@ -51,8 +51,43 @@ class GameAction extends CommonAction {
             return ["result" => compact("success", "message"), "response_svr" => $apiResult];
         }
 
-    
 
+        // Gestion envoi placement
+        if ($action == "submit_placement") {
+            $data = [
+                "key" => $key,
+                "pieces" => json_decode($_POST["pieces"], true)
+            ];
+            
+            $apiResult = parent::callPython("set_pieces", $data);
+
+            if ($apiResult == null) {
+                $error = "Erreur Serveur Python Set_pieces)";
+                return ["result" => compact("error")];
+            }
+            
+            $success = true;
+            $message = "Placement envoyé";
+            return ["result" => compact("success", "message"), "response_svr" => $apiResult];
+        }
+
+        // Gestion du statut
+        if ($action == "get_game_status") {
+            $data = [
+                "key" => $key
+            ];
+            
+            $apiResult = parent::callPython("get_status", $data);
+
+            if ($apiResult == null) {
+                $error = "Erreur Serveur Status";
+                return ["result" => compact("error")];
+            }
+
+            $success = true;
+            $message = "Statut récupéré";
+            return ["result" => compact("success", "message"), "response_svr" => $apiResult];
+        }
 
         $error = "Action inconnue";
         return ["result" => compact("error")];

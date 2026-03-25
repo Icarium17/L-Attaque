@@ -2,15 +2,15 @@ from enum import Enum
 
 
 class PieceType(Enum):
-    Maréchal = (10, 1, 10)
-    Général = (9, 1, 9)
+    Marechal = (10, 1, 10)
+    General = (9, 1, 9)
     Colonel = (8, 2, 8)
     Major = (7, 3, 7)
     Capitaine = (6, 4, 6)
     Lieutenant = (5, 4, 5)
     Sergent = (4, 4, 4)
-    Démineur = (3, 5, 3)
-    Éclaireur = (2, 8, 2)
+    Demineur = (3, 5, 3)
+    Eclaireur = (2, 8, 2)
     Espion = (None, 1, 1)
     Bombe = (None, 6, 6)
     Drapeau = (-1, 1, 1)

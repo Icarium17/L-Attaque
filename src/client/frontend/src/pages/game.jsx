@@ -17,24 +17,23 @@ const LAKES = [
 ];
 
 /*
-  Configuration des pièces: type, nom, nombre
+  Configuration des pièces: rank, type, nombre
 */
 
 const PIECES_CONFIG = [
-  { rank: "B", name: "Bombe", count: 6 },
-  { rank: "10", name: "Marechal", count: 1 },
-  { rank: "9", name: "General", count: 1 },
-  { rank: "8", name: "Colonel", count: 2 },
-  { rank: "7", name: "Commandant", count: 3 },
-  { rank: "6", name: "Capitaine", count: 4 },
-  { rank: "5", name: "Lieutenant", count: 4 },
-  { rank: "4", name: "Sergent", count: 4 },
-  { rank: "3", name: "Demineur", count: 5 },
-  { rank: "2", name: "Eclaireur", count: 8 },
-  { rank: "1", name: "Espion", count: 1 },
-  { rank: "D", name: "Drapeau", count: 1 },
+  { rank: "B", type: "Bombe", count: 6 },
+  { rank: "10", type: "Marechal", count: 1 },  
+  { rank: "9", type: "General", count: 1 },   
+  { rank: "8", type: "Colonel", count: 2 },
+  { rank: "7", type: "Major", count: 3 },      
+  { rank: "6", type: "Capitaine", count: 4 },
+  { rank: "5", type: "Lieutenant", count: 4 },
+  { rank: "4", type: "Sergent", count: 4 },
+  { rank: "3", type: "Demineur", count: 5 },  
+  { rank: "2", type: "Eclaireur", count: 8 },  
+  { rank: "1", type: "Espion", count: 1 },
+  { rank: "D", type: "Drapeau", count: 1 },
 ];
-
 /*
   Vérifie si une case est eau
 */
@@ -50,7 +49,7 @@ function createPieces(player) {
   for (let i = 0; i < PIECES_CONFIG.length; i++) {
     const config = PIECES_CONFIG[i];
     for (let j = 0; j < config.count; j++) {
-      pieces.push({ rank: config.rank, name: config.name, player, revealed: false });
+      pieces.push({ rank: config.rank, type: config.type, player, revealed: false });
     }
   }
   return pieces;
@@ -229,9 +228,20 @@ const handleCellClick = (row, col) => {
     setLoading(true);
     setError("");
 
-    const placement = board.slice(6, 10).map((row) =>
-      row.map((cell) => (cell ? { rank: cell.rank, name: cell.name } : null))
-    );
+    const placement = [];
+
+    // On parcourt tout le board 
+      board.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+          if (cell) {
+            placement.push({
+              rank: cell.rank,
+              type: cell.type,
+              position: [colIndex, rowIndex] 
+            });
+          }
+        });
+      });
 
     submitPlacement(placement)
       .then((data) => {
