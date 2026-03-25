@@ -3,15 +3,22 @@ import { useNavigate } from "react-router";
 import { makeMove ,submitPlacement} from "../services/gameService.js";
 
 import MainLayout from "../layouts/main-layout";
+import backgroundGame from '../assets/images/background-game.png';
 import Cell from "../components/cell.jsx";
 import Button from "../components/Button.jsx";
-import backgroundGame from '../assets/images/background-game.png';
 import GameMessage from "../components/gameMessage.jsx";
 
+/*
+  Cases d'eau: pas de déplacement.
+*/
 const LAKES = [
   "4-2", "4-3", "5-2", "5-3",
   "4-6", "4-7", "5-6", "5-7",
 ];
+
+/*
+  Configuration des pièces: type, nom, nombre
+*/
 
 const PIECES_CONFIG = [
   { rank: "B", name: "Bombe", count: 6 },
@@ -28,10 +35,16 @@ const PIECES_CONFIG = [
   { rank: "D", name: "Drapeau", count: 1 },
 ];
 
+/*
+  Vérifie si une case est eau
+*/
 function isLake(row, col) {
   return LAKES.indexOf(`${row}-${col}`) != -1;
 }
 
+/*
+  Génère toutes les pièces dans le pool
+*/
 function createPieces(player) {
   const pieces = [];
   for (let i = 0; i < PIECES_CONFIG.length; i++) {
@@ -43,6 +56,9 @@ function createPieces(player) {
   return pieces;
 }
 
+/*
+  Crée un plateau 10x10 vide.
+*/
 function createEmptyBoard() {
   return Array.from({ length: 10 }, () => 
     Array(10).fill(null));
@@ -56,10 +72,13 @@ export default function Game() {
   const [turn, setTurn] = useState("blue");
   const [phase, setPhase] = useState("placement");
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
-  const [pool, setPool] = useState(() => createPieces("blue"));
+  const [pool, setPool] = useState(() => createPieces("blue"));  // on definit pour l instant le joueur comme blue
   const [board, setBoard] = useState(() => createEmptyBoard());
   const [error, setError] = useState("");
 
+   /*
+    Vérifie la session au chargement si l'utilisateur n'a pas de session retour accueil.
+  */
   useEffect(() => {
     const key = localStorage.getItem("sessionKey");
     const username = localStorage.getItem("username");
@@ -71,6 +90,9 @@ export default function Game() {
   }, [navigate]);
 
 
+  /*
+    Clic sur une pièce du pool alors sélection.
+  */
   const handlePoolClick = (index) => {
     if (phase != "placement")
       return;
@@ -79,6 +101,13 @@ export default function Game() {
   };
 
 
+  /*
+  Gestion du clic sur une case:
+  Phase de placement :
+  si une pièce du pool est sélectionnée on la pose
+  si une case est sélectionnée, on peut déplacer/échanger
+  double clic sur une pièce posée => retour dans le pool
+*/
 const handleCellClick = (row, col) => {
     if (loading) return;
 
@@ -86,10 +115,12 @@ const handleCellClick = (row, col) => {
       if (row < 6) return; 
       const clickedPiece = board[row][col];
 
+      // Pièce du pool choisie : on la place sur la case cliquée
       if (selectedPoolIndex != null) {
         const newBoard = board.map((r) => [...r]);
         const newPool = [...pool];
 
+      // Si une pièce existe sur la case,retourne dans le pool
         if (clickedPiece) {
           newPool.push(clickedPiece);
         }
@@ -103,33 +134,41 @@ const handleCellClick = (row, col) => {
         return;
       }
 
+      // Sélectionne une pièce placée
       if (!selectedCell) {
-
         if (clickedPiece) {
           setSelectedCell({ row, col });
         }
       } else {
+        // Double-clic la même case -> retour au pool
+        if (selectedCell.row == row && selectedCell.col == col) {
+          const newBoard = board.map((r) => [...r]); // copie du board
+          newBoard[row][col] = null; // met la case a null
+          setBoard(newBoard);
+          setPool([...pool, board[row][col]]); // ajoute la piece a la fin du board
+          setSelectedCell(null);
+          return;
+        }
+
+        // Sinon, switche entre la case sélectionnée et la case cliquée
         const newBoard = board.map((r) => [...r]);
         const piece1 = newBoard[selectedCell.row][selectedCell.col];
         const piece2 = newBoard[row][col];
-
         newBoard[selectedCell.row][selectedCell.col] = piece2;
         newBoard[row][col] = piece1;
-
         setBoard(newBoard);
-        setSelectedCell(null); 
-      }
-      return; 
-    }
-
+        setSelectedCell(null);
+      }}
 
     if (isLake(row, col)) return;
 
+    // Premier clic sélectionne une piece
     if (!selectedCell) {
       const piece = board[row][col];
       if (!piece || piece.player != turn) return;
       setSelectedCell({ row, col });
     } else {
+      // Deuxième clic validation du déplacement via l'API
       setLoading(true);
       makeMove(selectedCell.row, selectedCell.col, row, col)
         .then((data) => {
@@ -142,6 +181,9 @@ const handleCellClick = (row, col) => {
     }
   };
 
+   /*
+    Placement automatique aléatoire 
+  */
 
   const handleAutoPlacement = () => {
       if (phase != "placement" || pool.length == 0) return;
@@ -161,9 +203,10 @@ const handleCellClick = (row, col) => {
       setPool([]);  
       setError("");
     };
-
  
-
+   /*
+    Réinitialise complètement le placement 
+    */
   const handleResetPlacement = () => {
     if (phase != "placement") return;
     setBoard(createEmptyBoard());
@@ -174,6 +217,9 @@ const handleCellClick = (row, col) => {
     setLoading(false);
   }
 
+  /*
+    Envoie le placement final au serveur. 
+  */
   const handleSubmitPlacement = () => {
     if (pool.length > 0) {
       setError("Il reste des pièces à placer!");
@@ -211,7 +257,7 @@ const handleCellClick = (row, col) => {
       hideMenu={true}
     >
       {phase == "placement" && (
-        <div className="flex flex-col items-center w-80 shrink-0 px-4  space-y-5">
+        <div className="flex flex-col items-center w-110 shrink-0 px-4  space-y-5">
           <GameMessage variant="title" title="Pièces à placer"></GameMessage>
           <Button
             variant="primary"
@@ -228,12 +274,12 @@ const handleCellClick = (row, col) => {
             text="Annuler"
           />
      
-          <div className="grid grid-cols-4 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded">
+          <div className="grid grid-cols-5 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded">
             {pool.map((piece, idx) => (
               <button
                 key={idx}
                 onClick={() => handlePoolClick(idx)}
-                className={`w-12 h-12 flex flex-col items-center justify-center font-bold rounded border-2 transition-transform mx-auto
+                className={`w-16 h-16 flex flex-col items-center justify-center font-bold rounded border-2 transition-transform mx-auto
                   ${selectedPoolIndex == idx
                     ? "border-yellow-400 bg-blue-600 text-white scale-110 shadow-cyan-500/50 shadow-md"
                     : "border-gray-500 bg-blue-900 text-blue-200 hover:border-blue-300"
@@ -259,7 +305,7 @@ const handleCellClick = (row, col) => {
         </div>
       )}        
 
-      <div className="grid grid-cols-10 gap-0.5 w-full max-w-[min(600px,80vh)] aspect-square border-[6px] border-yellow-500/50 mx-auto bg-gray-800 p-0.5 rounded shadow-2xl">
+      <div className="grid grid-cols-10 gap-0.5 w-full max-w-[min(600px,80vh)] aspect-square border-[6px] border-yellow-500/50 ml-42 bg-gray-800 p-0.5 rounded shadow-2xl">
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
             <Cell
