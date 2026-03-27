@@ -1,9 +1,9 @@
 from USERS.player import Player
 
 class AIPlayer(Player):
-    def __init__(self, difficulty, board):
+    def __init__(self, difficulty):
         self.difficulty = difficulty
-        self.board = board
+        self.player_to_move = 0
 
     def position_pieces(self):
         pass

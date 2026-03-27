@@ -125,6 +125,8 @@ class GameRules():
             last_moves.append(move)
 
         return True
+    
+    
 
     def check_impassable_bomb_wall(self, player, opponent):
         if player.pieces[PieceType.Démineur] == 0:
@@ -152,26 +154,33 @@ class GameRules():
             return True
         return False
     
-    def check_remaining_moves(self, player):
-        if len(player.pieces) == 0:
-            return True
-        
+    def get_remaining_moves(self, player): ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
+        possible_moves = []
         for piece in player.pieces.values():
             if piece.type == "Drapeau" or piece.type == "Bombe":
                 continue
             if piece.type != "Éclaireur":
                 for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                     new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
-                    if self.validate_move(player, Move(piece.position, (new_x, new_y)))[0] == 1:
-                        return True
-            if piece.type == "Éclaireur":
+                    move = Move(piece.position, (new_x, new_y))
+                    if self.validate_move(player, move)[0] == 1:
+                        possible_moves.append(move)
+            else:  # piece.type == "Éclaireur"
                 for i in range(1, max(self.board.rows, self.board.cols)):
                     for dx, dy in [(0, i), (i, 0), (0, -i), (-i, 0)]:
                         new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
-                        if self.validate_move(player, Move(piece.position, (new_x, new_y)))[0] == 1:
-                            return True
-                        
-        return False
+                        move = Move(piece.position, (new_x, new_y))
+                        if self.validate_move(player, move)[0] == 1:
+                            possible_moves.append(move)
+
+        return possible_moves
+    
+    def check_remaining_moves(self, player):
+        if len(player.pieces) == 0:
+            return True
+
+        possible_moves = self.get_remaining_moves(player)
+        return len(possible_moves) == 0
     
     ## TODO : Add an actual scoring system
     def calc_score(self, player):
@@ -180,5 +189,16 @@ class GameRules():
             score += piece_type.score * count
             
         return score
+
+    def check_player_end_state(self, player, players):
+        if self.check_flag_captured(player):
+            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username}'s flag was captured"))
+        if not self.check_remaining_moves(player):
+            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username} has no moves left"))
+        if self.check_impassable_bomb_wall(player, players[(player.order + 1) % len(players)]):
+            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username} has no way to win"))
+        if not self.check_no_mobile_pieces(player):
+            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username} has no mobile pieces left"))
+        return (False, None)
 
 

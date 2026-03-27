@@ -62,11 +62,11 @@ def handle_signup():
     username = data.get('username')
     password = data.get('password')
 
-    logged_in = lobby.execute_action("signup", (username, password))
+    status, key = lobby.execute_action("signup", (username, password))
 
     return jsonify({
-        "status": logged_in[0],
-        "key" : logged_in[1],
+        "status": status,
+        "key" : key,
         "username": username
     })
 
@@ -76,11 +76,11 @@ def handle_signin():
     username = data.get('username')
     password = data.get('password')
 
-    logged_in = lobby.execute_action("signin", (username, password))
+    status, key = lobby.execute_action("signin", (username, password))
 
     return jsonify({
-        "status": logged_in[0],
-        "key": logged_in[1],
+        "status": status,
+        "key": key,
         "username": username
     })
 
@@ -100,8 +100,10 @@ def index():
 
 @app.route('/get_all_users', methods=['POST'])
 def handle_get_all_users():
-    users = lobby.execute_action("getActivePlayers", ())
-
+    
+    data = request.get_json()
+    my_key = data.get('key')
+    users = lobby.execute_action("getActivePlayers", (my_key,))
     return jsonify({"users": users})
 
 @app.route('/delete_user', methods=['POST'])

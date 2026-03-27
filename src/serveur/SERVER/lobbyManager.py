@@ -95,6 +95,7 @@ class LobbyManager:
     ## Start/End Game
     def start_game(self, args): ## tout à changer une fois que les joueurs pourront se connecter et loop awaiting player
         print("start_game called")
+        ##Eventuellement, il faudra faire en sorte que le joueur puisse choisir de jouer contre un autre joueur ou contre l'ia, et dans ce cas, on créera une instance d'AIPlayer au lieu de Player pour le second joueur. Pour l'instant, on fait juste une partie contre l'ia pour tester le fonctionnement du lobby manager et du game manager
         (my_key,) = args
         player1 = Player(self.active_users[my_key], 0)
 

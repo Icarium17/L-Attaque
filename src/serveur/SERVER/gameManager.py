@@ -113,40 +113,16 @@ class GameManager():
     ###### End Game ######
 
     ## TODO : Check the end game conditions after each moves
-    def check_end_game(self):
+    def check_end_state(self):
         for player in self.players:
-            if self.game_rules.check_flag_captured(player):
+            ended, result = self.game_rules.check_player_end_state(player, self.players)
+            if ended:
                 self.timers.stop()
-                self.declare_winner(
-                    self.players[(player.order + 1) % len(self.players)], 
-                    player, 
-                    f"{player.username}'s flag was captured")
+                winner, loser, reason = result
+                self.declare_winner(winner, loser, reason)
                 return
             
-            if not self.game_rules.check_remaining_moves(player):
-                self.timers.stop()
-                self.declare_winner(
-                    self.players[(player.order + 1) % len(self.players)], 
-                    player, 
-                    f"{player.username} has no moves left")
-                return
-            
-            if self.game_rules.check_impassable_bomb_wall(player, self.players[(player.order + 1) % len(self.players)]):
-                self.timers.stop()
-                self.declare_winner(
-                    self.players[(player.order + 1) % len(self.players)], 
-                    player, 
-                    f"{player.username} has no way to win")
-                return
-            
-            if not self.game_rules.check_no_mobile_pieces(player):
-                self.timers.stop()
-                self.declare_winner(
-                    self.players[(player.order + 1) % len(self.players)], 
-                    player, 
-                    f"{player.username} has no mobile pieces left")
-                return
-            
+
     def declare_winner(self, winner, loser, reason):
         self.winner = winner
         self.loser = loser
