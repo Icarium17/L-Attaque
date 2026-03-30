@@ -10,7 +10,7 @@ class GameRules():
         }
 
         self.zones = {
-            "original" : ((0, 4), (6, 10))
+            "original" : ((6, 10), (0, 4))
         }
 
         self.board = board
@@ -39,6 +39,7 @@ class GameRules():
     def _check_positions(self, valid_rows, pieces) -> bool:
         for piece in pieces:
             if piece.position[1] not in valid_rows:
+                print(piece.position[1], valid_rows)
                 return False
         return True
 
@@ -104,6 +105,32 @@ class GameRules():
                     if self.board.tiles[y][x_0].state == 1:
                         return (0, "SCOUT_CANNOT_JUMP_OVER_IMPASSABLE_TILE")
         return (1, "MOVE_SUCCESS")
+    
+    def combat(self, attacker, defender): ## TODO : scout cannot move and attack on the same turn, add a check for this in validate_move and update the combat function accordingly ??
+        attacker_type = attacker.type
+        defender_type = defender.type
+        attacker_power = attacker_type.power
+        defender_power = defender_type.power
+
+        if attacker_power == defender_power:
+            winner = None
+        elif attacker_type == PieceType.Espion and defender_type == PieceType.Marechal:
+            winner = attacker
+        elif defender_type == PieceType.Bombe:
+            if attacker_type != PieceType.Demineur:
+                winner = defender
+            else:
+                winner = attacker
+        elif defender_power is None:
+            winner = attacker
+
+        elif attacker_power is None:
+            winner = defender
+
+        else :
+            winner = attacker if attacker_power > defender_power else defender
+
+        return winner
 
     def _check_last_moves(self, player_order, move) -> bool:
         

@@ -95,13 +95,13 @@ class LobbyManager:
     ## Start/End Game
     def start_game(self, args): ## tout à changer une fois que les joueurs pourront se connecter et loop awaiting player
         print("start_game called")
-        ##Eventuellement, il faudra faire en sorte que le joueur puisse choisir de jouer contre un autre joueur ou contre l'ia, et dans ce cas, on créera une instance d'AIPlayer au lieu de Player pour le second joueur. Pour l'instant, on fait juste une partie contre l'ia pour tester le fonctionnement du lobby manager et du game manager
+        ##Eventuellement, il faudra faire en sorte que le joueur puisse choisir de jouer contre un autre joueur ou contre l'ia
         (my_key,) = args
         player1 = Player(self.active_users[my_key], 0)
 
         user_p2 = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
 
-        player2 = Player(user_p2, 1)
+        player2 = AIPlayer(user_p2, 1, 0)
 
         game = GameManager(self, [player1, player2])
         self.games[my_key] = game
@@ -141,14 +141,46 @@ class LobbyManager:
     ## Play Game
     def set_pieces(self, args):
         print("set_pieces called")
-        my_key, pieces = args
-        print(pieces)
+        my_key, pieces_recieved = args
+        pieces_set = []
 
+        pieces_set = self.convert_pieces(pieces_recieved, self.active_users[my_key])
+
+        if my_key not in self.games: ##TODO : this is just for testing, it should be changed when the game loop is implemented, because the game will be created when the player starts searching for a game, not when they set their pieces, so this condition will never be true. For now, it allows us to test the set_pieces function without having to implement the game loop and the search for a game first.
+            self.start_game((my_key,))
+
+        if not self.games[my_key]:
+            self.start_game((my_key,))
         game = self.games[my_key] ##this might be a problem with how start_game works, but itll change so its fine for now
-        valid = game.check_valid_setup(my_key, pieces)
+        valid = game.check_valid_setup(my_key, pieces_set)
         if valid:
             return valid, self.active_users[my_key].status
         return "INVALID_PIECE_SETUP", self.active_users[my_key].status
+    
+    def convert_pieces(self, pieces_data, owner):
+        pieces = []
+
+        for i, piece_dict in enumerate(pieces_data):
+            try:
+                type_str = piece_dict["type"].replace("é", "e").replace("É", "E")
+
+                ptype = PieceType[type_str]
+
+                piece = Piece(
+                    id=i,
+                    type=ptype,
+                    position=tuple(piece_dict["position"]),
+                    owner=owner
+                )
+
+                pieces.append(piece)
+
+            except KeyError as e:
+                raise ValueError(f"Invalid piece data: missing {e} in {piece_dict}")
+            except Exception as e:
+                raise ValueError(f"Error processing piece {piece_dict}: {e}")
+
+        return pieces
 
     def move(self, args):
         print("move called")
@@ -169,7 +201,12 @@ class LobbyManager:
         print("leaderboard called")
 
     def get_status(self, args):
-        pass
+        print("get_status called")
+        (my_key,) = args
+        if my_key not in self.games:
+            return {"status": "IDLE"}
+        game = self.games[my_key]
+        return game.get_status(my_key)
 
 
     ##Return to Player

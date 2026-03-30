@@ -5,7 +5,7 @@ import threading
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
-from GAME.piece import BeliefPiece
+from GAME.piece import BeliefPiece, PieceType
 from USERS.player import Player
 
 class GameManager():
@@ -45,23 +45,39 @@ class GameManager():
         self.players[player_order].pieces = {piece.id: piece for piece in pieces} 
         self.set_unknowns_pieces(player_id, pieces) 
         self.players_ready+=1
+
+        ##setup pieces AI. TODO : change once it works
+        self.setup_ai_player() ##TODO : add check if the second player is an ai
         ##self.check_board() ## TODO : Retirer une fois que tout fonctionne
+        print(self.players_ready)
+        print(len(self.players))
         if self.players_ready == len(self.players):
             self.timers.start(0)  # Start with player 0
             for player in self.players:
                 player.user.status = "GAME_READY"
         else :
             self.players[player_order].user.status = "WAITING_FOR_OPPONENT"
-        return ("SETUP_SUCCESS") 
+        
+        return ("SETUP_SUCCESS")
+
+    def setup_ai_player(self):
+        ai_pieces = self.players[1].set_up_random_pieces() ##TODO : Remove this block once the game loop and the search for a game are implemented, this is just to allow us to test the game without having to implement the game loop and the search for a game first.
+        self.board.set_pieces(ai_pieces)
+        self.players[1].position_pieces(ai_pieces)
+        self.players[1].pieces = {piece.id: piece for piece in ai_pieces}
+        self.set_unknowns_pieces(self.players[1].key, ai_pieces)
+        self.players_ready +=1
 
     def set_unknowns_pieces(self, player_id, pieces):
+        player_order = self.get_order(player_id)
+        
         belief_pieces = []
         for piece in pieces:
             belief = BeliefPiece(piece.id, piece.position, player_id)
             belief_pieces.append(belief)
-        for opponent in self.players[:player_id] + self.players[player_id + 1:]:
+        for opponent in self.players[:player_order] + self.players[player_order + 1:]:
             opponent.position_pieces(belief_pieces)
-        self.players[player_id].belief_pieces = belief_pieces
+        self.players[player_order].belief_pieces = belief_pieces
         
     def check_board(self):
         for y in range(self.board.rows):
@@ -90,9 +106,17 @@ class GameManager():
         valid_move = self.game_rules.validate_move(player, move)
         if valid_move[0] == 0:
             return valid_move
-        self.board.move(move)
-        for player in self.players:
-            player.move(move)
+        
+        pieceFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]].piece
+        tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
+
+        if tileTo.piece and tileTo.piece.owner != player.order:
+            move = self.combat(pieceFrom, tileTo.piece)
+
+        else :
+            self.board.move(move)
+            for player in self.players:
+                player.move(move)
             ## TODO : Update belief states for all players based on the move and the result of the move (e.g. if a piece was captured, update the probabilities for that piece being in certain positions)
 
         for player in self.players:
@@ -106,8 +130,34 @@ class GameManager():
         return (1, "MOVE_SUCCESS")
     
     def combat(self, attacker, defender):
-        pass
-        ## If both pieces are the same, they are both removed from the board. If they are, we need to check if they were the last pieces the players had and call a tie if so.
+        winner = self.game_rules.combat(attacker, defender)
+        if winner is None:
+            self.board.remove_piece(attacker)
+            self.board.remove_piece(defender)
+            
+        elif attacker == winner:
+            self.board.remove_piece(defender)
+
+        else:
+            self.board.remove_piece(attacker)
+            
+        for player in self.players:
+                player.update_belief_states(attacker)
+                player.update_belief_states(defender) 
+
+        return winner == attacker
+
+    def get_status(self, player_id):
+        player = self.players[self.get_order(player_id)]
+        if player.order == -1:
+            return {"status": "INVALID_KEY"}
+        status = {
+            "status": player.user.status,
+            "board": player.known_board.serialize(),
+            "turn": "blue" if self.player_to_move == 0 else "red",
+            "time_remaining": self.players[self.player_to_move].time_remaining
+        }
+        return status
     
 
     ###### End Game ######
@@ -137,6 +187,8 @@ class GameManager():
 
     def timer_expired(self, player):
         self.declare_winner(self.players[(player + 1) % len(self.players)], self.players[player], f"{self.players[player].username}'s timer expired")
+
+    
 
 class PlayerTimer:
     def __init__(self, players, times, timer_expired_callback):
