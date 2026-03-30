@@ -64,7 +64,7 @@ class GameManager():
 
     def setup_ai_player(self, order):
         ai_player = self.players[order]
-        ai_pieces = ai_player.set_up_random_pieces((0, 4) if order == 1 else (6, 10))
+        ai_pieces = ai_player.set_up_random_pieces()
         self.board.set_pieces(ai_pieces)
         ai_player.position_pieces(ai_pieces)
         ai_player.pieces = {piece.id: piece for piece in ai_pieces}
