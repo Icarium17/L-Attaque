@@ -90,7 +90,7 @@ export default function Lobby() {
                 QUITTER
                 </Button>                     
           </div>          
-                <div className="absolute top-[90%] left-[42%] w-[22%] flex flex-col gap-[3%] z-10">
+                <div className="absolute top-[90%] left-[43%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
                 onClick={goToGame} 

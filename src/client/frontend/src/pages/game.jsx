@@ -394,6 +394,7 @@ return (
                 isLake={isLake(rowIndex, colIndex)}
                 isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
                 piece={cell}
+                playerColor="BLUE"
                 onClick={handleCellClick}
               />
             ))

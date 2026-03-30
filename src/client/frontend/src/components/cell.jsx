@@ -6,7 +6,7 @@ import cellSelected from '../assets/images/cell-selected.png';
 import cellValid from '../assets/images/cell-valid.png';
 import Piece  from "../components/piece.jsx";
  
-export default function Cell({ row, col, isLake, piece, onClick, isSelected, isValidMove }) {
+export default function Cell({ row, col, isLake, piece, onClick, isSelected, isValidMove, playerColor }) {
   let texture;
   if (isLake) {
     texture = cellLake;
@@ -28,7 +28,7 @@ export default function Cell({ row, col, isLake, piece, onClick, isSelected, isV
       `}
       style={{ backgroundImage: `url(${texture})` }}
     >
-      {piece && <Piece rank={piece.rank} player={piece.player} revealed={piece.revealed} />}
+      {piece && <Piece rank={piece.rank} type={piece.type} player={piece.player} revealed={piece.revealed} playerColor ={playerColor} />}
     </div>
   );
 }
