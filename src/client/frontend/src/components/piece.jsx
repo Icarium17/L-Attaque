@@ -47,8 +47,8 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
     {/* Le Grade*/}
     <span 
       className={`
-        absolute top-0.5 left-1 z-10 
-        text-[clamp(8px,1.1vw,14px)] text-emerald-900
+        absolute top-1.5 left-2 z-10 
+        text-[clamp(12px,1.1vw,14px)] text-red-900
         ${isVisible ? "opacity-100" : "opacity-0"}
       `}
       >
@@ -57,7 +57,7 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
     {/* Le visuel SVG si visible*/} 
       {isVisible && Aspect && ( 
          <div className="w-9 h-11 object-contain pointer-events-none">
-          <Aspect className="text-blue-900" />
+          <Aspect className="text-blue-950" />
         </div>
       )}     
       {/* ? si invisible*/} 

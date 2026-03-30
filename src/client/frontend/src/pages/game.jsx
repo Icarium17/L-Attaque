@@ -9,7 +9,7 @@ import Piece  from "../components/piece.jsx";
 import Button from "../components/Button.jsx";
 import Loading from "../components/loading.jsx";
 import GameMessage from "../components/gameMessage.jsx";
-
+import Timer from "../components/timer.jsx";
 /*
   Cases d'eau: pas de déplacement.
 */
@@ -71,7 +71,7 @@ export default function Game() {
   const [selectedCell, setSelectedCell] = useState(null);
   const [loading, setLoading] = useState(false);
   const [turn, setTurn] = useState("BLUE");
-  const [phase, setPhase] = useState("PLACEMENT");
+  const [phase, setPhase] = useState("PLAYING"); // a changer le placement !!!!!!!!!
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
   const [pool, setPool] = useState(() => createPieces("BLUE"));  // on definit pour l instant le joueur comme blue
   const [board, setBoard] = useState(() => createEmptyBoard());
@@ -115,23 +115,24 @@ useEffect(() => {
           return navigate("/");
         }
 
-        if (gameData?.status) setPhase(gameData.status.toUpperCase());
+        setPhase("PLAYING") // POUR TEST EN ATTENDANT
+        //if (gameData?.status) setPhase(gameData.status.toUpperCase()); //////////////////////a modif!
         if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
 
         if (gameData?.status?.toUpperCase() != "PLACEMENT" && gameData?.board) {
           setBoard(gameData.board);
         }
 
-        timerId = setTimeout(poll, 2000);
+        timerId = setTimeout(pull, 2000);
       })
       .catch(() => {
         if (!cancelled) {
-          timerId = setTimeout(poll, 3000);
+          timerId = setTimeout(pull, 3000);
         }
       });
   };
 
-  timerId = setTimeout(poll, 500);
+  timerId = setTimeout(pull, 500);
 
   return () => {
     cancelled = true;
@@ -320,91 +321,103 @@ return (
     session={session}
     hideMenu={true}
   >
-    <div className="flex flex-col items-center w-110 shrink-0 px-4 space-y-5">
-      
-      {/* PLACEMENT*/}
-      {phase == "PLACEMENT" && (
-        <>
-          <GameMessage variant="title" title="Pièces à placer" />
-          <Button variant="primary" onClick={handleAutoPlacement} disabled={pool.length == 0} fullWidth text="Placement Auto" />
-          <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
+    <div className="relative flex items-center justify-center w-full h-full">
+ 
+      <div className="absolute left-25 top-[4%] flex flex-col items-center w-110 shrink-0 px-4 space-y-5">
 
-          {/* POOL*/}
-          <div className="grid grid-cols-5 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded">
-            {pool.map((piece, idx) => (
-              <button
-                key={idx}
-                onClick={() => handlePoolClick(idx)}
-                className={`w-16 h-16 flex flex-col items-center justify-center font-bold rounded border-2 transition-transform mx-auto
-                  ${selectedPoolIndex == idx
-                    ? "border-yellow-400 bg-blue-600 text-white scale-110 shadow-cyan-500/50 shadow-md"
-                    : "border-gray-500 bg-blue-900 text-blue-200 hover:border-blue-300"
-                  }`}
-              >
-                <Piece 
-                    rank={piece.rank} 
-                    type={piece.type} 
-                    player={piece.player} 
-                    playerColor="BLUE" 
-                    revealed={true} 
+        {/* PLACEMENT */}
+        {phase == "PLACEMENT" && (
+          <>
+            <GameMessage variant="title" title="Pièces à placer" />
+            <Button variant="primary" onClick={handleAutoPlacement} disabled={pool.length == 0} fullWidth text="Placement Auto" />
+            <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
+
+            {/* POOL */}
+            <div className="grid grid-cols-5 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded">
+              {pool.map((piece, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handlePoolClick(idx)}
+                  className={`w-16 h-16 flex flex-col items-center justify-center font-bold rounded border-2 transition-transform mx-auto
+                    ${selectedPoolIndex == idx
+                      ? "border-yellow-400 bg-blue-600 text-white scale-110 shadow-cyan-500/50 shadow-md"
+                      : "border-gray-500 bg-gray-800 text-blue-200 hover:border-blue-300"
+                    }`}
+                >
+                  <Piece
+                    rank={piece.rank}
+                    type={piece.type}
+                    player={piece.player}
+                    playerColor="BLUE"
+                    revealed={true}
                   />
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
+            {pool.length == 0 && (
+              <Button variant="success" onClick={handleSubmitPlacement} loading={loading} fullWidth text="Valider" />
+            )}
+          </>
+        )}
+
+        {/* WAITING */}
+        {phase == "WAITING" && (
+          <div className="w-full py-10 flex flex-col items-center justify-center bg-black/30 rounded-lg border border-yellow-500/20 backdrop-blur-sm">
+            <Loading message="Attente..." size={80} />
           </div>
-          {pool.length == 0 && (
-            <Button variant="success" onClick={handleSubmitPlacement} loading={loading} fullWidth text="Valider" />
-          )}
-        </>
-      )}
+        )}
 
-      {/*WAITING */}
-      {phase == "WAITING" && (
-        <div className="w-full py-10 flex flex-col items-center justify-center bg-black/30 rounded-lg border border-yellow-500/20 backdrop-blur-sm">
-          <Loading message="Attente..." size={80} />
-        </div>
-      )}
+        {/* PLAYING */}
+        {phase == "PLAYING" && (
+          <div className="flex flex-col items-center w-full">
+            <GameMessage
+              variant="title"
+              title={turn.toUpperCase() == "BLUE" ? "VOTRE TOUR" : "TOUR ADVERSE"}
+            />
+          </div>
+        )}
 
-      {/*PLAYING */}
-      {phase == "PLAYING" && (
-      <div className="flex flex-col items-center w-full">
-        <GameMessage 
-          variant="title" 
-          title={turn.toUpperCase() == "BLUE" ? "VOTRE TOUR" : "TOUR ADVERSE"} 
-        /> 
-        {error && <p >{error}</p>}
+        {/* NOTIFICATION ERREUR */}
+        {error && (
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">
+            <Notification
+              variant="error"
+              message={error}
+              autoClose={3000}
+              onClose={() => setError("")}
+              className="w-full"
+            />
+          </div>
+        )}
       </div>
-      )}
 
-    {error && (
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">
-        <Notification
-          variant="error"
-          message={error}
-          autoClose={3000}
-          onClose={() => setError("")}
-          className="w-full"
-        />
-      </div>
-    )}
+<div className="flex items-stretch gap-6">
+  
+  {/* Timers */}
+  {phase == "PLAYING" && (
+    <div className="flex flex-col justify-between py-2">
+      <Timer duration={60} color="RED" onExpire={() => setError("Temps écoulé pour Red!")} />
+      <Timer duration={60} color="BLUE" onExpire={() => setError("Temps écoulé pour Blue!")} />
     </div>
-
-  {/*BOARD*/}
-        <div className="grid grid-cols-10 gap-0.5 w-full max-w-[min(600px,80vh)] aspect-square border-[6px] border-yellow-500/50 ml-42 bg-gray-800 p-0.5 rounded shadow-2xl">
-          {board.map((row, rowIndex) =>
-            row.map((cell, colIndex) => (
-              <Cell
-                key={`${rowIndex}-${colIndex}`}
-                row={rowIndex}
-                col={colIndex}
-                isLake={isLake(rowIndex, colIndex)}
-                isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
-                piece={cell}
-                playerColor="BLUE"
-                onClick={handleCellClick}
-              />
-            ))
-          )}
-        </div>
-    </MainLayout>
-  );  
-}
+  )}
+  
+  <div className="grid grid-cols-10 gap-0.5 w-[min(750px,80vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
+    {board.map((row, rowIndex) =>
+      row.map((cell, colIndex) => (
+        <Cell
+          key={`${rowIndex}-${colIndex}`}
+          row={rowIndex}
+          col={colIndex}
+          isLake={isLake(rowIndex, colIndex)}
+          isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
+          piece={cell}
+          playerColor="BLUE"
+          onClick={handleCellClick}
+        />
+      ))
+    )}
+  </div>
+</div>
+    </div>
+  </MainLayout>
+);}
