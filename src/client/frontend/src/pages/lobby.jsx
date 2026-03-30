@@ -45,7 +45,7 @@ export default function Lobby() {
           />
         </div>
          </div>      
-         <div className="absolute top-[21.5%] left-[3.5%] w-[22%] flex flex-col gap-[3%] z-10">
+         <div className="absolute top-[22%] left-[1%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
                 onClick={goToGame} 
@@ -54,7 +54,7 @@ export default function Lobby() {
                 NOUVEAU JEU
                 </Button>  
           </div>
-            <div className="absolute top-[34%] left-[3.5%] w-[22%] flex flex-col gap-[3%] z-10">
+            <div className="absolute top-[34.5%] left-[1%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
                 onClick={goToGame} 
@@ -63,7 +63,7 @@ export default function Lobby() {
                 REPRENDRE
                 </Button>  
           </div>
-            <div className="absolute top-[46%] left-[3.5%] w-[22%] flex flex-col gap-[3%] z-10">
+            <div className="absolute top-[47%] left-[1%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
                 onClick={goToGame} 
@@ -72,7 +72,7 @@ export default function Lobby() {
                 CLASSEMENT
                 </Button>  
           </div>
-       <div className="absolute top-[59%] left-[3.5%] w-[22%] flex flex-col gap-[3%] z-10">
+       <div className="absolute top-[60%] left-[1%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
                 onClick={goToGame} 
@@ -81,7 +81,7 @@ export default function Lobby() {
                 OPTIONS
                 </Button>  
           </div>
-      <div className="absolute top-[71%] left-[3.5%] w-[22%] flex flex-col gap-[3%] z-10">
+      <div className="absolute top-[72%] left-[1%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
                 onClick={goToGame} 
