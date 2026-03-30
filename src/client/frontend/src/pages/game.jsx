@@ -10,6 +10,7 @@ import Button from "../components/Button.jsx";
 import Loading from "../components/loading.jsx";
 import GameMessage from "../components/gameMessage.jsx";
 import Timer from "../components/timer.jsx";
+import TurnIndicator from "../components/turnIndicator.jsx";
 /*
   Cases d'eau: pas de déplacement.
 */
@@ -397,6 +398,7 @@ return (
   {phase == "PLAYING" && (
     <div className="flex flex-col justify-between py-2">
       <Timer duration={60} color="RED" onExpire={() => setError("Temps écoulé pour Red!")} />
+      <TurnIndicator turn={turn} />
       <Timer duration={60} color="BLUE" onExpire={() => setError("Temps écoulé pour Blue!")} />
     </div>
   )}
