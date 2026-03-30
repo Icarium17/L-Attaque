@@ -5,6 +5,7 @@ import Notification from "../components/notification.jsx";
 import MainLayout from "../layouts/main-layout";
 import backgroundGame from '../assets/images/background-game.png';
 import Cell from "../components/cell.jsx";
+import Piece  from "../components/piece.jsx";
 import Button from "../components/Button.jsx";
 import Loading from "../components/loading.jsx";
 import GameMessage from "../components/gameMessage.jsx";
@@ -340,12 +341,16 @@ return (
                     : "border-gray-500 bg-blue-900 text-blue-200 hover:border-blue-300"
                   }`}
               >
-                <span className="text-xs">{piece.rank}</span>
-                <span className="text-[7px] leading-none opacity-80 mt-0.5">{piece.type}</span>
+                <Piece 
+                    rank={piece.rank} 
+                    type={piece.type} 
+                    player={piece.player} 
+                    playerColor="BLUE" 
+                    revealed={true} 
+                  />
               </button>
             ))}
           </div>
-
           {pool.length == 0 && (
             <Button variant="success" onClick={handleSubmitPlacement} loading={loading} fullWidth text="Valider" />
           )}
