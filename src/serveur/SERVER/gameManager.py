@@ -6,6 +6,7 @@ import threading
 from GAME.board import Board
 from GAME.gameRules import GameRules
 from GAME.piece import BeliefPiece, PieceType
+from USERS.aiPlayer import AIPlayer
 from USERS.player import Player
 
 class GameManager():
@@ -17,7 +18,7 @@ class GameManager():
         self.players = players
         self.set_player_boards()
         self.player_to_move = 0
-        self.players_ready = 0
+        self.players_ready = set()
         self.move_made = False
         self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired) 
         self.winner = None
@@ -44,29 +45,33 @@ class GameManager():
         self.players[player_order].position_pieces(pieces) 
         self.players[player_order].pieces = {piece.id: piece for piece in pieces} 
         self.set_unknowns_pieces(player_id, pieces) 
-        self.players_ready+=1
+        self.players_ready.add(player.key)
 
         ##setup pieces AI. TODO : change once it works
-        self.setup_ai_player() ##TODO : add check if the second player is an ai
+        for player in self.players:
+            if isinstance(player, AIPlayer):
+                print("AI")
+                self.setup_ai_player(player.order)
         ##self.check_board() ## TODO : Retirer une fois que tout fonctionne
-        print(self.players_ready)
-        print(len(self.players))
-        if self.players_ready == len(self.players):
-            self.timers.start(0)  # Start with player 0
-            for player in self.players:
-                player.user.status = "GAME_READY"
+        if all(p.key in self.players_ready for p in self.players):
+            self.timers.start(0)
+            for p in self.players:
+                p.user.status = "GAME_READY"
         else :
             self.players[player_order].user.status = "WAITING_FOR_OPPONENT"
         
         return ("SETUP_SUCCESS")
 
-    def setup_ai_player(self):
-        ai_pieces = self.players[1].set_up_random_pieces() ##TODO : Remove this block once the game loop and the search for a game are implemented, this is just to allow us to test the game without having to implement the game loop and the search for a game first.
+    def setup_ai_player(self, order):
+        ai_player = self.players[order]
+        ai_pieces = ai_player.set_up_random_pieces((0, 4) if order == 1 else (6, 10))
         self.board.set_pieces(ai_pieces)
-        self.players[1].position_pieces(ai_pieces)
-        self.players[1].pieces = {piece.id: piece for piece in ai_pieces}
-        self.set_unknowns_pieces(self.players[1].key, ai_pieces)
-        self.players_ready +=1
+        ai_player.position_pieces(ai_pieces)
+        ai_player.pieces = {piece.id: piece for piece in ai_pieces}
+        self.set_unknowns_pieces(ai_player.key, ai_pieces)
+        self.players_ready.add(ai_player.key)
+        ai_player.game_rules = self.game_rules
+        ai_player.players = self.players
 
     def set_unknowns_pieces(self, player_id, pieces):
         player_order = self.get_order(player_id)

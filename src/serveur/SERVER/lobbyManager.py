@@ -15,6 +15,7 @@ class LobbyManager:
         self.wait_list = []
         self.active_users = {}
         self.active_challenges = []
+        self.game_types = ["ai", "multiplayer", "challenge"]
 
         self.actions = {
             "signup": self.create_profile,
@@ -93,21 +94,36 @@ class LobbyManager:
 
 
     ## Start/End Game
-    def start_game(self, args): ## tout à changer une fois que les joueurs pourront se connecter et loop awaiting player
+    def start_game(self, args): 
         print("start_game called")
-        ##Eventuellement, il faudra faire en sorte que le joueur puisse choisir de jouer contre un autre joueur ou contre l'ia
-        (my_key,) = args
-        player1 = Player(self.active_users[my_key], 0)
+        (my_key,) = args ##add game_type to args
 
-        user_p2 = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
+        game_type = self.game_types[0] ##TODO : get game type from args
+        if game_type == "multiplayer":
+            self.wait_list.append(my_key)
+            if len(self.wait_list) >= 2:
+                player1_key = self.wait_list.pop(0)
+                player2_key = self.wait_list.pop(0)
 
-        player2 = AIPlayer(user_p2, 1, 0)
+                player1 = Player(self.active_users[player1_key], 0)
+                player2 = Player(self.active_users[player2_key], 1)
 
-        game = GameManager(self, [player1, player2])
-        self.games[my_key] = game
-        self.games[1] = game
+                game = GameManager(self, [player1, player2])
+                self.games[player1_key] = game
+                self.games[player2_key] = game
 
-        return "GAME_STARTED", player2.username
+                return "GAME_STARTED", player2.username
+            else:
+                return "WAITING_FOR_OPPONENT", None
+            
+        if game_type == "ai":
+            player = Player(self.active_users[my_key], 0)
+            ai_user = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
+            ai_player = AIPlayer(ai_user, 1, 0)
+            game = GameManager(self, [player, ai_player])
+            self.games[my_key] = game
+
+            return "GAME_STARTED", ai_player.username
 
     def get_active_players(self):
         print("get_active_players called")
@@ -151,7 +167,7 @@ class LobbyManager:
 
         if not self.games[my_key]:
             self.start_game((my_key,))
-        game = self.games[my_key] ##this might be a problem with how start_game works, but itll change so its fine for now
+        game = self.games[my_key] 
         valid = game.check_valid_setup(my_key, pieces_set)
         if valid:
             return valid, self.active_users[my_key].status
@@ -211,11 +227,13 @@ class LobbyManager:
 
     ##Return to Player
     def end_game(self, winner, loser, reason):
-        winner.user.status = "IDLE"
-        loser.user.status = "IDLE"
+        if not isinstance(winner, AIPlayer):
+            winner.user.status = "IDLE"
+            del self.games[winner.key]
+        if not isinstance(loser, AIPlayer):
+            loser.user.status = "IDLE"
+            del self.games[loser.key]
         ##TODO : Implement self.DAOUsers.update_score(winner.id, winner.user.score)  # Increment winner's score
         ##self.DAOUsers.update_score(loser.id, loser.user.score)   # Decrement loser's score
-        del self.games[winner.key]
-        del self.games[loser.key]
         ##TODO : Send end game message to both players with reason and updated scores
     

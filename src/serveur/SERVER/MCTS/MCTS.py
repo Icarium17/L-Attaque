@@ -15,6 +15,13 @@ class MCTS:
         self.current_node = self.node_0
         self.current_iteration = 0
 
+        self.heuristic_evaluation = {
+            0: self.heuristic_evaluation_easy,
+            1: self.heuristic_evaluation_medium,
+            2: self.heuristic_evaluation_hard
+        }
+        self.difficulty = self.ai.difficulty
+
     def algo(self):
         for i in range(self.total_iterations):
             self.current_iteration = i
@@ -41,7 +48,7 @@ class MCTS:
     def simulation(self):  
         game_over = 0
         while not game_over:
-            self.heuristic_evaluation()
+            self.heuristic_evaluation[self.difficulty]()
             game_over = self.game_over()
 
         return game_over
@@ -57,11 +64,19 @@ class MCTS:
             node = node.parent
         
 
-    def heuristic_evaluation(self): ## TODO : right now, entirely random
+    def heuristic_evaluation_easy(self): ## TODO : right now, entirely random
         possible_moves = self.infoSet.get_all_possible_moves()
         if len(possible_moves) == 0:
             return 
         self.infoSet.update_infoSet(random.choice(possible_moves))
+
+    def heuristic_evaluation_medium(self):
+        # TODO : implement a better heuristic evaluation for the medium difficulty
+        self.heuristic_evaluation_easy()
+
+    def heuristic_evaluation_hard(self):
+        # TODO : implement a perfect heuristic evaluation for the hard difficulty
+        self.heuristic_evaluation_easy()
         
 
     def game_over(self):
@@ -70,3 +85,5 @@ class MCTS:
             if ended:
                 return 1
         return 0
+    
+    

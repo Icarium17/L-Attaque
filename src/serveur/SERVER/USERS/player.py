@@ -33,8 +33,6 @@ class Player(User):
             for belief_piece in self.belief_pieces:
                 belief_piece.update_probabilities(self.pieces_left)
 
-    def set_up_random_pieces(self):
-        pass
 
     
 
