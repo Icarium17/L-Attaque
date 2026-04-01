@@ -66,6 +66,34 @@ function createEmptyBoard() {
     Array(10).fill(null));
 }
 
+
+
+/*
+  Transforme reponse api en matrice 10x10 .
+  Sur serveur : x = position[0], y = position[1]
+*/
+const makeBoard = (apiBoard) => {
+  const newGrid = Array.from({ length: 10 }, () => Array(10).fill(null)); 
+  
+  if (!apiBoard || !Array.isArray(apiBoard)) return newGrid;
+
+  apiBoard.forEach((p) => {
+    const x = p.position[0]; 
+    const y = p.position[1];
+    
+    if (y >= 0 && y < 10 && x >= 0 && x < 10) {
+      newGrid[y][x] = {
+        rank: p.rank,
+        player: p.player,      // "BLUE" ou "RED"
+        revealed: p.revealed || false 
+      };
+    }
+  });
+
+  return newGrid;
+};
+
+
 export default function Game() {
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
