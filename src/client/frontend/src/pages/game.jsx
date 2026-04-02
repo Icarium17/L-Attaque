@@ -100,7 +100,7 @@ export default function Game() {
   const [selectedCell, setSelectedCell] = useState(null);
   const [loading, setLoading] = useState(false);
   const [turn, setTurn] = useState("BLUE");
-  const [phase, setPhase] = useState("PLAYING"); // a changer le placement !!!!!!!!!
+  const [phase, setPhase] = useState("PLACEMENT");   // a changer le placement !!!!!!!!!
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
   const [pool, setPool] = useState(() => createPieces("BLUE"));  // on definit pour l instant le joueur comme blue
   const [board, setBoard] = useState(() => createEmptyBoard());
@@ -144,8 +144,8 @@ useEffect(() => {
           return navigate("/");
         }
 
-        setPhase("PLAYING") // POUR TEST EN ATTENDANT
-        //if (gameData?.status) setPhase(gameData.status.toUpperCase()); //////////////////////a modif!
+        //setPhase("PLAYING") // POUR TEST EN ATTENDANT
+        if (gameData?.status) setPhase(gameData.status.toUpperCase());  
         if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
 
         if (gameData?.status?.toUpperCase() != "PLACEMENT" && gameData?.board) {
