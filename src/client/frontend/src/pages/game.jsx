@@ -437,9 +437,9 @@ return (
       {phase == "PLAYING" && (
         <div className="flex flex-col justify-between py-2">
           {/* {timeRemaining}*/}
-          <Timer timeLeft={timeRemaining[1] || 0} color="RED" onExpire={() => setError("Temps écoulé pour Red!")} />
+          <Timer timeLeft={timeRemaining[1] || 0} color="RED"  turn={turn} onExpire={() => setError("Temps écoulé pour Red!")} />
           <TurnIndicator turn={turn} />
-          <Timer timeLeft={timeRemaining[0] || 0} color="BLUE" onExpire={() => setError("Temps écoulé pour Blue!")} />
+          <Timer timeLeft={timeRemaining[0] || 0} color="BLUE" turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
         </div>
       )}
       
