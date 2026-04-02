@@ -5,7 +5,7 @@ from GAME.piece import Piece
 from MCTS import MCTS
 
 class AIPlayer(Player):
-    def __init__(self, user_instance, order, difficulty, time_remaining = (1*15)):
+    def __init__(self, user_instance, order, difficulty, time_remaining = (60*15)):
         super().__init__(user_instance, order, time_remaining)
         self.difficulty = difficulty
         self.player_to_move = 0
@@ -58,11 +58,6 @@ class AIPlayer(Player):
         return self.generate_piece_list_easy()
     
     def set_up_random_pieces(self):
-        """
-        Returns a list of 40 Piece objects for a player.
-        player_order: 0 for player 1, 1 for player 2
-        starting_row: the row where the player's pieces start (e.g., 0 or 6)
-        """
         pieces = []
         piece_types = self.generate_pieces[self.difficulty]()
         rows = self.rows[self.order]
@@ -71,7 +66,7 @@ class AIPlayer(Player):
         for row in range(rows[0], rows[1]):
             for col in range(10):
                 if idx < 40:
-                    pieces.append(Piece(idx, piece_types[idx], (col, row), self))
+                    pieces.append(Piece(idx, piece_types[idx], (col, row), self.order))
                     idx += 1
         return pieces
     

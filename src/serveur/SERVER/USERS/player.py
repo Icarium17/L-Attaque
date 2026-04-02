@@ -10,7 +10,7 @@ class Player(User):
         self.known_board = None
         self.time_remaining = time_remaining
         self.pieces_left = {}
-        self.pieces = {}
+        self.pieces = {} ##why is is a dict
         self.belief_pieces = None
         self.score = 0
 

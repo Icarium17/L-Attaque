@@ -1,4 +1,4 @@
-from random import random
+import random
 from infoSet import InfoSet
 from node import Node
 
@@ -22,6 +22,7 @@ class MCTS:
         }
         self.difficulty = self.ai.difficulty
 
+
     def algo(self):
         for i in range(self.total_iterations):
             self.current_iteration = i
@@ -29,6 +30,9 @@ class MCTS:
             self.expansion()
             win_score = self.simulation()
             self.backpropagation(win_score)
+        print(self.node_0.children)
+
+        return self.get_best_child_node()
 
     def selection(self):
         while True:
@@ -86,4 +90,8 @@ class MCTS:
                 return 1
         return 0
     
+    def get_best_child_node(self):
+        best_child = max(self.node_0.children, key=lambda x: x.win_score)
+        return best_child
+
     

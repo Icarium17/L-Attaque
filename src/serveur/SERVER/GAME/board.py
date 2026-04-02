@@ -35,13 +35,23 @@ class Board():
         tileTo.piece = piece
         piece.position = (move.moveTo)
 
-    def get_pieces(self, player):
-        pieces = []
+    def get_pieces(self, player_order):
+        pieces = {}
         for row in self.tiles:
             for tile in row:
-                if tile.piece is not None and tile.piece.owner == player.order:
-                    pieces.append(tile.piece)
+                if tile.piece is not None and tile.piece.owner == player_order:
+                    pieces[tile.piece.id] = tile.piece
         return pieces
+    
+    def return_pieces(self):
+        list_pieces = []
+        for row in self.tiles:
+            for tile in row:
+                if tile.piece is not None:
+                    list_pieces.append((tile.x, tile.y))
+
+        return list_pieces
+
 
 
 class Tile():

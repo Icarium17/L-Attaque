@@ -45,7 +45,7 @@ class GameManager():
         self.players[player_order].position_pieces(pieces) 
         self.players[player_order].pieces = {piece.id: piece for piece in pieces} 
         self.set_unknowns_pieces(player_id, pieces) 
-        self.players_ready.add(player.key)
+        self.players_ready.add(player_id)
 
         ##setup pieces AI. TODO : change once it works
         for player in self.players:
@@ -65,10 +65,10 @@ class GameManager():
     def setup_ai_player(self, order):
         ai_player = self.players[order]
         ai_pieces = ai_player.set_up_random_pieces()
-        self.board.set_pieces(ai_pieces)
+        self.board.set_pieces(ai_pieces) ##ok
         ai_player.position_pieces(ai_pieces)
         ai_player.pieces = {piece.id: piece for piece in ai_pieces}
-        self.set_unknowns_pieces(ai_player.key, ai_pieces)
+        self.set_unknowns_pieces(ai_player.key, ai_pieces) ##ok
         self.players_ready.add(ai_player.key)
         ai_player.game_rules = self.game_rules
         ai_player.players = self.players
@@ -78,7 +78,7 @@ class GameManager():
         
         belief_pieces = []
         for piece in pieces:
-            belief = BeliefPiece(piece.id, piece.position, player_id)
+            belief = BeliefPiece(piece.id, piece.position, player_order)
             belief_pieces.append(belief)
         for opponent in self.players[:player_order] + self.players[player_order + 1:]:
             opponent.position_pieces(belief_pieces)
@@ -108,7 +108,7 @@ class GameManager():
         if player.order == -1:
             return (0, "INVALID_KEY")
         
-        valid_move = self.game_rules.validate_move(player, move)
+        valid_move = self.game_rules.validate_move(player.order, move)
         if valid_move[0] == 0:
             return valid_move
         
@@ -156,11 +156,14 @@ class GameManager():
         player = self.players[self.get_order(player_id)]
         if player.order == -1:
             return {"status": "INVALID_KEY"}
+        
+        list_pieces = self.board.return_pieces()
+        times_remaining = [player.time_remaining for player in self.players]
         status = {
-            "status": player.user.status,
-            "board": player.known_board.serialize(),
+            "status": "PLAYING", ## À modifier 
+            "board": list_pieces,
             "turn": "blue" if self.player_to_move == 0 else "red",
-            "time_remaining": self.players[self.player_to_move].time_remaining
+            "time_remaining": times_remaining
         }
         return status
     

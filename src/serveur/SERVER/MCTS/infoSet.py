@@ -1,4 +1,4 @@
-from copy import copy
+import copy
 
 class InfoSet:
     def __init__(self, board_state, player_turn, game_rules):
@@ -8,7 +8,7 @@ class InfoSet:
 
     def get_all_possible_moves(self):
         pieces = self.board_state.get_pieces(self.player_turn)
-        possible_moves = self.game_rules.get_possible_moves(pieces)
+        possible_moves = self.game_rules.get_remaining_moves(pieces, self.player_turn)
         return possible_moves
     
     def simulate_move(self, move):

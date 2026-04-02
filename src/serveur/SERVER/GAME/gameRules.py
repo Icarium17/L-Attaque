@@ -43,46 +43,47 @@ class GameRules():
                 return False
         return True
 
-    def validate_move(self, player, move) -> tuple[int, str]:
+    def validate_move(self, player_order, move) -> tuple[int, str]:
         x_0, y_0, x_1, y_1 = move.getParams()
 
         d_x = abs(x_1 - x_0)
         d_y = abs(y_1 - y_0)
+
+        if d_x == 0 and d_y == 0: ## if the mouvement is null
+            return (0, "NO_MOVE")
+        
+        if not (0 <= x_1 < self.board.cols) or not (0 <= y_1 < self.board.rows): ## if the move makes the piece fall off the edge of the battlefield
+            return (0, "OUT_OF_BOUNDS")
         
         tileFrom = self.board.tiles[y_0][x_0]
         tileTo = self.board.tiles[y_1][x_1]
        
         piece = tileFrom.piece
 
-        if d_x == 0 and d_y == 0: ## if the mouvement is null
-            return (0, "NO_MOVE")
         
         if piece is None: ## if there`s no piece on the tile the player wants to move
             return (0, "NO_PIECE")
         
-        if piece.owner != player.order: ## if a player is trying to move another`s piece
+        if piece.owner != player_order: ## if a player is trying to move another`s piece
             return (0, "INVALID_OWNER")
         
         if d_x > 0 and d_y > 0: ## if the move is diagonal
             return (0, "INVALID_MOVE_DIAGONAL")
-
-        if not (0 <= x_1 < self.board.cols) or not (0 <= y_1 < self.board.rows): ## if the move makes the piece fall off the edge of the battlefield
-            return (0, "OUT_OF_BOUNDS")
         
-        if tileTo.piece and tileTo.piece.owner == player.order : ## if the piece stops on a tile where theres a piece belonging to the same player 
+        if tileTo.piece and tileTo.piece.owner == player_order : ## if the piece stops on a tile where theres a piece belonging to the same player 
             return (0, "TILE_OCCUPIED_BY_OWN_PIECE")
 
-        if piece.type == "Drapeau" or piece.type == "Bombe": ## if the player is trying to mvoe a bomb or a flag
+        if piece.type == PieceType.Drapeau or piece.type == PieceType.Bombe: ## if the player is trying to mvoe a bomb or a flag
             if d_x != 0 or d_y != 0:
                 return (0, "IMMOBILE_PIECE")
             
-        if not self._check_last_moves(player.order, move): ## if the move is identical to the last 4 moves
+        if not self._check_last_moves(player_order, move): ## if the move is identical to the last 4 moves
             return (0, "REPEATED_MOVE")
         
         if tileTo.state == 1:
             return (0, "IMPASSABLE_TILE")
         
-        if piece.type != "Éclaireur": ## is a piece that`s not a scout tries to move more than 1 tile
+        if piece.type != PieceType.Eclaireur: ## is a piece that`s not a scout tries to move more than 1 tile
                 if d_x > 1 or d_y > 1:
                     return (0, "INVALID_MOVE_DISTANCE")
                 
@@ -156,9 +157,9 @@ class GameRules():
     
 
     def check_impassable_bomb_wall(self, player, opponent):
-        if player.pieces[PieceType.Démineur] == 0:
+        if player.pieces_left[PieceType.Demineur] == 0:
             if opponent.pieces_left[PieceType.Bombe] > 0:
-                x_flag, y_flag = opponent.pieces[PieceType.Drapeau].position
+                x_flag, y_flag = opponent.pieces_left[PieceType.Drapeau].position
                 directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
                 for dx, dy in directions:
                     nx, ny = x_flag + dx, y_flag + dy
@@ -181,23 +182,23 @@ class GameRules():
             return True
         return False
     
-    def get_remaining_moves(self, player): ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
+    def get_remaining_moves(self, pieces, player_order): ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
         possible_moves = []
-        for piece in player.pieces.values():
-            if piece.type == "Drapeau" or piece.type == "Bombe":
+        for piece in pieces.values():
+            if piece.type == PieceType.Drapeau or piece.type == PieceType.Bombe:
                 continue
-            if piece.type != "Éclaireur":
+            if piece.type != PieceType.Eclaireur:
                 for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                     new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                     move = Move(piece.position, (new_x, new_y))
-                    if self.validate_move(player, move)[0] == 1:
+                    if self.validate_move(player_order, move)[0] == 1:
                         possible_moves.append(move)
             else:  # piece.type == "Éclaireur"
                 for i in range(1, max(self.board.rows, self.board.cols)):
                     for dx, dy in [(0, i), (i, 0), (0, -i), (-i, 0)]:
                         new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                         move = Move(piece.position, (new_x, new_y))
-                        if self.validate_move(player, move)[0] == 1:
+                        if self.validate_move(player_order, move)[0] == 1:
                             possible_moves.append(move)
 
         return possible_moves
@@ -206,7 +207,7 @@ class GameRules():
         if len(player.pieces) == 0:
             return True
 
-        possible_moves = self.get_remaining_moves(player)
+        possible_moves = self.get_remaining_moves(player.pieces, player.order)
         return len(possible_moves) == 0
     
     ## TODO : Add an actual scoring system
