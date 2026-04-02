@@ -67,7 +67,7 @@ class GameAction extends CommonAction {
             }
             
             $success = true;
-            $message = "Placement envoyé";
+            $message = "Placement envoye";
             return ["result" => compact("success", "message"), "response_svr" => $apiResult];
         }
 
@@ -85,11 +85,17 @@ class GameAction extends CommonAction {
             }
 
             $success = true;
-            $message = "Statut récupéré";
-            return ["result" => compact("success", "message"), "response_svr" => $apiResult];
+            $status = $apiResult -> status;
+            $turn    = $apiResult -> turn;
+            $time_remaining = $apiResult -> time_remaining;
+            $apiBoard   = $apiResult -> board; 
+            return ["result" => compact("success","status","turn","time_remaining","apiBoard"), "response_svr" => $apiResult];
         }
 
         $error = "Action inconnue";
         return ["result" => compact("error")];
     }
 }
+
+
+ 

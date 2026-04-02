@@ -47,8 +47,8 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
     {/* Le Grade*/}
     <span 
       className={`
-        absolute top-1.5 left-2 z-10 
-        text-[clamp(12px,1.1vw,14px)] text-red-900
+        absolute top-3.5 left-3 z-10 
+        text-[clamp(14px,1.6vw,16px)] text-red-800
         ${isVisible ? "opacity-100" : "opacity-0"}
       `}
       >

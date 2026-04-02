@@ -1,7 +1,7 @@
 import timerBlue from '../assets/images/timer-blue.png';
 import timerRed from '../assets/images/timer_red.png';
 
-export default function Timer({ timeLeft = 600, color = "BLUE" }) {
+export default function Timer({ timeLeft = 0, color = "BLUE" }) {
   const isEnding = timeLeft <= 30;
   const minutes = Math.floor(timeLeft / 60);
   const seconds = `${timeLeft % 60}`.padStart(2, '0');
@@ -18,7 +18,7 @@ export default function Timer({ timeLeft = 600, color = "BLUE" }) {
         className={`relative z-10 font-black text-2xl select-none leading-none
           ${isEnding ? 'text-red-500' : 'text-white'}
           drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]`}
-        style={{ transform: 'translateY(-7px)' }}
+        style={{ transform: 'translate(-8px, -6px)' }}
       >
         {minutes}:{seconds}
       </span>

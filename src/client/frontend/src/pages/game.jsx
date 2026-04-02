@@ -38,7 +38,7 @@ const PIECES_CONFIG = [
   { rank: "D", type: "Drapeau", count: 1 },
 ];
 /*
-  Vérifie si une case est eau
+  Vérifie si une case est de l'eau
 */
 function isLake(row, col) {
   return LAKES.indexOf(`${row}-${col}`) != -1;
@@ -96,15 +96,16 @@ const makeBoard = (apiBoard) => {
 
 export default function Game() {
   const navigate = useNavigate();
+  const [board, setBoard] = useState(() => createEmptyBoard()); 
+  const [turn, setTurn] = useState("BLUE");
   const [session, setSession] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [turn, setTurn] = useState("BLUE");
-  const [phase, setPhase] = useState("PLACEMENT");   // a changer le placement !!!!!!!!!
+  const [phase, setPhase] = useState("PLACEMENT");    
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
   const [pool, setPool] = useState(() => createPieces("BLUE"));  // on definit pour l instant le joueur comme blue
-  const [board, setBoard] = useState(() => createEmptyBoard());
   const [error, setError] = useState("");
+  const [timeRemaining, setTimeRemaining] = useState([0, 0]);
 
   /*
     Vérifie la session au chargement si l'utilisateur n'a pas de session retour accueil.
@@ -117,10 +118,13 @@ export default function Game() {
     navigate("/");
     return;
   }
-
   setSession({ username, key });
 }, [navigate]);
 
+
+  /*
+    Mise a jour UI toutes les 1 secondes.
+  */
 useEffect(() => {
   if (phase == "PLACEMENT") return;
 
@@ -144,13 +148,21 @@ useEffect(() => {
           return navigate("/");
         }
 
-        //setPhase("PLAYING") // POUR TEST EN ATTENDANT
         if (gameData?.status) setPhase(gameData.status.toUpperCase());  
         if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
-
-        if (gameData?.status?.toUpperCase() != "PLACEMENT" && gameData?.board) {
-          setBoard(gameData.board);
+    
+        if (gameData?.time_remaining) {
+          setTimeRemaining(gameData.time_remaining.map(val => Number(val)));
         }
+
+  
+        if (gameData?.status?.toUpperCase() == "PLAYING") {
+
+        const boardData = result.result?.apiBoard || gameData?.board;
+        if (boardData) {
+            setBoard(makeBoard(boardData));
+        }
+}
 
         timerId = setTimeout(pull, 2000);
       })
@@ -260,7 +272,7 @@ const handleCellClick = (row, col) => {
     }
   };
 
-   /*
+  /*
     Placement automatique aléatoire 
   */
   const handleAutoPlacement = () => {
@@ -350,9 +362,9 @@ return (
     session={session}
     hideMenu={true}
   >
-    <div className="relative flex items-center justify-center w-full h-full">
- 
+    <div className="relative flex items-center justify-center w-full h-full"> 
       <div className="absolute left-25 top-[4%] flex flex-col items-center w-110 shrink-0 px-4 space-y-5">
+      
 
         {/* PLACEMENT */}
         {phase == "PLACEMENT" && (
@@ -420,18 +432,19 @@ return (
         )}
       </div>
 
-<div className="flex items-stretch gap-6">
-  
-  {/* Timers */}
-  {phase == "PLAYING" && (
-    <div className="flex flex-col justify-between py-2">
-      <Timer duration={60} color="RED" onExpire={() => setError("Temps écoulé pour Red!")} />
-      <TurnIndicator turn={turn} />
-      <Timer duration={60} color="BLUE" onExpire={() => setError("Temps écoulé pour Blue!")} />
-    </div>
-  )}
-  
-  <div className="grid grid-cols-10 gap-0.5 w-[min(750px,80vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
+    <div className="flex items-stretch gap-20">      
+      {/* Timers */}
+      {phase == "PLAYING" && (
+        <div className="flex flex-col justify-between py-2">
+          {/* {timeRemaining}*/}
+          <Timer timeLeft={timeRemaining[1] || 0} color="RED" onExpire={() => setError("Temps écoulé pour Red!")} />
+          <TurnIndicator turn={turn} />
+          <Timer timeLeft={timeRemaining[0] || 0} color="BLUE" onExpire={() => setError("Temps écoulé pour Blue!")} />
+        </div>
+      )}
+      
+  {/* Board */}
+  <div className="grid grid-cols-10 gap-0.5 w-[min(950px,85vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
     {board.map((row, rowIndex) =>
       row.map((cell, colIndex) => (
         <Cell
