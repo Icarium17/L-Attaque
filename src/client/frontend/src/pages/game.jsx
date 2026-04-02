@@ -68,28 +68,32 @@ function createEmptyBoard() {
 
 
 
-/*
-  Transforme reponse api en matrice 10x10 .
-  Sur serveur : x = position[0], y = position[1]
-*/
+//  x, y, rank, player = [0, 6, "10", "player_0"]  ex marechal blue
+
+const RANK_TO_TYPE = {
+  "B": "Bombe", "10": "Marechal", "9": "General", "8": "Colonel",
+  "7": "Major", "6": "Capitaine", "5": "Lieutenant", "4": "Sergent",
+  "3": "Demineur", "2": "Eclaireur", "1": "Espion", "D": "Drapeau"
+}; 
+
 const makeBoard = (apiBoard) => {
-  const newGrid = Array.from({ length: 10 }, () => Array(10).fill(null)); 
-  
+  const newGrid = Array.from({ length: 10 }, () => Array(10).fill(null));
   if (!apiBoard || !Array.isArray(apiBoard)) return newGrid;
 
   apiBoard.forEach((p) => {
-    const x = p.position[0]; 
-    const y = p.position[1];
-    
+    if (!Array.isArray(p) || p.length < 4) return;
+
+    const [x, y, rank, player] = p;
+    const rankStr = String(rank);
     if (y >= 0 && y < 10 && x >= 0 && x < 10) {
       newGrid[y][x] = {
-        rank: p.rank,
-        player: p.player,      // "BLUE" ou "RED"
-        revealed: p.revealed || false 
+        rank: rankStr,
+        type: RANK_TO_TYPE[rankStr] || null,
+        player: player == "player_0" ? "BLUE" : "RED",
+        revealed: rankStr != "?"
       };
     }
   });
-
   return newGrid;
 };
 
@@ -122,11 +126,13 @@ export default function Game() {
 }, [navigate]);
 
 
-  /*
-    Mise a jour UI toutes les 1 secondes.
-  */
+/*
+  Mise a jour UI toutes les secondes.
+*/
 useEffect(() => {
   if (phase == "PLACEMENT") return;
+
+  
 
   let cancelled = false;
   let timerId;

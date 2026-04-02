@@ -48,7 +48,7 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
     <span 
       className={`
         absolute top-3.5 left-3 z-10 
-        text-[clamp(14px,1.6vw,16px)] text-red-800
+        text-[clamp(14px,1.6vw,16px)] text-white
         ${isVisible ? "opacity-100" : "opacity-0"}
       `}
       >
