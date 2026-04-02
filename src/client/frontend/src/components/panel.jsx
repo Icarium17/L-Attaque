@@ -1,4 +1,6 @@
  
+//Composant de base réutilisable pour tous les GameMessage et les Notification.
+
 import { useState, useEffect, useRef } from "react";
 
 const VARIANTS = {
@@ -99,8 +101,6 @@ if (!message && !children && !title) return null;
     setVisible(false);
     onClose?.();
   };
-
-
 
   return ( 
     <div
@@ -261,8 +261,7 @@ if (!message && !children && !title) return null;
                 e.target.style.color = v.colorSecond;
                 e.target.style.textShadow = "none";
               }}
-              >
-              
+              >              
             </button>
           )}
         </div>

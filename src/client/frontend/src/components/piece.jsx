@@ -1,7 +1,5 @@
 import pieceBlue from '../assets/images/piece-blue.png';
 import pieceRed from '../assets/images/piece-red.png';
-
-
 import Marshal from '../assets/svg-pieces/marshal.svg?react';
 import Bomb from '../assets/svg-pieces/bomb.svg?react';
 import Captain from '../assets/svg-pieces/captain.svg?react';
