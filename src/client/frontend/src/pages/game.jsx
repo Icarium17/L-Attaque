@@ -52,14 +52,26 @@ export default function Game() {
   const {
     pool, selectedPoolIndex,
     handlePoolClick, handlePlacementCellClick,
-    handleAutoPlacement, handleResetPlacement, handleSubmitPlacement
+    handleAutoPlacement, handleResetPlacement, handleSubmitPlacement,
+    handleDragStart: handlePlacementDragStart,
+    handleBoardDrop: handlePlacementBoardDrop,
+    handlePoolDrop,
   } = usePlacement({ board, setBoard, phase, setPhase, setTurn, loading, setLoading, setError, selectedCell, setSelectedCell });
  
-  // Logique clic case (sélection + déplacement)
-  const { handleCellClick } = useCellClick({
+  // Logique clic ou drag case (sélection + déplacement)
+  const { handleCellClick,
+    handleDragStart: handlePlayingDragStart,
+    handleBoardDrop: handlePlayingBoardDrop,
+} = useCellClick({
     board, setBoard, turn, setTurn, selectedCell, setSelectedCell,
-    loading, setLoading, phase, setError, handlePlacementCellClick, isLake
+    loading, setLoading, phase, setError, handlePlacementCellClick, isLake,
   });
+
+  const activeDragStart = phase == "PLACEMENT" ? handlePlacementDragStart : phase == "PLAYING"   ? handlePlayingDragStart
+                        : undefined;
+
+  const activeBoardDrop = phase == "PLACEMENT" ? handlePlacementBoardDrop : phase == "PLAYING"   ? handlePlayingBoardDrop
+                        : undefined;
 
 return (
   <MainLayout
@@ -79,11 +91,19 @@ return (
             <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
 
             {/* POOL */}
-            <div className="grid grid-cols-5 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded">
+            <div className="grid grid-cols-5 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded"
+             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                onDrop={(e) => { e.preventDefault(); handlePoolDrop(); }}
+              >
               {pool.map((piece, idx) => (
                 <button
-                  key={idx}
-                  onClick={() => handlePoolClick(idx)}
+                    key={idx}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
+                      handlePlacementDragStart({ type: "pool", index: idx });
+                    }}
+                    onClick={() => handlePoolClick(idx)}
                   className={`w-16 h-16 flex flex-col items-center justify-center font-bold rounded border-2 transition-transform mx-auto
                     ${selectedPoolIndex == idx
                       ? "border-yellow-400 bg-blue-600 text-white scale-110 shadow-cyan-500/50 shadow-md"
@@ -161,6 +181,8 @@ return (
           piece={cell}
           playerColor="BLUE"
           onClick={handleCellClick}
+          onDragStart={activeDragStart}
+          onDrop={activeBoardDrop}
         />
       ))
     )}
