@@ -1,10 +1,61 @@
-import { useState } from "react";
+import {useRef, useState } from "react";
 import { submitPlacement } from "./gameService.js";
 import { createPieces, createEmptyBoard } from "./boardUtils.js";
 
 export function usePlacement({ board, setBoard, phase, setPhase, setTurn, loading, setLoading, setError, selectedCell, setSelectedCell }) {
   const [pool, setPool] = useState(() => createPieces("BLUE"));
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
+  const dragSource = useRef(null); //  type:'pool',index ou type:'board',row,col 
+
+
+  // Drag
+  const handleDragStart = (source) => {
+  dragSource.current = source;
+  setSelectedCell(null);
+  setSelectedPoolIndex(null);
+  };
+
+  // Drop sur une case du board
+  const handleBoardDrop = (row, col) => {
+    if (phase != "PLACEMENT") return;
+    if (row < 6) return;                     
+    const source = dragSource.current;
+    if (!source) return;
+      dragSource.current = null;
+
+    const newBoard = board.map((r) => [...r]);
+    const newPool  = [...pool];
+
+    if (source.type == "pool") {
+      const dragged   = newPool[source.index];
+      const existing  = newBoard[row][col];
+      if (existing) newPool.push(existing);  
+      newBoard[row][col] = dragged;
+      newPool.splice(source.index, 1);
+      setBoard(newBoard); setPool(newPool);
+
+    } else if (source.type == "board") {    
+      const p1 = newBoard[source.row][source.col];
+      const p2 = newBoard[row][col];
+      newBoard[source.row][source.col] = p2;
+      newBoard[row][col] = p1;
+      setBoard(newBoard);
+    }
+  };
+
+  // Drop sur la zone pool 
+const handlePoolDrop = () => {
+  const source = dragSource.current;
+  if (!source || source.type != "board") return;
+  dragSource.current = null;
+  const newBoard = board.map((r) => [...r]);
+  const piece = newBoard[source.row][source.col];
+  if (!piece) return;
+  newBoard[source.row][source.col] = null;
+  setBoard(newBoard);
+  setPool([...pool, piece]);
+  };
+
 
   /*
   Gestion du clic sur une case:
@@ -15,9 +66,8 @@ export function usePlacement({ board, setBoard, phase, setPhase, setTurn, loadin
    */
 
 
-   /*
-    Clic sur une pièce du pool alors sélection.
-   */
+   
+   // Clic sur une pièce du pool alors sélection.
   const handlePoolClick = (index) => {
     if (phase != "PLACEMENT") return;
     setSelectedPoolIndex(index);
@@ -140,5 +190,10 @@ export function usePlacement({ board, setBoard, phase, setPhase, setTurn, loadin
       .finally(() => setLoading(false));
   };
 
-  return { pool, selectedPoolIndex, handlePoolClick, handlePlacementCellClick, handleAutoPlacement, handleResetPlacement, handleSubmitPlacement };
+  return { 
+    pool, selectedPoolIndex, 
+    handlePoolClick, handlePlacementCellClick,
+    handleAutoPlacement, handleResetPlacement, handleSubmitPlacement,
+    handleDragStart, handleBoardDrop, handlePoolDrop,
+};
 }
