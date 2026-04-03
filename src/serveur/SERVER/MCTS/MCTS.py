@@ -1,6 +1,6 @@
 import random
-from infoSet import InfoSet
-from node import Node
+from MCTS.infoSet import InfoSet
+from MCTS.node import Node
 
 class MCTS:
     def __init__(self, ai, game_rules, players):

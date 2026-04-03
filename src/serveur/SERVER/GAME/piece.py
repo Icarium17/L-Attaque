@@ -36,6 +36,17 @@ class Piece():
         self.position = position
         self.owner = owner ## int avec l'ordre du joueur
 
+    def send(self):
+        
+        piece = {
+            "id": self.id,
+            "type": self.type.name if self.type else None,
+            "position": self.position,
+            "owner": self.owner
+        }
+        print(piece)
+        return piece
+    
 class BeliefPiece(Piece):
     def __init__(self, id, position, owner):
         super().__init__(id, None, position, owner)

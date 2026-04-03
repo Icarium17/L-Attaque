@@ -26,6 +26,14 @@ class GameManager():
         self.end_reason = None
 
     ###### Start and Setup ###### 
+
+    def get_player(self, key):
+        for player in self.players:
+            if hasattr(player, "key") and player.key == key:
+                return player
+            if hasattr(player, "user") and hasattr(player.user, "key") and player.user.key == key:
+                return player
+        return None
     
     def set_player_boards(self):
         for player in self.players:

@@ -160,14 +160,15 @@ class LobbyManager:
         my_key, pieces_recieved = args
         pieces_set = []
 
-        pieces_set = self.convert_pieces(pieces_recieved, self.active_users[my_key])
-
         if my_key not in self.games: ##TODO : this is just for testing, it should be changed when the game loop is implemented, because the game will be created when the player starts searching for a game, not when they set their pieces, so this condition will never be true. For now, it allows us to test the set_pieces function without having to implement the game loop and the search for a game first.
             self.start_game((my_key,))
 
         if not self.games[my_key]:
             self.start_game((my_key,))
+        
         game = self.games[my_key] 
+        player = game.get_player(self.active_users[my_key].key)
+        pieces_set = self.convert_pieces(pieces_recieved, player)
         valid = game.check_valid_setup(my_key, pieces_set)
         if valid:
             return valid, self.active_users[my_key].status
@@ -186,7 +187,7 @@ class LobbyManager:
                     id=i,
                     type=ptype,
                     position=tuple(piece_dict["position"]),
-                    owner=owner
+                    owner=owner.order
                 )
 
                 pieces.append(piece)

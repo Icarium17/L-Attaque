@@ -22,6 +22,7 @@ class Board():
     def set_pieces(self, pieces):
         for piece in pieces:
             self.tiles[piece.position[1]][piece.position[0]].piece = piece
+            print(f"Piece {piece.type} placed at {piece.position} for player {piece.owner}")
     
     def move(self, move):
         x_0, y_0, x_1, y_1 = move.getParams()
@@ -48,7 +49,7 @@ class Board():
         for row in self.tiles:
             for tile in row:
                 if tile.piece is not None:
-                    list_pieces.append((tile.x, tile.y))
+                    list_pieces.append(tile.piece.send())
 
         return list_pieces
 
