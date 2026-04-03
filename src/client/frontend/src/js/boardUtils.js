@@ -28,18 +28,19 @@ export function makeBoard(apiBoard) {
   const newGrid = Array.from({ length: 10 }, () => Array(10).fill(null));
   if (!apiBoard || !Array.isArray(apiBoard)) return newGrid;
 
+  const typeToRank = {};
+  for (const rank in RANK_TO_TYPE) {
+    typeToRank[RANK_TO_TYPE[rank]] = rank;
+  }
+
   apiBoard.forEach((p) => {
-    if (!Array.isArray(p) || p.length < 4) return;
-    const [x, y, rank, player] = p;
-    const rankStr = String(rank);
+    if (!p.position || !Array.isArray(p.position)) return;
+    const [x, y] = p.position;
+    const player = p.owner == 0 ? "BLUE" : "RED";
+    const rank = typeToRank[p.type] ?? "?";
     if (y >= 0 && y < 10 && x >= 0 && x < 10) {
-      newGrid[y][x] = {
-        rank: rankStr,
-        type: RANK_TO_TYPE[rankStr] || null,
-        player: player == "player_0" ? "BLUE" : "RED",
-        revealed: rankStr != "?"
-      };
-    }
-  });
-  return newGrid;
+          newGrid[y][x] = { rank, type: p.type, player, revealed: player == "BLUE" };
+       }
+    });
+   return newGrid;
 }

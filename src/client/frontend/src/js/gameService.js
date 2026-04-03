@@ -14,10 +14,10 @@ function callApi(action, formData) {
 
 export function makeMove(fromRow, fromCol, toRow, toCol) {
   let formData = new FormData();
-  formData.append("from_row", fromRow);
-  formData.append("from_col", fromCol);
-  formData.append("to_row", toRow);
-  formData.append("to_col", toCol);
+  formData.append("ligne", fromRow);
+  formData.append("colonne", fromCol);
+  formData.append("destination_ligne", toRow);
+  formData.append("destination_colonne", toCol); 
   return callApi("make_move", formData);
 }
 

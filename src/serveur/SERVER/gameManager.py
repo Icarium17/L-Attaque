@@ -116,7 +116,7 @@ class GameManager():
         if player.order == -1:
             return (0, "INVALID_KEY")
         
-        valid_move = self.game_rules.validate_move(player.order, move)
+        valid_move = self.game_rules.validate_move(player, move)
         if valid_move[0] == 0:
             return valid_move
         

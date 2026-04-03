@@ -18,11 +18,11 @@ class GameAction extends CommonAction {
 
         if ($action == "make_move") {
             $data = [
-                "key" => $key,
-                "from_row" => $_POST["from_row"],
-                "from_col" => $_POST["from_col"],
-                "to_row" => $_POST["to_row"],
-                "to_col" => $_POST["to_col"]
+                "user_key" => $key, 
+                "ligne" => (int)$_POST["ligne"],
+                "colonne" => (int)$_POST["colonne"],
+                "destination_ligne" => (int)$_POST["destination_ligne"],
+                "destination_colonne" => (int)$_POST["destination_colonne"]
             ];
             $apiResult = parent::callPython("make_move", $data);
 
@@ -45,10 +45,16 @@ class GameAction extends CommonAction {
                 $error = "Clef invalide";
                 return ["result" => compact("error"), "response_svr" => $apiResult];
             }
+             
+            $statusData = ["key" => $key];
+            $statusResult = parent::callPython("get_status", $statusData);
 
             $success = true;
             $message = "Move effectue";
-            return ["result" => compact("success", "message"), "response_svr" => $apiResult];
+            $apiBoard = $statusResult->board; 
+            $turn = strtoupper($statusResult->turn); 
+            
+            return ["result" => compact("success", "message", "apiBoard", "turn"), "response_svr" => $statusResult];
         }
 
 
@@ -86,7 +92,7 @@ class GameAction extends CommonAction {
 
             $success = true;
             $status = $apiResult -> status;
-            $turn    = $apiResult -> turn;
+            $turn = strtoupper($apiResult->turn);
             $time_remaining = $apiResult -> time_remaining;
             $apiBoard   = $apiResult -> board; 
             return ["result" => compact("success","status","turn","time_remaining","apiBoard"), "response_svr" => $apiResult];

@@ -61,7 +61,7 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
       {/* ? si invisible*/} 
       {!isVisible &&(
         <div className= "absolute inset-0 bg-black/10 rounded-sm flex items-center justify-center">
-        <span className="text-white/50 text-xl">?</span>
+        <span className="text-white text-xl">?</span>
         </div>
       )}    
     </div>
