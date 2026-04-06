@@ -3,7 +3,7 @@ import math
 import random
 
 class Node:
-    def __init__(self, parent, infoSet):
+    def __init__(self, parent, infoSet, move):
         self.parent = parent
         self.visit_count = 0
         self.win_score = 0
@@ -11,6 +11,7 @@ class Node:
         self.infoSet = infoSet
         self.untried_moves = self.infoSet.get_all_possible_moves()
         self.c_param = 1.4
+        self.move = move
 
     def is_fully_expanded(self):
         return len(self.untried_moves) == 0
@@ -37,7 +38,7 @@ class Node:
         self.untried_moves.remove(move)
 
         new_infoSet = self.infoSet.new_infoSet(move)
-        child_node = Node(self, new_infoSet)
+        child_node = Node(self, new_infoSet, move)
         self.children.append(child_node)
         return child_node
     

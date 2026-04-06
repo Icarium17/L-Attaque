@@ -22,19 +22,25 @@ class Board():
     def set_pieces(self, pieces):
         for piece in pieces:
             self.tiles[piece.position[1]][piece.position[0]].piece = piece
-            print(f"Piece {piece.type} placed at {piece.position} for player {piece.owner}")
     
     def move(self, move):
-        x_0, y_0, x_1, y_1 = move.getParams()
+        x_0, y_0, x_1, y_1 = move.get_params()
 
         tileFrom = self.tiles[y_0][x_0]
         tileTo = self.tiles[y_1][x_1]
 
+        print(f"Attempting move: {move.moveFrom} -> {move.moveTo}")
+        print(f"tileFrom ({x_0},{y_0}) piece: {tileFrom.piece}")
+        if tileFrom.piece is None:
+            print(f"ERROR: No piece at source tile {x_0},{y_0} for move {move}")
         piece = tileFrom.piece
 
         tileFrom.piece = None
         tileTo.piece = piece
-        piece.position = (move.moveTo)
+        if piece is not None:
+            piece.position = (move.moveTo)
+        else:
+            print(f"Move failed: piece is None for move {move}")
 
     def get_pieces(self, player_order):
         pieces = {}
@@ -52,6 +58,9 @@ class Board():
                     list_pieces.append(tile.piece.send())
 
         return list_pieces
+    
+        def remove_piece(self, tile):
+            tile.piece = None
 
 
 

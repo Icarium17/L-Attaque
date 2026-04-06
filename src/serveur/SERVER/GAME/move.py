@@ -3,7 +3,7 @@ class Move():
         self.moveFrom = moveFrom ## tuple(x, y)
         self.moveTo = moveTo ## tuple(x, y)
 
-    def getParams(self):
+    def get_params(self):
         x_0, y_0 = self.moveFrom
         x_1, y_1 = self.moveTo
         return x_0, y_0, x_1, y_1

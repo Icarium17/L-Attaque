@@ -2,7 +2,7 @@ import random
 
 from USERS.player import Player
 from GAME.piece import Piece
-from MCTS import MCTS
+from ALGO.mcts import MCTS
 
 class AIPlayer(Player):
     def __init__(self, user_instance, order, difficulty, time_remaining = (60*15)):
@@ -70,9 +70,9 @@ class AIPlayer(Player):
                     idx += 1
         return pieces
     
-    def move(self):
+    def choose_move(self):
         mcts = MCTS(self, self.game_rules, self.players)
-        move = mcts.get_best_move()
+        move = mcts.algo()
         return move
     
     ##Setup strategies

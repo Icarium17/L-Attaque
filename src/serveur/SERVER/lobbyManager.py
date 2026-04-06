@@ -1,5 +1,3 @@
-import time
-
 from DAO.DAOUsers import DAOUsers
 from USERS.player import Player
 from GAME.move import Move

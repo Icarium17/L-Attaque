@@ -44,7 +44,7 @@ class GameRules():
         return True
 
     def validate_move(self, player_order, move) -> tuple[int, str]:
-        x_0, y_0, x_1, y_1 = move.getParams()
+        x_0, y_0, x_1, y_1 = move.get_params()
 
         d_x = abs(x_1 - x_0)
         d_y = abs(y_1 - y_0)
@@ -65,6 +65,7 @@ class GameRules():
             return (0, "NO_PIECE")
         
         if piece.owner != player_order: ## if a player is trying to move another`s piece
+            print(piece.owner, player_order)
             return (0, "INVALID_OWNER")
         
         if d_x > 0 and d_y > 0: ## if the move is diagonal

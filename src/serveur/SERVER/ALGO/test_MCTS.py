@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 import unittest
-from MCTS import MCTS
+from ALGO.mcts import MCTS
 from USERS.aiPlayer import AIPlayer
 from USERS.user import User
 from GAME.gameRules import GameRules
@@ -28,11 +28,6 @@ class TestMCTS(unittest.TestCase):
         
         for i in range(0, 2):
             self.game.setup_ai_player(i)
-
-        for y, row in enumerate(self.game.board.tiles):
-            for x, tile in enumerate(row):
-                print(f"({x}, {y}): {tile.piece} {tile.piece.type if tile.piece is not None else None}")
-
 
         # MCTS instance
         self.mcts = MCTS(ai1, self.game.game_rules, self.players)

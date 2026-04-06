@@ -44,7 +44,6 @@ class Piece():
             "position": self.position,
             "owner": self.owner
         }
-        print(piece)
         return piece
     
 class BeliefPiece(Piece):

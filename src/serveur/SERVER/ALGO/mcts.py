@@ -1,6 +1,6 @@
 import random
-from MCTS.infoSet import InfoSet
-from MCTS.node import Node
+from ALGO.infoSet import InfoSet
+from ALGO.node import Node
 
 class MCTS:
     def __init__(self, ai, game_rules, players):
@@ -11,7 +11,7 @@ class MCTS:
         self.players = players
 
         self.total_iterations = 10
-        self.node_0 = Node(None, self.infoSet)
+        self.node_0 = Node(None, self.infoSet, None)
         self.current_node = self.node_0
         self.current_iteration = 0
 
@@ -25,14 +25,18 @@ class MCTS:
 
     def algo(self):
         for i in range(self.total_iterations):
+            self.current_node = self.node_0
+            print(i)
             self.current_iteration = i
             self.selection()
             self.expansion()
             win_score = self.simulation()
             self.backpropagation(win_score)
-        print(self.node_0.children)
+        
+        move = self.get_best_child_node().move
+        print(move.get_params())
 
-        return self.get_best_child_node()
+        return move
 
     def selection(self):
         while True:

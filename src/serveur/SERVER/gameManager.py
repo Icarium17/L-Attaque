@@ -1,13 +1,10 @@
-import asyncio
 import time
-
 import threading
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
-from GAME.piece import BeliefPiece, PieceType
+from GAME.piece import BeliefPiece
 from USERS.aiPlayer import AIPlayer
-from USERS.player import Player
 
 class GameManager():
     def __init__(self, lobbyManager, players, game_type = "original"):
@@ -19,7 +16,6 @@ class GameManager():
         self.set_player_boards()
         self.player_to_move = 0
         self.players_ready = set()
-        self.move_made = False
         self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired) 
         self.winner = None
         self.loser = None
@@ -101,9 +97,6 @@ class GameManager():
                 else:
                     print(f"Tile ({x}, {y}) is empty")
 
-    def start_game(self):
-        pass
-
 
     ###### Game Logic ######
     
@@ -116,15 +109,17 @@ class GameManager():
         if player.order == -1:
             return (0, "INVALID_KEY")
         
-        valid_move = self.game_rules.validate_move(player, move)
+        valid_move = self.game_rules.validate_move(player.order, move)
+        print(valid_move[1])
         if valid_move[0] == 0:
             return valid_move
         
-        pieceFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]].piece
+        tileFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]]
+        pieceFrom = tileFrom.piece
         tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
 
         if tileTo.piece and tileTo.piece.owner != player.order:
-            move = self.combat(pieceFrom, tileTo.piece)
+            move = self.combat(pieceFrom, tileFrom, tileTo.piece, tileTo)
 
         else :
             self.board.move(move)
@@ -132,27 +127,32 @@ class GameManager():
                 player.move(move)
             ## TODO : Update belief states for all players based on the move and the result of the move (e.g. if a piece was captured, update the probabilities for that piece being in certain positions)
 
-        for player in self.players:
-            self.game_rules.check_flag_captured(player)
-
-        
-        self.player_to_move = (self.player_to_move + 1) % len(self.players)
-        self.timers.switch_player(self.player_to_move)
-        self.move_made = True
+        self.change_turn()
         
         return (1, "MOVE_SUCCESS")
     
-    def combat(self, attacker, defender):
+    def change_turn(self):
+        ##if not self.check_end_state(): ##TODO : add afterwards
+        self.player_to_move = (self.player_to_move + 1) % len(self.players)
+        self.timers.switch_player(self.player_to_move)
+        player = self.players[self.player_to_move]
+        if isinstance(player, AIPlayer):
+            player.player_to_move = self.player_to_move
+            move = player.choose_move()
+            print(move)
+            self.make_move(self.player_to_move, move)
+
+    def combat(self, attacker, attacker_tile, defender, defender_tile):
         winner = self.game_rules.combat(attacker, defender)
         if winner is None:
-            self.board.remove_piece(attacker)
-            self.board.remove_piece(defender)
+            self.board.remove_piece(attacker_tile)
+            self.board.remove_piece(defender_tile)
             
         elif attacker == winner:
-            self.board.remove_piece(defender)
+            self.board.remove_piece(defender_tile)
 
         else:
-            self.board.remove_piece(attacker)
+            self.board.remove_piece(attacker_tile)
             
         for player in self.players:
                 player.update_belief_states(attacker)
@@ -186,7 +186,8 @@ class GameManager():
                 self.timers.stop()
                 winner, loser, reason = result
                 self.declare_winner(winner, loser, reason)
-                return
+                return True
+        return False
             
 
     def declare_winner(self, winner, loser, reason):
