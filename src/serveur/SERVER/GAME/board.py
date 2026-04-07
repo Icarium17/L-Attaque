@@ -16,8 +16,14 @@ class Board():
         id_tile = 0
         for i in range(self.rows):
             for j in range(self.cols):
-                self.tiles[i][j] = Tile(id_tile, j, i) ## Ajouter le state = 1 pour les tuiles impraticables
+                if i in (4, 5) and j in (2, 3, 6, 7):
+                    state = 1
+                else:
+                    state = 0
+                            
+                self.tiles[i][j] = Tile(id_tile, j, i, state)
                 id_tile += 1
+                
 
     def set_pieces(self, pieces):
         for piece in pieces:
@@ -59,13 +65,13 @@ class Board():
 
         return list_pieces
     
-        def remove_piece(self, tile):
-            tile.piece = None
+    def remove_piece(self, tile):
+        tile.piece = None
 
 
 
 class Tile():
-    def __init__(self, id, x, y, state = 0):
+    def __init__(self, id, x, y, state):
         self.id = id
         self.x = x
         self.y = y

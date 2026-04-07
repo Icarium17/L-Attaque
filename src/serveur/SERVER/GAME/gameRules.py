@@ -65,7 +65,6 @@ class GameRules():
             return (0, "NO_PIECE")
         
         if piece.owner != player_order: ## if a player is trying to move another`s piece
-            print(piece.owner, player_order)
             return (0, "INVALID_OWNER")
         
         if d_x > 0 and d_y > 0: ## if the move is diagonal
@@ -157,33 +156,36 @@ class GameRules():
     
     
 
-    def check_impassable_bomb_wall(self, player, opponent):
-        if player.pieces_left[PieceType.Demineur] == 0:
-            if opponent.pieces_left[PieceType.Bombe] > 0:
-                x_flag, y_flag = opponent.pieces_left[PieceType.Drapeau].position
+    def check_impassable_bomb_wall(self, my_pieces, opponent_pieces, opponent_order, board):
+        # Count demineurs and bombs
+        demineur_count = sum(1 for p in my_pieces.values() if p.type == PieceType.Demineur)
+        bomb_count = sum(1 for p in opponent_pieces.values() if p.type == PieceType.Bombe)
+        # Find the flag piece
+        flag_pieces = [p for p in opponent_pieces.values() if p.type == PieceType.Drapeau]
+        if demineur_count == 0:
+            if bomb_count > 0 and flag_pieces:
+                x_flag, y_flag = flag_pieces[0].position
                 directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
                 for dx, dy in directions:
                     nx, ny = x_flag + dx, y_flag + dy
-                    if 0 <= nx < self.board.cols and 0 <= ny < self.board.rows:
-                        tile = self.board.tiles[ny][nx]
-                        if not (tile.piece and tile.piece.type == PieceType.Bombe and tile.piece.owner == opponent.order):
+                    if 0 <= nx < board.cols and 0 <= ny < board.rows:
+                        tile = board.tiles[ny][nx]
+                        if not (tile.piece and tile.piece.type == PieceType.Bombe and tile.piece.owner == opponent_order):
                             return False  # Found a non-bomb or empty tile
                 return True  # All adjacent tiles are bombs
-        return False  
-    
-    def check_no_mobile_pieces(self, player):
-        for type in PieceType:
-            if type != PieceType.Drapeau and type != PieceType.Bombe:
-                if player.pieces_left[type] > 0:
-                    return False
-        return True
-                               
-    def check_flag_captured(self, player):
-        if player.pieces_left[PieceType.Drapeau] == 0:
-            return True
         return False
     
-    def get_remaining_moves(self, pieces, player_order): ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
+    def check_no_mobile_pieces(self, my_pieces):
+        for piece in my_pieces.values():
+            if piece.type != PieceType.Drapeau and piece.type != PieceType.Bombe:
+                return False
+        return True
+                               
+    def check_flag_captured(self, pieces):
+        return not any(piece.type == PieceType.Drapeau for piece in pieces.values())
+    
+    def get_remaining_moves(self, pieces, player_order): 
+        ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
         possible_moves = []
         for piece in pieces.values():
             if piece.type == PieceType.Drapeau or piece.type == PieceType.Bombe:
@@ -192,24 +194,30 @@ class GameRules():
                 for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                     new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                     move = Move(piece.position, (new_x, new_y))
-                    if self.validate_move(player_order, move)[0] == 1:
+                    valid, reason = self.validate_move(player_order, move)
+                    if valid == 1:
                         possible_moves.append(move)
+                    # else:
+                    #     print(f"Rejected move {move.get_params()} for piece {piece.id} ({piece.type}) at {piece.position}: {reason}")
             else:  # piece.type == "Éclaireur"
                 for i in range(1, max(self.board.rows, self.board.cols)):
                     for dx, dy in [(0, i), (i, 0), (0, -i), (-i, 0)]:
                         new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                         move = Move(piece.position, (new_x, new_y))
-                        if self.validate_move(player_order, move)[0] == 1:
+                        valid, reason = self.validate_move(player_order, move)
+                        if valid == 1:
                             possible_moves.append(move)
+                        # else:
+                        #     print(f"Rejected move {move.get_params()} for piece {piece.id} ({piece.type}) at {piece.position}: {reason}")
 
         return possible_moves
     
-    def check_remaining_moves(self, player):
-        if len(player.pieces) == 0:
+    def check_remaining_moves(self, player_order, pieces):
+        if len(pieces) == 0:
             return True
 
-        possible_moves = self.get_remaining_moves(player.pieces, player.order)
-        return len(possible_moves) == 0
+        possible_moves = self.get_remaining_moves(pieces, player_order)
+        return len(possible_moves) != 0
     
     ## TODO : Add an actual scoring system
     def calc_score(self, player):
@@ -219,15 +227,23 @@ class GameRules():
             
         return score
 
-    def check_player_end_state(self, player, players):
-        if self.check_flag_captured(player):
-            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username}'s flag was captured"))
-        if not self.check_remaining_moves(player):
-            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username} has no moves left"))
-        if self.check_impassable_bomb_wall(player, players[(player.order + 1) % len(players)]):
-            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username} has no way to win"))
-        if not self.check_no_mobile_pieces(player):
-            return (True, (players[(player.order + 1) % len(players)], player, f"{player.username} has no mobile pieces left"))
+    def check_player_end_state(self, player, players, board=None, my_pieces=None, opponent_pieces = None):
+        player_order = player.order
+        board = board if board is not None else self.board
+        my_pieces = my_pieces if my_pieces is not None else player.pieces
+        opponent_pieces = opponent_pieces if opponent_pieces is not None else players[1 - player_order]
+
+        if self.check_flag_captured(my_pieces):
+            return (True, (players[(player_order + 1) % len(players)], player, f"{player.username}'s flag was captured"))
+        
+        if not self.check_remaining_moves(player_order, my_pieces):
+            return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no moves left"))
+        
+        if self.check_impassable_bomb_wall(my_pieces, opponent_pieces, (1-player_order), board):
+            return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no way to win"))
+        
+        if self.check_no_mobile_pieces(my_pieces):
+            return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no mobile pieces left"))
         return (False, None)
 
 

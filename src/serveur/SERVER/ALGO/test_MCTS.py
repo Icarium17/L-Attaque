@@ -7,9 +7,6 @@ import unittest
 from ALGO.mcts import MCTS
 from USERS.aiPlayer import AIPlayer
 from USERS.user import User
-from GAME.gameRules import GameRules
-from GAME.board import Board
-from USERS.player import Player
 from gameManager import GameManager
 from lobbyManager import LobbyManager
 

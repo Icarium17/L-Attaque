@@ -52,12 +52,18 @@ class MCTS:
             self.current_node = next_node
             self.player_to_move = self.current_node.infoSet.player_turn
             self.infoSet = self.current_node.infoSet
+            
 
     def simulation(self):  
         game_over = 0
-        while not game_over:
+        s = 0
+        while not game_over and  s < 25:
             self.heuristic_evaluation[self.difficulty]()
             game_over = self.game_over()
+            s += 1
+
+        print("game_over", game_over, "s", s)
+        print("simulation phase done")
 
         return game_over
 
@@ -76,7 +82,8 @@ class MCTS:
         possible_moves = self.infoSet.get_all_possible_moves()
         if len(possible_moves) == 0:
             return 
-        self.infoSet.update_infoSet(random.choice(possible_moves))
+        move = random.choice(possible_moves)
+        self.infoSet.update_infoSet(move)
 
     def heuristic_evaluation_medium(self):
         # TODO : implement a better heuristic evaluation for the medium difficulty
@@ -89,8 +96,11 @@ class MCTS:
 
     def game_over(self):
         for player in self.players:
-            ended, _ = self.game_rules.check_player_end_state(player, self.players)
+            my_pieces = self.infoSet.board_state.get_pieces(self.infoSet.player_turn)
+            opponent_pieces = self.infoSet.board_state.get_pieces(1- self.infoSet.player_turn)
+            ended, reason = self.game_rules.check_player_end_state(player, self.players, self.infoSet.board_state, my_pieces, opponent_pieces)
             if ended:
+                print(reason)
                 return 1
         return 0
     

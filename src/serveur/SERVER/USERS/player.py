@@ -10,7 +10,7 @@ class Player(User):
         self.known_board = None
         self.time_remaining = time_remaining
         self.pieces_left = {}
-        self.pieces = {} ##why is is a dict
+        self.pieces = {} 
         self.belief_pieces = None
         self.score = 0
 
@@ -22,6 +22,13 @@ class Player(User):
     
     def move(self, move):
         self.known_board.move(move)
+
+    def remove_piece(self, piece):
+        # Remove from pieces dict if present
+        if piece and piece.id in self.pieces:
+            del self.pieces[piece.id]
+
+        
 
     def position_pieces(self, pieces):
         self.known_board.set_pieces(pieces)

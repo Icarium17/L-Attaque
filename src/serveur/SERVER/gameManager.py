@@ -144,19 +144,25 @@ class GameManager():
 
     def combat(self, attacker, attacker_tile, defender, defender_tile):
         winner = self.game_rules.combat(attacker, defender)
+        # Remove both if tie
         if winner is None:
             self.board.remove_piece(attacker_tile)
             self.board.remove_piece(defender_tile)
-            
+            for player in self.players:
+                player.remove_piece(attacker)
+                player.remove_piece(defender)
         elif attacker == winner:
             self.board.remove_piece(defender_tile)
-
+            for player in self.players:
+                player.remove_piece(defender)
         else:
             self.board.remove_piece(attacker_tile)
-            
+            for player in self.players:
+                player.remove_piece(attacker)
+
         for player in self.players:
-                player.update_belief_states(attacker)
-                player.update_belief_states(defender) 
+            player.update_belief_states(attacker)
+            player.update_belief_states(defender)
 
         return winner == attacker
 
