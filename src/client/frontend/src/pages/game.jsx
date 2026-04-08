@@ -19,6 +19,7 @@ import Timer from "../components/timer.jsx";
 import TurnIndicator from "../components/turnIndicator.jsx";
 import Notification from "../components/notification.jsx";
 import Battle from "../pages/battle.jsx";
+import End from "../pages/end.jsx";
 
 // Assets
 import backgroundGame from '../assets/images/background-game.png';
@@ -41,6 +42,9 @@ export default function Game() {
 
   // Ecran battle {  attacker: { rank: 10, type: "Marechal",  player: "RED"  },  defender: { rank: 2,  type: "Eclaireur", player: "BLUE" },  result:   "ATTACKER_WIN",}
   const [battleData, setBattleData] = useState(null); 
+
+  // Ecran fin de jeu  {"WIN" | "LOSE"}
+  const [gameResult, setGameResult] = useState(null); 
 
   // Vérifie la session au chargement, retour accueil si absente
   useEffect(() => {
@@ -197,6 +201,9 @@ return (
     defender={battleData.defender}
     result={battleData.result}
   />
+)}
+{gameResult && (
+  <End result={gameResult} onClose={() => navigate("/lobby")} />
 )}
   </div>
 </div>
