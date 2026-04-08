@@ -18,6 +18,8 @@ import GameMessage from "../components/gameMessage.jsx";
 import Timer from "../components/timer.jsx";
 import TurnIndicator from "../components/turnIndicator.jsx";
 import Notification from "../components/notification.jsx";
+import Battle from "../pages/battle.jsx";
+
 // Assets
 import backgroundGame from '../assets/images/background-game.png';
 
@@ -36,6 +38,9 @@ export default function Game() {
   const [selectedCell, setSelectedCell] = useState(null);
   const [loading, setLoading] = useState(false);    
   const [error, setError] = useState("");
+
+  // Ecran battle {  attacker: { rank: 10, type: "Marechal",  player: "RED"  },  defender: { rank: 2,  type: "Eclaireur", player: "BLUE" },  result:   "ATTACKER_WIN",}
+  const [battleData, setBattleData] = useState(null); 
 
   // Vérifie la session au chargement, retour accueil si absente
   useEffect(() => {
@@ -169,7 +174,7 @@ return (
       )}
       
   {/* Board */}
-  <div className="grid grid-cols-10 gap-0.5 w-[min(950px,85vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
+  <div className="relative grid grid-cols-10 gap-0.5 w-[min(950px,85vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
     {board.map((row, rowIndex) =>
       row.map((cell, colIndex) => (
         <Cell
@@ -186,6 +191,13 @@ return (
         />
       ))
     )}
+  {battleData && (
+  <Battle
+    attacker={battleData.attacker}
+    defender={battleData.defender}
+    result={battleData.result}
+  />
+)}
   </div>
 </div>
     </div>
