@@ -120,13 +120,17 @@ export default function Button({
       : `0 4px 20px rgba(0,0,0,0.6), 0 0 25px rgba(${g},0.2)`,
   } : {
     padding: '0px',
-    borderRadius: '12px',
+    borderRadius: '0px',
     border: 'none', 
     boxShadow: 'none',  
-    background: 'transparent',
-    ...(variant == 'ghost' ? { boxShadow: 'none !important' } : {})
+    background: 'none',
+    outline: 'none',  
+    ...(variant == 'ghost' ? { 
+      boxShadow: 'none !important',
+      appearance: 'none',
+      border: '0px solid transparent' 
+    } : {})
   };
-
   /*
    STYLE DU BOUTON INTÉRIEUR 
    On peut mettre son propre Background
@@ -139,7 +143,8 @@ export default function Button({
     background: bgValue,
     color: v.color[state],
     border: 'none',
-    borderRadius: '9px',
+    
+    borderRadius: variant == 'ghost' ? '0px' : '9px', 
     textTransform: 'uppercase',
     letterSpacing: '4px',
     fontWeight: '700',
@@ -197,11 +202,13 @@ export default function Button({
         {/*
         Reflets         
           */}
+       {variant != 'ghost' && (
         <span style={{
           position: 'absolute', top: 0, left: '10%', right: '10%', height: '1px',
           background: `linear-gradient(90deg, transparent, rgba(${g},${hovered ? 0.5 : 0.2}), transparent)`,
           transition: 'all 0.3s ease', pointerEvents: 'none',
         }} />
+      )}
 
         {/*
         Glow

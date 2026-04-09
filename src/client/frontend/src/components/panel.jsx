@@ -1,5 +1,5 @@
  
-//Composant de base réutilisable pour tous les GameMessage et les Notification.
+//Composant de base réutilisable pour tous les GameMessage et les Notifications.
 
 import { useState, useEffect, useRef } from "react";
 

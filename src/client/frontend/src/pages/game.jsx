@@ -1,5 +1,5 @@
 // React
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 // Hooks custom
 import { useGameSync } from "../js/useGameSync.js";
@@ -20,6 +20,7 @@ import TurnIndicator from "../components/turnIndicator.jsx";
 import Notification from "../components/notification.jsx";
 import Battle from "../pages/battle.jsx";
 import End from "../pages/end.jsx";
+import YourTurn from "../components/yourTurn.jsx";
 
 // Assets
 import backgroundGame from '../assets/images/background-game.png';
@@ -46,6 +47,26 @@ export default function Game() {
   // Ecran fin de jeu  {"WIN" | "LOSE"}
   const [gameResult, setGameResult] = useState(null); 
 
+  // PopUp YourTurn
+  const [showYourTurn, setShowYourTurn] = useState(false);
+
+  const setTurnWithPop = (newTurn) => {
+  setTurn(prev => {
+    if (newTurn == "BLUE" && prev == "RED") {
+      setShowYourTurn(true);
+      setTimeout(() => setShowYourTurn(false), 900);
+    }
+    return newTurn;
+  });
+};
+
+  useEffect(() => {
+  if (phase == "PLAYING" && turn == "BLUE") {
+    setShowYourTurn(true);
+    setTimeout(() => setShowYourTurn(false), 900);
+  }
+  }, [phase]);
+
   // Vérifie la session au chargement, retour accueil si absente
   useEffect(() => {
     const key = localStorage.getItem("sessionKey");
@@ -55,7 +76,7 @@ export default function Game() {
 }, [navigate]);
 
   // Sync avec le serveur toutes les 1s en phase PLAYING
-  useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard });
+  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard });
   
   // Logique placement (pool, drag, submit)
   const {
@@ -81,6 +102,7 @@ export default function Game() {
 
   const activeBoardDrop = phase == "PLACEMENT" ? handlePlacementBoardDrop : phase == "PLAYING"   ? handlePlayingBoardDrop
                         : undefined;
+
 
 return (
   <MainLayout
@@ -140,17 +162,7 @@ return (
           <div className="w-full py-10 flex flex-col items-center justify-center bg-black/30 rounded-lg border border-yellow-500/20 backdrop-blur-sm">
             <Loading message="Attente..." size={80} />
           </div>
-        )}
-
-        {/* PLAYING */}
-        {phase == "PLAYING" && (
-          <div className="flex flex-col items-center w-full">
-            <GameMessage
-              variant="title"
-              title={turn.toUpperCase() == "BLUE" ? "VOTRE TOUR" : "TOUR ADVERSE"}
-            />
-          </div>
-        )}
+        )}   
 
         {/* NOTIFICATION ERREUR */}
         {error && (
@@ -205,6 +217,8 @@ return (
 {gameResult && (
   <End result={gameResult} onClose={() => navigate("/lobby")} />
 )}
+  {/* YOUR TURN */}
+  <YourTurn show={showYourTurn} />
   </div>
 </div>
     </div>

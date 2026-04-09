@@ -22,7 +22,7 @@ export default function Timer({ timeLeft = 0, color = "BLUE", onExpire , turn}){
     return () => clearInterval(id);
   }, [timeLeft, turn]);
 
-  const isEnding = display <= 30;
+  const isEnding = display > 0 && display <= 30;
   const minutes = Math.floor(display / 60);
   const seconds = `${display % 60}`.padStart(2, '0');
 
@@ -38,7 +38,7 @@ export default function Timer({ timeLeft = 0, color = "BLUE", onExpire , turn}){
         className={`relative z-10 font-black text-2xl select-none leading-none
           ${isEnding ? 'text-red-500' : 'text-white'}
           drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]`}
-        style={{ transform: 'translate(-5px, -6px)' }}
+        style={{ transform: 'translate(2px, -6px)' }}
       >
         {minutes}:{seconds}
       </span>
