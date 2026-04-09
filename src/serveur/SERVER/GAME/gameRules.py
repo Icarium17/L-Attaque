@@ -43,7 +43,9 @@ class GameRules():
                 return False
         return True
 
-    def validate_move(self, player_order, move) -> tuple[int, str]:
+    def validate_move(self, player_order, move, board=None) -> tuple[int, str]:
+        if board is None:
+            board = self.board
         x_0, y_0, x_1, y_1 = move.get_params()
 
         d_x = abs(x_1 - x_0)
@@ -52,11 +54,11 @@ class GameRules():
         if d_x == 0 and d_y == 0: ## if the mouvement is null
             return (0, "NO_MOVE")
         
-        if not (0 <= x_1 < self.board.cols) or not (0 <= y_1 < self.board.rows): ## if the move makes the piece fall off the edge of the battlefield
+        if not (0 <= x_1 < board.cols) or not (0 <= y_1 < board.rows): ## if the move makes the piece fall off the edge of the battlefield
             return (0, "OUT_OF_BOUNDS")
         
-        tileFrom = self.board.tiles[y_0][x_0]
-        tileTo = self.board.tiles[y_1][x_1]
+        tileFrom = board.tiles[y_0][x_0]
+        tileTo = board.tiles[y_1][x_1]
        
         piece = tileFrom.piece
 
@@ -91,19 +93,19 @@ class GameRules():
             if y_0 == y_1:
                 step = 1 if x_1 > x_0 else -1
                 for x in range(x_0 + step, x_1, step):
-                    if self.board.tiles[y_0][x].piece is not None:
+                    if board.tiles[y_0][x].piece is not None:
                         return (0, "SCOUT_CANNOT_JUMP_OVER_PIECE")
                     
-                    if self.board.tiles[y_0][x].state == 1:
+                    if board.tiles[y_0][x].state == 1:
                         return (0, "SCOUT_CANNOT_JUMP_OVER_IMPASSABLE_TILE")
             
             elif x_0 == x_1:
                 step = 1 if y_1 > y_0 else -1
                 for y in range(y_0 + step, y_1, step):
-                    if self.board.tiles[y][x_0].piece is not None:
+                    if board.tiles[y][x_0].piece is not None:
                         return (0, "SCOUT_CANNOT_JUMP_OVER_PIECE")
                 
-                    if self.board.tiles[y][x_0].state == 1:
+                    if board.tiles[y][x_0].state == 1:
                         return (0, "SCOUT_CANNOT_JUMP_OVER_IMPASSABLE_TILE")
         return (1, "MOVE_SUCCESS")
     
@@ -184,7 +186,7 @@ class GameRules():
     def check_flag_captured(self, pieces):
         return not any(piece.type == PieceType.Drapeau for piece in pieces.values())
     
-    def get_remaining_moves(self, pieces, player_order): 
+    def get_remaining_moves(self, pieces, player_order, board = None, reason = 0): 
         ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
         possible_moves = []
         for piece in pieces.values():
@@ -194,29 +196,31 @@ class GameRules():
                 for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                     new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                     move = Move(piece.position, (new_x, new_y))
-                    valid, reason = self.validate_move(player_order, move)
+                    valid, reason = self.validate_move(player_order, move, board)
                     if valid == 1:
+                        if reason == 1:
+                            return True
                         possible_moves.append(move)
-                    # else:
-                    #     print(f"Rejected move {move.get_params()} for piece {piece.id} ({piece.type}) at {piece.position}: {reason}")
             else:  # piece.type == "Éclaireur"
                 for i in range(1, max(self.board.rows, self.board.cols)):
                     for dx, dy in [(0, i), (i, 0), (0, -i), (-i, 0)]:
                         new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                         move = Move(piece.position, (new_x, new_y))
-                        valid, reason = self.validate_move(player_order, move)
+                        valid, reason = self.validate_move(player_order, move, board)
                         if valid == 1:
+                            if reason == 1:
+                                return True
                             possible_moves.append(move)
-                        # else:
-                        #     print(f"Rejected move {move.get_params()} for piece {piece.id} ({piece.type}) at {piece.position}: {reason}")
 
         return possible_moves
     
-    def check_remaining_moves(self, player_order, pieces):
+    def check_remaining_moves(self, player_order, pieces, board = None, reason = 0):
         if len(pieces) == 0:
-            return True
+            return False
 
-        possible_moves = self.get_remaining_moves(pieces, player_order)
+        possible_moves = self.get_remaining_moves(pieces, player_order, board, reason)
+        if reason == 1:
+            return possible_moves
         return len(possible_moves) != 0
     
     ## TODO : Add an actual scoring system
@@ -227,7 +231,7 @@ class GameRules():
             
         return score
 
-    def check_player_end_state(self, player, players, board=None, my_pieces=None, opponent_pieces = None):
+    def check_player_end_state(self, player, players, board=None, my_pieces=None, opponent_pieces = None, reason = 0):
         player_order = player.order
         board = board if board is not None else self.board
         my_pieces = my_pieces if my_pieces is not None else player.pieces
@@ -236,7 +240,7 @@ class GameRules():
         if self.check_flag_captured(my_pieces):
             return (True, (players[(player_order + 1) % len(players)], player, f"{player.username}'s flag was captured"))
         
-        if not self.check_remaining_moves(player_order, my_pieces):
+        if not self.check_remaining_moves(player_order, my_pieces, board, reason):
             return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no moves left"))
         
         if self.check_impassable_bomb_wall(my_pieces, opponent_pieces, (1-player_order), board):

@@ -31,7 +31,12 @@ class TestMCTS(unittest.TestCase):
 
     def test_algo_runs(self):
         try:
-            print(self.mcts.algo())
+            mcts = self.mcts
+            for _ in range(10):  # or while time remains
+                mcts.algo()
+            move = mcts.get_best_move()
+            print(move.get_params() if move else "No move found")
+            self.assertIsNotNone(move, "No move found by MCTS")
         except Exception as e:
             self.fail(f"MCTS algo() raised an exception: {e}")
 

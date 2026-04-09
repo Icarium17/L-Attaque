@@ -3,6 +3,7 @@ import random
 from USERS.player import Player
 from GAME.piece import Piece
 from ALGO.mcts import MCTS
+from GAME.playerTimer import PlayerTimer
 
 class AIPlayer(Player):
     def __init__(self, user_instance, order, difficulty, time_remaining = (60*15)):
@@ -33,6 +34,12 @@ class AIPlayer(Player):
         self.rows = {
             0: (6, 10), 
             1: (0, 4) 
+        }
+
+        self.move_timers = { ## TODO : tinker with the times, this doesnt look right
+            0: 1,
+            1:1.5,
+            2:2
         }
 
         self.game_rules = None
@@ -72,7 +79,11 @@ class AIPlayer(Player):
     
     def choose_move(self):
         mcts = MCTS(self, self.game_rules, self.players)
-        move = mcts.algo()
+        max_time = self.time_remaining - self.move_timers[self.difficulty]
+        while self.time_remaining >= max_time:
+            mcts.algo()
+
+        move = mcts.get_best_move()
         return move
     
     ##Setup strategies

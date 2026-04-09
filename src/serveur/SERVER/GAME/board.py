@@ -35,8 +35,8 @@ class Board():
         tileFrom = self.tiles[y_0][x_0]
         tileTo = self.tiles[y_1][x_1]
 
-        print(f"Attempting move: {move.moveFrom} -> {move.moveTo}")
-        print(f"tileFrom ({x_0},{y_0}) piece: {tileFrom.piece}")
+        # print(f"Attempting move: {move.moveFrom} -> {move.moveTo}")
+        # print(f"tileFrom ({x_0},{y_0}) piece: {tileFrom.piece}")
         if tileFrom.piece is None:
             print(f"ERROR: No piece at source tile {x_0},{y_0} for move {move}")
         piece = tileFrom.piece

@@ -34,13 +34,18 @@ class Node:
     def expand(self):      
         if (len(self.untried_moves) == 0):
             return None
+        while self.untried_moves:
+            return self.get_random_child()
+        return None
+    
+    def get_random_child(self):
         move = random.choice(self.untried_moves)
         self.untried_moves.remove(move)
-
         new_infoSet = self.infoSet.new_infoSet(move)
-        child_node = Node(self, new_infoSet, move)
-        self.children.append(child_node)
-        return child_node
+        if new_infoSet is not None:
+            child_node = Node(self, new_infoSet, move)
+            self.children.append(child_node)
+            return child_node
     
     
     

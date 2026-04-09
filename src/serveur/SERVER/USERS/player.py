@@ -10,6 +10,7 @@ class Player(User):
         self.known_board = None
         self.time_remaining = time_remaining
         self.pieces_left = {}
+        self.opponent_pieces_left = {}
         self.pieces = {} 
         self.belief_pieces = None
         self.score = 0
@@ -19,6 +20,7 @@ class Player(User):
     def initialize_piece_left(self):
         for piece in PieceType:
             self.pieces_left[piece] = piece.count
+            self.opponent_pieces_left[piece] = piece.count
     
     def move(self, move):
         self.known_board.move(move)
@@ -36,9 +38,9 @@ class Player(User):
     def update_belief_states(self, piece_to_remove):
         if piece_to_remove.owner != self:
             piece_to_remove_type = piece_to_remove.type
-            self.pieces_left[piece_to_remove_type] -= 1
+            self.opponent_pieces_left[piece_to_remove_type] -= 1
             for belief_piece in self.belief_pieces:
-                belief_piece.update_probabilities(self.pieces_left)
+                belief_piece.update_probabilities(self.opponent_pieces_left)
 
 
     
