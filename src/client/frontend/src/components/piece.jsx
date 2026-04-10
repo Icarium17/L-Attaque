@@ -36,7 +36,7 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
   return (
     <div
       className={`
-        relative w-[85%] h-[85%] rounded-sm flex items-center justify-center
+        relative w-[92%] h-[92%] rounded-sm flex items-center justify-center
         text-white font-bold text-[clamp(8px,1.3vw,16px)]
         bg-cover bg-center select-none shadow-sm transition-all duration-300
       `}
@@ -45,8 +45,8 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
     {/* Le Grade*/}
     <span 
       className={`
-        absolute top-3.5 left-3 z-10 
-        text-[clamp(14px,1.6vw,16px)] text-white
+        absolute top-2 left-3 z-10 
+        text-[clamp(14px,1.6vw,17px)] text-white
         ${isVisible ? "opacity-100" : "opacity-0"}
       `}
       >
@@ -55,7 +55,7 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
     {/* Le visuel SVG si visible*/} 
       {isVisible && Aspect && ( 
          <div className="w-9 h-11 object-contain pointer-events-none">
-          <Aspect className="text-blue-950" />
+          <Aspect className="text-blue-950 w-full h-full" />
         </div>
       )}     
       {/* ? si invisible*/} 
