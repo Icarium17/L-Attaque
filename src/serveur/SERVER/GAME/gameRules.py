@@ -24,7 +24,6 @@ class GameRules():
             piece_counts[piece.type] += 1
         for ptype, count in piece_counts.items():
             if count != ptype.count:
-                print(ptype, count, ptype.count)
                 return (0, f"INVALID_PIECE_COUNT_{ptype}")
 
         start, end = self.zones[self.game_type][player_order]        
@@ -39,7 +38,6 @@ class GameRules():
     def _check_positions(self, valid_rows, pieces) -> bool:
         for piece in pieces:
             if piece.position[1] not in valid_rows:
-                print(piece.position[1], valid_rows)
                 return False
         return True
 
@@ -145,7 +143,7 @@ class GameRules():
             last_moves.append(move)
             return True
         
-        if last_moves[0] == move: 
+        if last_moves[-1] == move: 
             if len(last_moves) == 4: 
                 return False
             last_moves.append(move) 
@@ -189,6 +187,8 @@ class GameRules():
     def get_remaining_moves(self, pieces, player_order, board = None, reason = 0): 
         ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
         possible_moves = []
+        if board is None:
+            board = self.board
         for piece in pieces.values():
             if piece.type == PieceType.Drapeau or piece.type == PieceType.Bombe:
                 continue
@@ -197,18 +197,18 @@ class GameRules():
                     new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                     move = Move(piece.position, (new_x, new_y))
                     valid, reason = self.validate_move(player_order, move, board)
-                    if valid == 1:
+                    if valid == 1: ## For end of game checks. If there is at least 1 move available, the game is not over.
                         if reason == 1:
                             return True
                         possible_moves.append(move)
             else:  # piece.type == "Éclaireur"
-                for i in range(1, max(self.board.rows, self.board.cols)):
+                for i in range(1, max(board.rows, board.cols)):
                     for dx, dy in [(0, i), (i, 0), (0, -i), (-i, 0)]:
                         new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
                         move = Move(piece.position, (new_x, new_y))
                         valid, reason = self.validate_move(player_order, move, board)
                         if valid == 1:
-                            if reason == 1:
+                            if reason == 1: ## For end of game checks. If there is at least 1 move available, the game is not over.
                                 return True
                             possible_moves.append(move)
 

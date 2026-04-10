@@ -5,7 +5,6 @@ from GAME.board import Board
 from GAME.gameRules import GameRules
 from GAME.piece import BeliefPiece
 from USERS.aiPlayer import AIPlayer
-from GAME.playerTimer import PlayerTimer
 
 class GameManager():
     def __init__(self, lobbyManager, players, game_type = "original"):
@@ -120,8 +119,8 @@ class GameManager():
         tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
 
         if tileTo.piece and tileTo.piece.owner != player.order:
-            move = self.combat(pieceFrom, tileFrom, tileTo.piece, tileTo)
-
+            self.combat(pieceFrom, tileTo.piece, tileTo)
+            
         else :
             self.board.move(move)
             for player in self.players:
@@ -138,34 +137,41 @@ class GameManager():
         self.timers.switch_player(self.player_to_move)
         player = self.players[self.player_to_move]
         if isinstance(player, AIPlayer):
-            player.player_to_move = self.player_to_move
-            move = player.choose_move()
-            print(move)
-            self.make_move(self.player_to_move, move)
+            threading.Thread(target=self.ai_move_thread, args=(player,), daemon=True).start()
 
-    def combat(self, attacker, attacker_tile, defender, defender_tile):
+    def ai_move_thread(self, ai_player):
+        ai_player.player_to_move = self.player_to_move
+        move = ai_player.choose_move()
+        print(move)
+        self.make_move(self.player_to_move, move)
+
+    def combat(self, attacker, defender, defender_tile):
         winner = self.game_rules.combat(attacker, defender)
-        # Remove both if tie
         if winner is None:
-            self.board.remove_piece(attacker_tile)
-            self.board.remove_piece(defender_tile)
-            for player in self.players:
-                player.remove_piece(attacker)
-                player.remove_piece(defender)
-        elif attacker == winner:
-            self.board.remove_piece(defender_tile)
-            for player in self.players:
-                player.remove_piece(defender)
+            # Draw: both lose
+            losers = [attacker, defender]
+        elif winner == attacker:
+            losers = [defender]
         else:
-            self.board.remove_piece(attacker_tile)
-            for player in self.players:
-                player.remove_piece(attacker)
+            losers = [attacker]
+        self.set_boards_post_combat(winner, losers, defender_tile)
 
         for player in self.players:
             player.update_belief_states(attacker)
             player.update_belief_states(defender)
 
-        return winner == attacker
+    
+    def set_boards_post_combat(self, winner, losers, tileTo):
+        for player in self.players:
+            for loser in losers:
+                player.remove_piece(loser)
+        self.board.remove_piece(loser)
+        if winner and tileTo.piece is not winner:
+            for player in self.players:
+                player_tile = player.known_board.tiles[tileTo.y][tileTo.x]
+                player_tile.piece = winner
+            tileTo.piece = winner
+        
 
     def get_status(self, player_id):
         player = self.players[self.get_order(player_id)]
@@ -213,4 +219,64 @@ class GameManager():
         self.declare_winner(self.players[(player + 1) % len(self.players)], self.players[player], f"{self.players[player].username}'s timer expired")
 
     
+
+class PlayerTimer:
+    def __init__(self, players, times, timer_expired_callback):
+        self.players = players
+        self.times = times  
+        self.current_player = 0
+        self.delay = 1
+        self.running = False
+        self.lock = threading.Lock()
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.timer_expired_callback = timer_expired_callback
+        self.last_switch_time = None
+
+    def start(self, player):
+        with self.lock:
+            self.current_player = player
+            self.running = True
+            self.last_switch_time = time.time()
+            if not self.thread.is_alive():
+                self.thread.start()
+
+    def switch_player(self, next_player):
+        with self.lock:
+            now = time.time()
+            if self.running and self.last_switch_time is not None:
+                elapsed = now - self.last_switch_time
+                self.times[self.current_player] -= elapsed
+            self.current_player = next_player
+            self.last_switch_time = now
+
+    def stop(self):
+        with self.lock:
+            if self.running and self.last_switch_time is not None:
+                elapsed = time.time() - self.last_switch_time
+                self.times[self.current_player] -= elapsed
+            self.running = False
+            self.last_switch_time = None
+
+    def _run(self):
+        while True:
+            time.sleep(self.delay)
+            with self.lock:
+                if self.running and self.last_switch_time is not None:
+                    self.players[self.current_player].time_remaining -= self.delay
+                    if self.players[self.current_player].time_remaining <= 0:
+                        self.players[self.current_player].time_remaining = 0
+                        self.running = False
+                        self.timer_expired_callback(self.current_player)
+                        self.last_switch_time = None
+
+    def get_times(self):
+        with self.lock:
+            times_copy = self.times[:]
+            if self.running and self.last_switch_time is not None:
+                elapsed = time.time() - self.last_switch_time
+                times_copy[self.current_player] -= elapsed
+                if times_copy[self.current_player] < 0:
+                    times_copy[self.current_player] = 0
+            return times_copy
+
 
