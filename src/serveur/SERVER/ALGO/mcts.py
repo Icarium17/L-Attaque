@@ -35,16 +35,13 @@ class MCTS:
 
 
     def algo(self):
-        """
-        Run one iteration of the MCTS algorithm: selection, expansion, simulation, and backpropagation.
-        """
         self.root_node.infoSet.board_state = copy.deepcopy(self.ai.known_board)
-        self.root_node.infoSet.actualize_belief_pieces(self.ai.opponent_pieces_left.copy())
+        opp_pieces_copy = self.ai.opponent_belief_pieces_left.copy()
+        self.root_node.infoSet.actualize_belief_pieces(opp_pieces_copy)
         self.current_node = self.root_node
-        
+
         self.selection()
         self.expansion()
-
         win_score = self.simulation()
         self.backpropagation(win_score)
     
@@ -80,7 +77,7 @@ class MCTS:
         """
         game_over = 0
         s = 0
-        while not game_over and  s < 1000:
+        while not game_over and  s < 1000: ## TODO : enlever le 1000 quand tout va fonctionner
             self.heuristic_evaluation[self.difficulty]()
             game_over = self.game_over()
             s += 1

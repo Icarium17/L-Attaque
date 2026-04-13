@@ -1,5 +1,6 @@
 import copy
 import random
+import time
 from GAME.piece import BeliefPiece, Piece
 
 class InfoSet:
@@ -92,13 +93,6 @@ class InfoSet:
         self.player_turn = 1 - self.player_turn
 
     def actualize_belief_pieces(self, pieces_left):
-        """
-        Convert all BeliefPieces on the board to Pieces for one iteration of the algorithm.
-        Uses backtracking to assign types to belief pieces based on remaining pieces.
-        
-        Args:
-            pieces_left: Dictionary of remaining piece types to assign.
-        """
         belief_pieces = []
         for row in self.board_state.tiles:
             for tile in row:
@@ -107,28 +101,59 @@ class InfoSet:
 
         possible_setup = self.assign_types_backtracking(belief_pieces, pieces_left)
 
+        if possible_setup is None:
+            possible_setup = self.assign_types_random(belief_pieces, pieces_left)
+
         if possible_setup is not None:
             for belief_piece, type in zip(belief_pieces, possible_setup):
                 piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner)
                 self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece
 
-    def assign_types_backtracking(self, belief_pieces, pieces_left, i=0, assignment=None):
+
+    ## TODO : make this better. the algo shouldnt have to fall back on a random distribution if this function doesnt work so often
+    def assign_types_backtracking(self, belief_pieces, pieces_left, i=0, assignment=None, do_sort=True, start_time=None, timeout=0.5):
         """
         Recursively assign types to belief pieces using backtracking and probability weights.
-        
+
+        This function attempts to assign a type to each belief piece such that all constraints are satisfied,
+        using a backtracking algorithm guided by probability weights. It can optionally sort the pieces to improve efficiency.
+
         Args:
-            belief_pieces: List of BeliefPiece objects to assign types to.
-            pieces_left: Dictionary of remaining piece types to assign.
-            i: Current index in belief_pieces (default 0).
-            assignment: Current assignment list (default None).
-        
+            belief_pieces (list): List of BeliefPiece objects to assign types to.
+            pieces_left (dict): Dictionary of remaining piece types to assign (type -> count).
+            i (int): Current index in belief_pieces (default 0).
+            assignment (list): Current assignment list (default None).
+            do_sort (bool): Whether to sort belief_pieces by constraint (default True, only at top level).
+            start_time (float): Time when the function was first called (for timeout).
+            timeout (float): Maximum allowed time in seconds for the search.
+
         Returns:
-            list or None: List of assigned types if successful, else None.
+            list or None: List of assigned types if successful, else None if no valid assignment is found or timeout is reached.
         """
         if assignment is None:
             assignment = []
+
+        if start_time is None:
+            start_time = time.monotonic()
+        elif time.monotonic() - start_time > timeout:
+            return None
+
+        if do_sort:
+            def num_possible_types(bp):
+                return sum(1 for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0)
+            indexed_belief_pieces = list(enumerate(belief_pieces))
+            sorted_indexed = sorted(indexed_belief_pieces, key=lambda x: num_possible_types(x[1]))
+            sorted_indices, sorted_belief_pieces = zip(*sorted_indexed)
+            result = self.assign_types_backtracking(list(sorted_belief_pieces), pieces_left, 0, [], do_sort=False, start_time=start_time, timeout=timeout)
+            if result is not None:
+                reordered = [None] * len(result)
+                for idx, val in zip(sorted_indices, result):
+                    reordered[idx] = val
+                return reordered
+            return None
+
         if i == len(belief_pieces):
-            return assignment  # Success
+            return assignment  
 
         bp = belief_pieces[i]
         possible_types = [t for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0]
@@ -149,12 +174,43 @@ class InfoSet:
 
         for t in sampled_types:
             pieces_left[t] -= 1
-            result = self.assign_types_backtracking(belief_pieces, pieces_left, i+1, assignment + [t])
-            pieces_left[t] += 1  # Backtrack
+            result = self.assign_types_backtracking(
+                belief_pieces, pieces_left, i+1, assignment + [t], do_sort=False, start_time=start_time, timeout=timeout
+            )
+            pieces_left[t] += 1  
             if result is not None:
                 return result
 
         return None
+    
+
+    def assign_types_random(self, belief_pieces, pieces_left):
+        """
+        Assign types to belief pieces using a greedy/randomized approach.
+
+        For each belief piece, selects the most probable available type, falling back to random selection if necessary.
+        This method does not guarantee a valid or optimal assignment but is fast and simple.
+
+        Args:
+            belief_pieces (list): List of BeliefPiece objects to assign types to.
+            pieces_left (dict): Dictionary of remaining piece types to assign (type -> count).
+
+        Returns:
+            list: List of assigned types for each belief piece.
+        """
+        pieces_left_copy = pieces_left.copy()
+        assignment = []
+        for bp in belief_pieces:
+            available_types = [t for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left_copy.get(t, 0) > 0]
+            if not available_types:
+                available_types = [t for t in bp.probabilities if bp.probabilities[t] > 0]
+            if not available_types:
+                available_types = list(bp.probabilities.keys())
+            best_type = max(available_types, key=lambda t: bp.probabilities.get(t, 0))
+            assignment.append(best_type)
+            if pieces_left_copy.get(best_type, 0) > 0:
+                pieces_left_copy[best_type] -= 1
+        return assignment
 
 
         

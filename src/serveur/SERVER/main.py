@@ -159,13 +159,9 @@ def handle_get_status():
     key = data.get('key')
 
     # result : {"status": "playing", "board": [list of piece, type, position], "turn": "blue"} int 0 to blue
-    status, board, turn, time_remaining = lobby.execute_action("getStatus", (key,))
-    return jsonify({
-        "status": status,
-        "board": board,
-        "turn": turn,
-        "time_remaining": time_remaining
-    })
+    result = lobby.execute_action("getStatus", (key,))
+    return jsonify(result)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

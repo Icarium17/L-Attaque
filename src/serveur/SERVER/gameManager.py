@@ -3,7 +3,7 @@ import threading
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
-from GAME.piece import BeliefPiece
+from GAME.piece import BeliefPiece, PieceType
 from USERS.aiPlayer import AIPlayer
 
 class GameManager():
@@ -20,6 +20,8 @@ class GameManager():
         self.winner = None
         self.loser = None
         self.end_reason = None
+        self.status = "PLAYING"
+        self.battle = None
 
     ###### Start and Setup ###### 
 
@@ -108,30 +110,35 @@ class GameManager():
         player = self.players[self.get_order(player_id)]
         if player.order == -1:
             return (0, "INVALID_KEY")
-        
+
         valid_move = self.game_rules.validate_move(player.order, move)
         print(valid_move[1])
         if valid_move[0] == 0:
             return valid_move
-        
+
         tileFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]]
         pieceFrom = tileFrom.piece
         tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
 
         if tileTo.piece and tileTo.piece.owner != player.order:
+            print("BATTLE")
+            self.battle = [pieceFrom.send(), tileTo.piece.send()]
             self.combat(pieceFrom, tileTo.piece, tileTo)
-            
-        else :
+            self.status = "BATTLE"
+            self.timers.pause(10)
+            # Use a non-blocking timer to delay turn change
+            threading.Timer(10, self.change_turn).start()
+            return (1, "MOVE_SUCCESS_COMBAT_PAUSE")
+        else:
             self.board.move(move)
             for player in self.players:
                 player.move(move)
-            ## TODO : Update belief states for all players based on the move and the result of the move (e.g. if a piece was captured, update the probabilities for that piece being in certain positions)
-
-        self.change_turn()
-        
-        return (1, "MOVE_SUCCESS")
+            # TODO : Update belief states for all players based on the move and the result of the move (e.g. if a piece was captured, update the probabilities for that piece being in certain positions)
+            self.change_turn()
+            return (1, "MOVE_SUCCESS")
     
     def change_turn(self):
+        self.status = "PLAYING"
         ##if not self.check_end_state(): ##TODO : add afterwards
         self.player_to_move = (self.player_to_move + 1) % len(self.players)
         self.timers.switch_player(self.player_to_move)
@@ -142,35 +149,44 @@ class GameManager():
     def ai_move_thread(self, ai_player):
         ai_player.player_to_move = self.player_to_move
         move = ai_player.choose_move()
-        print(move)
         self.make_move(self.player_to_move, move)
 
     def combat(self, attacker, defender, defender_tile):
         winner = self.game_rules.combat(attacker, defender)
         if winner is None:
+            print("Draw)")
             # Draw: both lose
             losers = [attacker, defender]
         elif winner == attacker:
+            print("attacker won")
             losers = [defender]
         else:
+            print("defender won")
             losers = [attacker]
         self.set_boards_post_combat(winner, losers, defender_tile)
 
-        for player in self.players:
-            player.update_belief_states(attacker)
-            player.update_belief_states(defender)
-
     
     def set_boards_post_combat(self, winner, losers, tileTo):
-        for player in self.players:
-            for loser in losers:
-                player.remove_piece(loser)
-        self.board.remove_piece(loser)
         if winner and tileTo.piece is not winner:
+            print("attacker won")
+            if not winner.type == PieceType.Bombe:
+                for player in self.players:
+                    player.known_board.move_post_combat(winner, tileTo.y, tileTo.x)
+                self.board.move_post_combat(winner, tileTo.y, tileTo.x)
+        else:
             for player in self.players:
-                player_tile = player.known_board.tiles[tileTo.y][tileTo.x]
-                player_tile.piece = winner
-            tileTo.piece = winner
+                for loser in losers:
+                    player.remove_piece(loser)
+                    player.known_board.remove_piece(loser)
+            self.board.remove_piece(loser)
+
+        for player in self.players:
+            if winner: 
+                player.update_belief_state_winner(winner)
+            for loser in losers:
+                player.update_belief_state_loser(loser)
+
+        
         
 
     def get_status(self, player_id):
@@ -178,14 +194,21 @@ class GameManager():
         if player.order == -1:
             return {"status": "INVALID_KEY"}
         
-        list_pieces = self.board.return_pieces()
+        list_pieces = self.board.return_pieces() ##TODO : change for the player only
         times_remaining = [player.time_remaining for player in self.players]
+       
         status = {
-            "status": "PLAYING", ## À modifier 
+            "status": self.status,
             "board": list_pieces,
             "turn": "blue" if self.player_to_move == 0 else "red",
-            "time_remaining": times_remaining
+            "time_remaining": times_remaining,
+            "battle" : None
         }
+
+        if self.status == "BATTLE":
+            print("battle pieces")
+            status["battle"] = self.battle ##TODO : à rajouter dans le front end
+        
         return status
     
 
@@ -278,5 +301,23 @@ class PlayerTimer:
                 if times_copy[self.current_player] < 0:
                     times_copy[self.current_player] = 0
             return times_copy
+        
+    def pause(self, duration=None):
+        """Pause the timer for the current player. If duration is set, resume after duration seconds; else pause indefinitely."""
+        def resume_after_delay(player_idx, delay):
+            time.sleep(delay)
+            self.start(player_idx)
+
+        with self.lock:
+            if self.running and self.last_switch_time is not None:
+                elapsed = time.time() - self.last_switch_time
+                self.times[self.current_player] -= elapsed
+                self.players[self.current_player].time_remaining -= elapsed
+                if self.players[self.current_player].time_remaining < 0:
+                    self.players[self.current_player].time_remaining = 0
+                self.running = False
+                self.last_switch_time = None
+                if duration is not None:
+                    threading.Thread(target=resume_after_delay, args=(self.current_player, duration), daemon=True).start()
 
 

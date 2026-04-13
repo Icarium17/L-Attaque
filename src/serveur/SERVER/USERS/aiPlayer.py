@@ -1,7 +1,8 @@
 import random
+import time
 
 from USERS.player import Player
-from GAME.piece import Piece
+from GAME.piece import Piece, PieceType
 from ALGO.mcts import MCTS
 
 class AIPlayer(Player):
@@ -48,7 +49,7 @@ class AIPlayer(Player):
         return super().initialize_game()
 
     def generate_piece_list_easy(self):
-        pieces_types = piece_types = [
+        pieces_types = [
             piece_type
             for piece_type, count in self.pieces_left.items()
             for _ in range(count)
@@ -78,10 +79,12 @@ class AIPlayer(Player):
     
     def choose_move(self):
         mcts = MCTS(self, self.game_rules, self.players)
-        max_time = self.time_remaining - self.move_timers[self.difficulty]
-        while self.time_remaining >= max_time:
+        move_time = self.move_timers[self.difficulty]
+        start = time.time()
+
+        while time.time() - start < move_time:
             mcts.algo()
-            print("buffering")
+            print("choosing")
 
         move = mcts.get_best_move()
         return move
@@ -92,7 +95,12 @@ class AIPlayer(Player):
         return piece_types
 
     def spread_out_bomb_clusters_flag(self): ##check if this works
+        pass
+        
+    def spread_out_bomb_clusters(self):
+        pieces = []
         rows = self.rows[self.order]
+        id = 0
 
         r1, r2 = random.choices(range(rows[0], rows[1]), k=2)
 
@@ -103,7 +111,6 @@ class AIPlayer(Player):
         bomb_clusters_centers = [(col1, r1), (col2, r2)]
         bomb_positions = []
         for center in bomb_clusters_centers:
-
             possible = [
                 (c, r)
                 for dc in range(-2, 3)
@@ -112,13 +119,28 @@ class AIPlayer(Player):
                 and 0 <= (c := center[0] + dc) < 10
                 and rows[0] <= (r := center[1] + dr) < rows[1]
             ]
-            # Ensure the center is included, then sample 5 more
+            
             if center in possible:
                 possible.remove(center)
             bomb_positions.append(random.sample(possible, min(2, len(possible))))
 
-    def spread_out_bomb_clusters(self):
-        pass
+        for position in bomb_positions:
+            pieces.append(Piece(id, PieceType.Bomb, position, self.order))
+            id+=1
+
+        ##TODO : faire le setup avec setup_pieces()??
+        
+    def setup_pieces(self, pieces, types):
+        piece_types = self.generate_pieces[self.difficulty](types)
+        rows = self.rows[self.order]
+
+        idx = 0
+        for row in range(rows[0], rows[1]):
+            for col in range(10):
+                if idx < 40:
+                    pieces.append(Piece(idx, piece_types[idx], (col, row), self.order))
+                    idx += 1
+        return pieces
 
     def spread_out_bombs(self):
         pass
