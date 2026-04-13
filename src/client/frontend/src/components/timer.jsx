@@ -6,7 +6,7 @@ export default function Timer({ timeLeft = 0, color = "BLUE", onExpire , turn}){
   const [display, setDisplay] = useState(timeLeft);
 
   useEffect(() => {
-    setDisplay(timeLeft);    // Sync avec la valeur serveur dès qu'elle change
+    setDisplay(Math.floor(timeLeft));  // Sync avec la valeur serveur dès qu'elle change
     if (color != turn) return;
 
     // Décompte local pour pallier la latence réseau

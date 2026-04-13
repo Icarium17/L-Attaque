@@ -77,7 +77,7 @@ export default function Game() {
 }, [navigate]);
 
   // Sync avec le serveur toutes les 1s en phase PLAYING
-  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard });
+useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult });
   
   // Logique placement (pool, drag, submit)
   const {
@@ -177,6 +177,10 @@ return (
 
         {/* Board */}
         <div className="relative grid grid-cols-10 gap-0.5 w-[min(900px,82vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
+            {/* Bloquer toutes les interactions si pas son tour */}
+            {phase == "PLAYING" && turn != "BLUE" && (
+              <div className="absolute inset-0 z-40 cursor-not-allowed" />
+            )}
           {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => (
               <Cell
@@ -193,11 +197,12 @@ return (
               />
             ))
           )}
-  {battleData && (
+  {battleData?.attacker && battleData?.defender && (
   <Battle
     attacker={battleData.attacker}
     defender={battleData.defender}
     result={battleData.result}
+    onClose={() => { setBattleData(null); setPhase("PLAYING"); }}
   />
 )}
 {gameResult && (

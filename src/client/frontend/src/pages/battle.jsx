@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import PieceCard             from "../components/pieceCard.jsx";
 import battleBackground   from "../assets/images/battle-background.png";
 
-const PHASE_REVEAL = 5000;
-const PHASE_CLOSE  = 10000;
+const PHASE_REVEAL = 1700;
+const PHASE_CLOSE  = 2500;
 
 
 export default function Battle({ attacker, defender, result, onClose }) {
@@ -28,7 +28,7 @@ export default function Battle({ attacker, defender, result, onClose }) {
     return () => clearTimeout(t);
   }, [onClose]);
 
-  const isDraw  = result == "DRAW";
+  const isDraw  = result == "DRAW" || result == "BOTH_LOSE";
   const winner  = result == "ATTACKER_WIN" ? attacker : result == "DEFENDER_WIN" ? defender : null;
   const isRed   = winner?.player == "RED";
 
