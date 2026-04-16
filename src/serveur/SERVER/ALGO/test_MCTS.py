@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
+import time
 import unittest
 from ALGO.mcts import MCTS
 from USERS.aiPlayer import AIPlayer
@@ -32,10 +33,14 @@ class TestMCTS(unittest.TestCase):
     def test_algo_runs(self):
         try:
             mcts = self.mcts
-            for _ in range(10):  # or while time remains
+            start_time = time.perf_counter()
+            for _ in range(100):  # or while time remains
+                print("algo")
                 mcts.algo()
             move = mcts.get_best_move()
+
             print(move.get_params() if move else "No move found")
+            print(time.perf_counter() - start_time)
             self.assertIsNotNone(move, "No move found by MCTS")
         except Exception as e:
             self.fail(f"MCTS algo() raised an exception: {e}")

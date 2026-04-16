@@ -61,6 +61,14 @@ class MCTS:
             else:
                 break
 
+    # def selection(self):
+    #     while self.current_node.untried_moves == []:
+    #         self.current_node = max(
+    #             self.current_node.children,
+    #             key=lambda c: c.ucb_score()
+    #         )
+        
+
     def expansion(self):
         """
         Expand the current node by adding a new child node if possible.
@@ -80,13 +88,30 @@ class MCTS:
         """
         game_over = 0
         s = 0
-        while not game_over and  s < 1000:
+        while not game_over:
             self.heuristic_evaluation[self.difficulty]()
             game_over = self.game_over()
             s += 1
 
 
         return game_over
+    
+    # def simulation(self):
+    #     world = copy.deepcopy(self.root_node.infoSet.board_state)
+
+    #     # 🔥 sample hidden Stratego setup HERE
+    #     world = self.sample_hidden_pieces(world)
+
+    #     current_player = self.root_node.infoSet.player_turn
+
+    #     while not self.is_terminal(world):
+    #         moves = self.get_legal_moves(world, current_player)
+    #         move = random.choice(moves)
+    #         world.move(move)
+
+    #         current_player = 1 - current_player
+
+    #     return self.evaluate(world)
 
     def backpropagation(self, win_score):
         """
@@ -121,6 +146,22 @@ class MCTS:
         Placeholder for a perfect heuristic for hard difficulty. Currently random.
         """
         self.heuristic_evaluation_easy()
+
+    # def heuristic(self, infoSet, move):
+    #     board = infoSet.board_state  # ONLY observable
+
+    #     score = 0
+
+    #     if move.attacks_unknown():
+    #         score += 1.0
+
+    #     if move.moves_to_center():
+    #         score += 0.3
+
+    #     if move.exposes_high_value_piece():
+    #         score -= 1.0
+
+    #     return score
 
     def game_over(self):
         """

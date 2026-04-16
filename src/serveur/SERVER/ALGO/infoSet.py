@@ -2,6 +2,8 @@ import copy
 import random
 from GAME.piece import BeliefPiece, Piece
 
+
+## Should only store observable states. the sampled board should be in the algo, not in the nodes.
 class InfoSet:
     """
     Represents the information set for a player, including board state, player turn, and game rules.
