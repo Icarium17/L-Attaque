@@ -21,6 +21,7 @@ import Notification from "../components/notification.jsx";
 import Battle from "../pages/battle.jsx";
 import End from "../pages/end.jsx";
 import YourTurn from "../components/yourTurn.jsx";
+import Graveyard from "../components/graveyard.jsx";
 
 // Assets
 import backgroundGame from '../assets/images/background-game.png';
@@ -76,7 +77,7 @@ export default function Game() {
 }, [navigate]);
 
   // Sync avec le serveur toutes les 1s en phase PLAYING
-  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard });
+useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult });
   
   // Logique placement (pool, drag, submit)
   const {
@@ -111,116 +112,128 @@ return (
     session={session}
     hideMenu={true}
   >
-    <div className="relative flex items-center justify-center w-full h-full"> 
-      <div className="absolute left-25 top-[4%] flex flex-col items-center w-110 shrink-0 px-4 space-y-5">
-     
-        {/* PLACEMENT */}
-        {phase == "PLACEMENT" && (
-          <>
-            <GameMessage variant="title" title="Pièces à placer" />
-            <Button variant="primary" onClick={handleAutoPlacement} disabled={pool.length == 0} fullWidth text="Placement Auto" />
-            <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
+    <div className="relative flex items-center justify-center w-full h-full overflow-hidden">
+      
+      {/* PLACEMENT */}
+      {phase == "PLACEMENT" && (
+    <div className="absolute left-[15%] top-1/2 -translate-y-1/2 flex flex-col items-center w-96 z-20 space-y-5">
+    <GameMessage variant="title" title="Pièces à placer" />
+    <Button variant="primary" onClick={handleAutoPlacement} disabled={pool.length == 0} fullWidth text="Placement Auto" />
+    <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
 
-            {/* POOL */}
-            <div className="grid grid-cols-5 gap-2 overflow-y-auto overflow-x-hidden w-full max-h-[60vh] mb-4 p-2 bg-black/20 rounded"
-             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                onDrop={(e) => { e.preventDefault(); handlePoolDrop(); }}
-              >
-              {pool.map((piece, idx) => (
-                <button
-                    key={idx}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.effectAllowed = "move";
-                      handlePlacementDragStart({ type: "pool", index: idx });
-                    }}
-                    onClick={() => handlePoolClick(idx)}
-                  className={`w-16 h-16 flex flex-col items-center justify-center font-bold rounded border-2 transition-transform mx-auto
-                    ${selectedPoolIndex == idx
-                      ? "border-yellow-400 bg-blue-600 text-white scale-110 shadow-cyan-500/50 shadow-md"
-                      : "border-gray-500 bg-gray-800 text-blue-200 hover:border-blue-300"
-                    }`}
-                >
-                  <Piece
-                    rank={piece.rank}
-                    type={piece.type}
-                    player={piece.player}
-                    playerColor="BLUE"
-                    revealed={true}
-                  />
-                </button>
-              ))}
-            </div>
-            {pool.length == 0 && (
-              <Button variant="success" onClick={handleSubmitPlacement} loading={loading} fullWidth text="Valider" />
-            )}
-          </>
-        )}
-
-        {/* WAITING */}
+    {/* POOL */}
+    <div className="grid grid-cols-4 place-items-center gap-3 overflow-y-auto w-full mb-2 p-2.5 bg-black/40 backdrop-blur-md rounded border border-white/10"
+         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+         onDrop={(e) => { e.preventDefault(); handlePoolDrop(); }}>
+      {pool.map((piece, idx) => (
+        <button
+          key={idx}
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "move";
+            handlePlacementDragStart({ type: "pool", index: idx });
+          }}
+          onClick={() => handlePoolClick(idx)}
+        
+         className={`flex items-center justify-center w-16 h-16  rounded border-2 transition-all overflow-hidden
+  ${selectedPoolIndex == idx
+    ? "border-yellow-400 bg-blue-600 text-white scale-115 shadow-cyan-500/50 shadow-md"
+    : "border-gray-500 bg-gray-800 text-blue-200 hover:border-blue-300"
+  }`}
+        >
+          
+          <Piece 
+            rank={piece.rank} 
+            type={piece.type} 
+            player={piece.player} 
+            playerColor="BLUE" 
+            revealed={true} 
+          /> 
+        </button>
+      ))}
+    </div>
+    {pool.length == 0 && (
+      <Button variant="success" onClick={handleSubmitPlacement} loading={loading} fullWidth text="Valider" />
+    )}
+  </div>
+)}
+      {/* WAITING */}
         {phase == "WAITING" && (
           <div className="w-full py-10 flex flex-col items-center justify-center bg-black/30 rounded-lg border border-yellow-500/20 backdrop-blur-sm">
             <Loading message="Attente..." size={80} />
           </div>
         )}   
 
-        {/* NOTIFICATION ERREUR */}
-        {error && (
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">
-            <Notification
-              variant="error"
-              message={error}
-              autoClose={3000}
-              onClose={() => setError("")}
-              className="w-full"
-            />
-          </div>
-        )}
-      </div>
 
-    <div className="flex items-stretch gap-20">      
-      {/* Timers */}
-      {phase == "PLAYING" && (
-        <div className="flex flex-col justify-between py-2">
-          {/* {timeRemaining}*/}
+      <div className="flex items-center gap-8 z-10">
+        {/* Timers */}
+        {phase == "PLAYING" && (
+          <div className="flex flex-col justify-between h-[80vh] py-4">
           <Timer timeLeft={timeRemaining[1] || 0} color="RED"  turn={turn} onExpire={() => setError("Temps écoulé pour Red!")} />
           <TurnIndicator turn={turn} />
           <Timer timeLeft={timeRemaining[0] || 0} color="BLUE" turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
-        </div>
-      )}
-      
-  {/* Board */}
-  <div className="relative grid grid-cols-10 gap-0.5 w-[min(950px,85vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
-    {board.map((row, rowIndex) =>
-      row.map((cell, colIndex) => (
-        <Cell
-          key={`${rowIndex}-${colIndex}`}
-          row={rowIndex}
-          col={colIndex}
-          isLake={isLake(rowIndex, colIndex)}
-          isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
-          piece={cell}
-          playerColor="BLUE"
-          onClick={handleCellClick}
-          onDragStart={activeDragStart}
-          onDrop={activeBoardDrop}
-        />
-      ))
-    )}
-  {battleData && (
+          </div>
+        )}
+
+        {/* Board */}
+        <div className="relative grid grid-cols-10 gap-0.5 w-[min(900px,82vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
+            {/* Bloquer toutes les interactions si pas son tour */}
+            {phase == "PLAYING" && turn != "BLUE" && (
+              <div className="absolute inset-0 z-40 cursor-not-allowed" />
+            )}
+          {board.map((row, rowIndex) =>
+            row.map((cell, colIndex) => (
+              <Cell
+                key={`${rowIndex}-${colIndex}`}
+                row={rowIndex}
+                col={colIndex}
+                isLake={isLake(rowIndex, colIndex)}
+                isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
+                piece={cell}
+                playerColor="BLUE"
+                onClick={handleCellClick}
+                onDragStart={activeDragStart}
+                onDrop={activeBoardDrop}
+              />
+            ))
+          )}
+  {battleData?.attacker && battleData?.defender && (
   <Battle
     attacker={battleData.attacker}
     defender={battleData.defender}
     result={battleData.result}
+    onClose={() => { setBattleData(null); setPhase("PLAYING"); }}
   />
 )}
 {gameResult && (
   <End result={gameResult} onClose={() => navigate("/lobby")} />
 )}
   {/* YOUR TURN */}
-  <YourTurn show={showYourTurn} />
+          <YourTurn show={showYourTurn} />
+        </div>
+      </div>
+
+      {/*Cimetières  */}
+      {phase == "PLAYING" && (
+  <div className="absolute left-[calc(55%+min(450px,41vh)+20px)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-1 h-[70vh] z-20">
+    <Graveyard title="Pièces Capturées" />
+    <Graveyard title="Pièces Perdues" />
   </div>
-</div>
+)}     
+
+      {/* Erreurs*/}
+      {error && (
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">
+          <Notification 
+            variant="error" 
+            message={error} 
+            autoClose={3000} 
+            onClose={() => setError("")} 
+          />
+        </div>
+      )}
     </div>
+
+  
   </MainLayout>
 );}

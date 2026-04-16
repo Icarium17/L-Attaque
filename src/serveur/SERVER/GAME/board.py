@@ -99,14 +99,22 @@ class Board():
 
         return list_pieces
     
-    def remove_piece(self, tile):
+    def remove_piece(self, piece, player=None):
         """
-        Remove the piece from the given tile.
+        Remove the piece from the given tile and from the player's pieces dict if provided.
         Args:
-            tile: The Tile object to clear.
+            piece: The piece object to remove.
+            player: (optional) The player object whose pieces dict should be updated.
         """
+        tile = self.tiles[piece.position[1]][piece.position[0]]
         tile.piece = None
+        if player is not None and hasattr(player, 'pieces') and piece.id in player.pieces:
+            del player.pieces[piece.id]
+        
 
+    def move_post_combat(self, piece, y, x):
+        self.tiles[y][x].piece = piece
+        piece.position = (x, y)
 
 
 class Tile():
