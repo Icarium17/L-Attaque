@@ -215,4 +215,58 @@ class InfoSet:
         return assignment
 
 
-        
+    # def assign_types_backtracking(self, belief_pieces, pieces_left, assignment=None):
+    #     if assignment is None:
+    #         assignment = {}
+
+    #     if len(assignment) == len(belief_pieces):
+    #         return [assignment[bp] for bp in belief_pieces]
+
+    #     
+    #     def valid_types(bp):
+    #         return [t for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0]
+
+    #     unassigned = [bp for bp in belief_pieces if bp not in assignment]
+    #     bp = min(unassigned, key=lambda x: len(valid_types(x)))
+
+    #     options = valid_types(bp)
+    #     if not options:
+    #         return None
+
+    #     def lcv_score(t):
+    #         score = 0
+    #         for other in unassigned:
+    #             if other is bp:
+    #                 continue
+    #             if t in other.probabilities and other.probabilities[t] > 0:
+    #                 score += 1
+    #         return score
+
+    #     options.sort(key=lcv_score)  # least constraining first
+
+    #     for t in options:
+    #         # assign
+    #         assignment[bp] = t
+    #         pieces_left[t] -= 1
+
+    #         failed = False
+    #         for other in unassigned:
+    #             if other is bp:
+    #                 continue
+    #             if not any(
+    #                 pieces_left[tt] > 0 and other.probabilities.get(tt, 0) > 0
+    #                 for tt in other.probabilities
+    #             ):
+    #                 failed = True
+    #                 break
+
+    #         if not failed:
+    #             result = self.assign_types_backtracking(belief_pieces, pieces_left, assignment)
+    #             if result:
+    #                 return result
+
+    #         # undo
+    #         pieces_left[t] += 1
+    #         del assignment[bp]
+
+    #     return None
