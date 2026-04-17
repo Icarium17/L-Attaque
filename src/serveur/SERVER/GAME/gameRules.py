@@ -107,31 +107,35 @@ class GameRules():
                         return (0, "SCOUT_CANNOT_JUMP_OVER_IMPASSABLE_TILE")
         return (1, "MOVE_SUCCESS")
     
-    def combat(self, attacker, defender): ## TODO : scout cannot move and attack on the same turn, add a check for this in validate_move and update the combat function accordingly ??
-        attacker_type = attacker.type
-        defender_type = defender.type
-        attacker_power = attacker_type.power
-        defender_power = defender_type.power
+    def combat(self, attacker, defender):
+        at = attacker.type
+        dt = defender.type
 
-        if attacker_power == defender_power:
-            winner = None
-        elif attacker_type == PieceType.Espion and defender_type == PieceType.Marechal:
-            winner = attacker
-        elif defender_type == PieceType.Bombe:
-            if attacker_type != PieceType.Demineur:
-                winner = defender
-            else:
-                winner = attacker
-        elif defender_power is None:
-            winner = attacker
+        # Bomb first
+        if dt == PieceType.Bombe:
+            return attacker if at == PieceType.Demineur else defender
 
-        elif attacker_power is None:
-            winner = defender
+        # Flag
+        if dt == PieceType.Drapeau:
+            return attacker
 
-        else :
-            winner = attacker if attacker_power > defender_power else defender
+        # Spy special case: Espion attacks Marechal
+        if at == PieceType.Espion and dt == PieceType.Marechal:
+            return attacker
 
-        return winner
+        # Spy loses otherwise (unless both are Espion)
+        if at == PieceType.Espion and dt != PieceType.Espion:
+            return defender
+        if dt == PieceType.Espion and at != PieceType.Espion:
+            return attacker
+
+        # Power comparison (includes Espion vs Espion, which is a draw)
+        ap = at.power
+        dp = dt.power
+
+        if ap == dp:
+            return None
+        return attacker if ap > dp else defender
 
     def _check_last_moves(self, player_order, move) -> bool:
         

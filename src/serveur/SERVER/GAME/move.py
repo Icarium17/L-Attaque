@@ -8,8 +8,12 @@ class Move():
         x_1, y_1 = self.moveTo
         return x_0, y_0, x_1, y_1
     
-
     def __eq__(self, other):
-            if not isinstance(other, Move):
-                return False
-            return self.moveFrom == other.moveTo and self.moveTo == other.moveFrom
+        if not isinstance(other, Move):
+            return False
+        return self.moveFrom == other.moveFrom and self.moveTo == other.moveTo
+
+    def __hash__(self):
+        return hash((self.moveFrom, self.moveTo))
+    
+  

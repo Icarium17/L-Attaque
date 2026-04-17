@@ -106,13 +106,17 @@ class Board():
             piece: The piece object to remove.
             player: (optional) The player object whose pieces dict should be updated.
         """
-        tile = self.tiles[piece.position[1]][piece.position[0]]
-        tile.piece = None
-        if player is not None and hasattr(player, 'pieces') and piece.id in player.pieces:
+        x, y = piece.position
+        print(f"[DEBUG] Board.remove_piece: Removing piece id={piece.id} type={getattr(piece, 'type', None)} at pos=({x},{y})")
+        ####TODO : this is the problem
+        self.tiles[y][x].piece = None
+
+        if player is not None and piece.id in player.pieces:
             del player.pieces[piece.id]
         
 
     def move_post_combat(self, piece, y, x):
+        self.tiles[piece.position[1]][piece.position[0]].piece = None
         self.tiles[y][x].piece = piece
         piece.position = (x, y)
 

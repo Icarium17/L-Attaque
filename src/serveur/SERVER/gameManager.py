@@ -125,7 +125,7 @@ class GameManager():
             self.battle = [pieceFrom.send(), tileTo.piece.send()]
             self.combat(pieceFrom, tileTo.piece, tileTo)
             self.status = "BATTLE"
-            self.timers.pause(10)
+            self.timers.pause(6)
             # Use a non-blocking timer to delay turn change
             threading.Timer(10, self.change_turn).start()
             return (1, "MOVE_SUCCESS_COMBAT_PAUSE")
@@ -157,7 +157,7 @@ class GameManager():
             print("Draw)")
             # Draw: both lose
             losers = [attacker, defender]
-        elif winner == attacker:
+        elif winner is attacker:
             print("attacker won")
             losers = [defender]
         else:
@@ -166,30 +166,27 @@ class GameManager():
         self.set_boards_post_combat(winner, losers, defender_tile)
 
     
+
     def set_boards_post_combat(self, winner, losers, tileTo):
-        # Remove losers from all boards first
+        # Always remove losers from player piece lists and all boards
+        ## TODO : remove from the opponents pieces
         for loser in losers:
             for player in self.players:
                 player.remove_piece(loser)
                 player.known_board.remove_piece(loser)
             self.board.remove_piece(loser)
 
-        # 2) If draw: we've already removed both pieces; update beliefs and exit
-        if winner is None:
-            for player in self.players:
-                for loser in losers:
-                    player.update_belief_state_loser(loser)
-            return
+        # If there is a winner and it's not a bomb, move the winner onto the destination tile
+        if winner is not None and winner.type != PieceType.Bombe:
+            if tileTo.piece is not winner:
+                for player in self.players:
+                    player.known_board.move_post_combat(winner, tileTo.y, tileTo.x)
+                self.board.move_post_combat(winner, tileTo.y, tileTo.x)
 
-        # 3) Winner exists: move it unless it's on the destination already or it's a bomb
-        if tileTo.piece is not winner and winner.type != PieceType.Bombe:
-            for player in self.players:
-                player.known_board.move_post_combat(winner, tileTo.y, tileTo.x)
-            self.board.move_post_combat(winner, tileTo.y, tileTo.x)
-
-        # 4) Update belief states
+        # Update beliefs for winner and losers
         for player in self.players:
-            player.update_belief_state_winner(winner)
+            if winner is not None and winner.type != PieceType.Bombe:
+                player.update_belief_state_winner(winner)
             for loser in losers:
                 player.update_belief_state_loser(loser)
 
@@ -205,11 +202,12 @@ class GameManager():
         times_remaining = [player.time_remaining for player in self.players]
        
         status = {
-            "status": self.status,
+            "status": self.status, ##WIN, LOSE
             "board": list_pieces,
             "turn": "blue" if self.player_to_move == 0 else "red",
             "time_remaining": times_remaining,
-            "battle" : None
+            "battle" : None,
+            "scores" : [] ## [score_joueur, score_adversaire]
         }
 
         if self.status == "BATTLE":

@@ -12,8 +12,8 @@ class PieceType(Enum):
     Demineur = (3, 5, 3)
     Eclaireur = (2, 8, 2)
     Espion = (None, 1, 1)
-    Bombe = (None, 6, 6)
-    Drapeau = (-1, 1, 1)
+    Bombe = (None, 6, 5)
+    Drapeau = (-1, 1, 100)
 
     def __init__(self, power, count, score):
         self._power = power

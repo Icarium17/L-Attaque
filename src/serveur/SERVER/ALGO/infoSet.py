@@ -33,22 +33,22 @@ class InfoSet:
         possible_moves = self.game_rules.get_remaining_moves(pieces, self.player_turn, self.board_state)
         return possible_moves
 
-    def simulate_move(self, move):
-        """
-        Simulate a move and return the resulting board state if valid, else None.
+    # def simulate_move(self, move):
+    #     """
+    #     Simulate a move and return the resulting board state if valid, else None.
         
-        Args:
-            move: The move to simulate.
+    #     Args:
+    #         move: The move to simulate.
         
-        Returns:
-            Board or None: The new board state if the move is valid, else None.
-        """
-        valid = self.validate_move(move)
-        if not valid:
-            return None
-        new_board_state = copy.deepcopy(self.board_state)
-        new_board_state.move(move)
-        return new_board_state
+    #     Returns:
+    #         Board or None: The new board state if the move is valid, else None.
+    #     """
+    #     valid = self.validate_move(move)
+    #     if not valid:
+    #         return None
+    #     new_board_state = copy.deepcopy(self.board_state)
+    #     new_board_state.move(move)
+        
 
     def validate_move(self, move):
         """
@@ -63,20 +63,20 @@ class InfoSet:
         valid, _ = self.game_rules.validate_move(self.player_turn, move, self.board_state)
         return valid
 
-    def new_infoSet(self, move):
-        """
-        Return a new InfoSet after applying a move, or None if move is invalid.
+    # def new_infoSet(self, move):
+    #     """
+    #     Return a new InfoSet after applying a move, or None if move is invalid.
         
-        Args:
-            move: The move to apply.
+    #     Args:
+    #         move: The move to apply.
         
-        Returns:
-            InfoSet or None: The new InfoSet if the move is valid, else None.
-        """
-        new_board_state = self.simulate_move(move)
-        if new_board_state is None:
-            return None
-        return InfoSet(new_board_state, 1 - self.player_turn, self.game_rules)
+    #     Returns:
+    #         InfoSet or None: The new InfoSet if the move is valid, else None.
+    #     """
+    #     new_board_state = self.simulate_move(move)
+    #     if new_board_state is None:
+    #         return None
+    #     return InfoSet(new_board_state, 1 - self.player_turn, self.game_rules)
 
     def update_infoSet(self, move):
         """
@@ -110,6 +110,8 @@ class InfoSet:
             for belief_piece, type in zip(belief_pieces, possible_setup):
                 piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner)
                 self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece
+
+        
 
 
     ## TODO : make this better. the algo shouldnt have to fall back on a random distribution if this function doesnt work so often
@@ -145,6 +147,8 @@ class InfoSet:
                 return sum(1 for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0)
             indexed_belief_pieces = list(enumerate(belief_pieces))
             sorted_indexed = sorted(indexed_belief_pieces, key=lambda x: num_possible_types(x[1]))
+            if not sorted_indexed:
+                return None  # TODO : hadle correctly
             sorted_indices, sorted_belief_pieces = zip(*sorted_indexed)
             result = self.assign_types_backtracking(list(sorted_belief_pieces), pieces_left, 0, [], do_sort=False, start_time=start_time, timeout=timeout)
             if result is not None:
@@ -215,58 +219,4 @@ class InfoSet:
         return assignment
 
 
-    # def assign_types_backtracking(self, belief_pieces, pieces_left, assignment=None):
-    #     if assignment is None:
-    #         assignment = {}
-
-    #     if len(assignment) == len(belief_pieces):
-    #         return [assignment[bp] for bp in belief_pieces]
-
-    #     
-    #     def valid_types(bp):
-    #         return [t for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0]
-
-    #     unassigned = [bp for bp in belief_pieces if bp not in assignment]
-    #     bp = min(unassigned, key=lambda x: len(valid_types(x)))
-
-    #     options = valid_types(bp)
-    #     if not options:
-    #         return None
-
-    #     def lcv_score(t):
-    #         score = 0
-    #         for other in unassigned:
-    #             if other is bp:
-    #                 continue
-    #             if t in other.probabilities and other.probabilities[t] > 0:
-    #                 score += 1
-    #         return score
-
-    #     options.sort(key=lcv_score)  # least constraining first
-
-    #     for t in options:
-    #         # assign
-    #         assignment[bp] = t
-    #         pieces_left[t] -= 1
-
-    #         failed = False
-    #         for other in unassigned:
-    #             if other is bp:
-    #                 continue
-    #             if not any(
-    #                 pieces_left[tt] > 0 and other.probabilities.get(tt, 0) > 0
-    #                 for tt in other.probabilities
-    #             ):
-    #                 failed = True
-    #                 break
-
-    #         if not failed:
-    #             result = self.assign_types_backtracking(belief_pieces, pieces_left, assignment)
-    #             if result:
-    #                 return result
-
-    #         # undo
-    #         pieces_left[t] += 1
-    #         del assignment[bp]
-
-    #     return None
+    

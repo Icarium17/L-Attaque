@@ -38,6 +38,22 @@ class TestCombat(unittest.TestCase):
         major = DummyPiece(PieceType.Major)
         self.assertIs(self.rules.combat(major, bomb), bomb)
 
+    def test_bomb_vs_other_board_state(self):
+        # Place bomb and major on the board
+        bomb = DummyPiece(PieceType.Bombe)
+        major = DummyPiece(PieceType.Major)
+        bomb.position = (2, 2)
+        major.position = (2, 1)
+        self.board.set_pieces([bomb, major])
+        # Simulate major attacking bomb
+        winner = self.rules.combat(major, bomb)
+        # Remove loser and update board as in gameManager
+        if winner is bomb:
+            self.board.remove_piece(major)
+        # Bomb should remain, major should be gone
+        self.assertIs(self.board.tiles[2][2].piece, bomb)
+        self.assertIsNone(self.board.tiles[1][2].piece)
+
     def test_flag_vs_any(self):
         flag = DummyPiece(PieceType.Drapeau)
         major = DummyPiece(PieceType.Major)

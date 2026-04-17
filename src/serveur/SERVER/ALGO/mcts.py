@@ -18,12 +18,12 @@ class MCTS:
             players: List of player objects participating in the game.
         """
         self.ai = ai
-        self.infoSet = InfoSet(copy.deepcopy(ai.known_board), ai.order, game_rules)
         self.game_rules = game_rules
+        self.infoSet_main = InfoSet(copy.deepcopy(ai.known_board), ai.order, game_rules)
         self.player_to_move = self.ai.order
         self.players = players
 
-        self.root_node = Node(None, self.infoSet, None)
+        self.root_node = Node(None, None)
         self.current_node = self.root_node
 
         self.heuristic_evaluation = {
@@ -33,49 +33,56 @@ class MCTS:
         }
         self.difficulty = self.ai.difficulty
 
+        self.opp_pieces_copy = self.ai.opponent_belief_pieces_left.copy()
+        
 
     def algo(self):
-        self.root_node.infoSet.board_state = copy.deepcopy(self.ai.known_board)
-        opp_pieces_copy = self.ai.opponent_belief_pieces_left.copy()
-        self.root_node.infoSet.actualize_belief_pieces(opp_pieces_copy)
+        self.algo_infoSet = InfoSet(copy.deepcopy(self.ai.known_board), self.ai.order, self.game_rules)
+        self.algo_infoSet.actualize_belief_pieces(self.opp_pieces_copy)
         self.current_node = self.root_node
 
-        self.selection()
-        self.expansion()
-        win_score = self.simulation()
-        self.backpropagation(win_score)
-    
+        filtered_untried_moves = self.selection()
+        if filtered_untried_moves is not None:
+            self.expansion(filtered_untried_moves)
+            win_score = self.simulation()
 
+        else :
+            win_score = self.game_over
+
+        self.backpropagation(win_score)
+
+    
     def selection(self):
         """
         Traverse the tree from the root, selecting child nodes until a leaf is reached.
         Updates self.current_node to the selected leaf node.
         """
         while True:
-            next_node = self.current_node.selection()
+            untried_moves = self.algo_infoSet.get_all_possible_moves()
+            filtered_untried_moves = self.current_node.get_filtered_untried_moves(untried_moves)
+            if len(filtered_untried_moves) > 0:
+                return filtered_untried_moves
+
+            next_node = self.current_node.select_best_child()
             if next_node is not None:
                 self.current_node = next_node
             else:
-                break
+                return None
 
-    # def selection(self):
-    #     while self.current_node.untried_moves == []:
-    #         self.current_node = max(
-    #             self.current_node.children,
-    #             key=lambda c: c.ucb_score()
-    #         )
-        
 
-    def expansion(self):
+    def expansion(self, filtered_untried_moves):
         """
         Expand the current node by adding a new child node if possible.
         Updates self.current_node and self.infoSet if expansion occurs.
         """
-        next_node = self.current_node.expand()
-        if next_node is not None:
-            self.current_node = next_node
-            
-        self.infoSet = copy.deepcopy(self.current_node.infoSet)
+        next_move = random.choice(filtered_untried_moves)
+        self.algo_infoSet.update_infoSet(next_move)
+        self.current_node.tried_moves.add(next_move)
+
+
+        next_node = Node(self.current_node, next_move)
+        self.current_node.children.append(next_node)
+        self.current_node = next_node
             
 
     def simulation(self):
@@ -85,30 +92,13 @@ class MCTS:
         """
         game_over = 0
         s = 0
-        while not game_over:
+        while not game_over and s < 25:
             self.heuristic_evaluation[self.difficulty]()
             game_over = self.game_over()
             s += 1
 
-
         return game_over
     
-    # def simulation(self):
-    #     world = copy.deepcopy(self.root_node.infoSet.board_state)
-
-    #     # 🔥 sample hidden Stratego setup HERE
-    #     world = self.sample_hidden_pieces(world)
-
-    #     current_player = self.root_node.infoSet.player_turn
-
-    #     while not self.is_terminal(world):
-    #         moves = self.get_legal_moves(world, current_player)
-    #         move = random.choice(moves)
-    #         world.move(move)
-
-    #         current_player = 1 - current_player
-
-    #     return self.evaluate(world)
 
     def backpropagation(self, win_score):
         """
@@ -126,11 +116,11 @@ class MCTS:
         """
         Perform a random move for easy difficulty.
         """
-        possible_moves = self.infoSet.get_all_possible_moves()
+        possible_moves = self.algo_infoSet.get_all_possible_moves()
         if len(possible_moves) == 0:
             raise ValueError("MCTS : possible_moves is empty")
         move = random.choice(possible_moves)
-        self.infoSet.update_infoSet(move)
+        self.algo_infoSet.update_infoSet(move)
 
     def heuristic_evaluation_medium(self):
         """
@@ -144,21 +134,6 @@ class MCTS:
         """
         self.heuristic_evaluation_easy()
 
-    # def heuristic(self, infoSet, move):
-    #     board = infoSet.board_state  # ONLY observable
-
-    #     score = 0
-
-    #     if move.attacks_unknown():
-    #         score += 1.0
-
-    #     if move.moves_to_center():
-    #         score += 0.3
-
-    #     if move.exposes_high_value_piece():
-    #         score -= 1.0
-
-    #     return score
 
     def game_over(self):
         """
@@ -166,10 +141,10 @@ class MCTS:
         Returns 1 if the game has ended, otherwise 0.
         """
         for player in self.players:
-            my_pieces = self.infoSet.board_state.get_pieces(player.order)
-            opponent_pieces = self.infoSet.board_state.get_pieces(1- player.order)
+            my_pieces = self.algo_infoSet.board_state.get_pieces(player.order)
+            opponent_pieces = self.algo_infoSet.board_state.get_pieces(1- player.order)
 
-            ended, _ = self.game_rules.check_player_end_state(player, self.players, self.infoSet.board_state, my_pieces, opponent_pieces, 1)
+            ended, _ = self.game_rules.check_player_end_state(player, self.players, self.algo_infoSet.board_state, my_pieces, opponent_pieces, 1)
             if ended:
                 return 1
         return 0
