@@ -167,22 +167,29 @@ class GameManager():
 
     
     def set_boards_post_combat(self, winner, losers, tileTo):
-        if winner and tileTo.piece is not winner:
-            print("attacker won")
-            if not winner.type == PieceType.Bombe:
-                for player in self.players:
-                    player.known_board.move_post_combat(winner, tileTo.y, tileTo.x)
-                self.board.move_post_combat(winner, tileTo.y, tileTo.x)
-        else:
+        # Remove losers from all boards first
+        for loser in losers:
             for player in self.players:
-                for loser in losers:
-                    player.remove_piece(loser)
-                    player.known_board.remove_piece(loser)
+                player.remove_piece(loser)
+                player.known_board.remove_piece(loser)
             self.board.remove_piece(loser)
 
+        # 2) If draw: we've already removed both pieces; update beliefs and exit
+        if winner is None:
+            for player in self.players:
+                for loser in losers:
+                    player.update_belief_state_loser(loser)
+            return
+
+        # 3) Winner exists: move it unless it's on the destination already or it's a bomb
+        if tileTo.piece is not winner and winner.type != PieceType.Bombe:
+            for player in self.players:
+                player.known_board.move_post_combat(winner, tileTo.y, tileTo.x)
+            self.board.move_post_combat(winner, tileTo.y, tileTo.x)
+
+        # 4) Update belief states
         for player in self.players:
-            if winner: 
-                player.update_belief_state_winner(winner)
+            player.update_belief_state_winner(winner)
             for loser in losers:
                 player.update_belief_state_loser(loser)
 
