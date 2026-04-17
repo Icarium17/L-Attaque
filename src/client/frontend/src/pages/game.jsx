@@ -45,6 +45,11 @@ export default function Game() {
   // Ecran battle {  attacker: { rank: 10, type: "Marechal",  player: "RED"  },  defender: { rank: 2,  type: "Eclaireur", player: "BLUE" },  result:   "ATTACKER_WIN",}
   const [battleData, setBattleData] = useState(null); 
 
+  // Etats cimetières
+  const [capturedPieces, setCapturedPieces] = useState({});
+  const [lostPieces, setLostPieces] = useState({});
+
+
   // Ecran fin de jeu  {"WIN" | "LOSE"}
   const [gameResult, setGameResult] = useState(null); 
 
@@ -77,7 +82,7 @@ export default function Game() {
 }, [navigate]);
 
   // Sync avec le serveur toutes les 1s en phase PLAYING
-useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult });
+useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces });
   
   // Logique placement (pool, drag, submit)
   const {
@@ -208,7 +213,7 @@ return (
 {gameResult && (
   <End result={gameResult} onClose={() => navigate("/lobby")} />
 )}
-  {/* YOUR TURN */}
+     {/* YOUR TURN */}
           <YourTurn show={showYourTurn} />
         </div>
       </div>
@@ -216,8 +221,8 @@ return (
       {/*Cimetières  */}
       {phase == "PLAYING" && (
   <div className="absolute left-[calc(55%+min(450px,41vh)+20px)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-1 h-[70vh] z-20">
-    <Graveyard title="Pièces Capturées" />
-    <Graveyard title="Pièces Perdues" />
+    <Graveyard title="Pièces Capturées" counts={capturedPieces} />
+    <Graveyard title="Pièces Perdues" counts ={lostPieces}/>
   </div>
 )}     
 
