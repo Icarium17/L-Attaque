@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import PieceCard             from "../components/pieceCard.jsx";
 import battleBackground   from "../assets/images/battle-background.png";
 
-const PHASE_REVEAL = 1700;
-const PHASE_CLOSE  = 2500;
+const PHASE_REVEAL = 2000
+const PHASE_CLOSE  = 2000;
 
 
 export default function Battle({ attacker, defender, result, onClose }) {

@@ -4,9 +4,16 @@ import { getGameStatus } from "./gameService.js";
 import { makeBoard } from "./boardUtils.js";
 import { PIECES_CONFIG } from "./gameConfig.js";
 
+// Crée un objet { type: rang } à partir de PIECES_CONFIG
+// ex: { Marechal: 10, General: 9 ... }
 const TYPE_TO_RANK = Object.fromEntries(PIECES_CONFIG.map(p => [p.type, p.rank]));
 
-export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult }) {
+// Fonction ajoute à un compteur par type
+function addToCounts(prev,type){
+  return { ...prev, [type]: (prev[type] ?? 0) +1};
+}
+
+export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult ,setCapturedPieces, setLostPieces }) {
   const navigate = useNavigate();
   const lastBattleRef = useRef(null);
 
@@ -57,12 +64,29 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
 
             let battleResult;
             if (attackerSurvived && !defenderSurvived)      battleResult = "ATTACKER_WIN";
-            else if (!attackerSurvived && defenderSurvived) battleResult = "DEFENDER_WIN";
-            else                                             battleResult = "BOTH_LOSE";
+              else if (!attackerSurvived && defenderSurvived) battleResult = "DEFENDER_WIN";
+                else battleResult = "BOTH_LOSE";
+
+            // Logique update cimetiere : mort + RED = capturée , mort + BLUE = perdue
+
+            const attackerPlayer = attacker.owner ==  1 ? "RED" : "BLUE";
+            const defenderPlayer = defender.owner == 1 ? "RED" : "BLUE";
+ 
+            // Etat du board après combat
+            console.log("board après battle:", gameData.board);
+
+            if(!attackerSurvived){
+              if (attackerPlayer == "RED") setCapturedPieces(prev => addToCounts(prev, attacker.type));
+                else if ( attackerPlayer == "BLUE") setLostPieces(prev => addToCounts(prev, attacker.type));
+              }
+              if (!defenderSurvived){
+                if (defenderPlayer == "RED")  setCapturedPieces(prev => addToCounts(prev, defender.type));
+                  else if (defenderPlayer =="BLUE") setLostPieces(prev => addToCounts(prev, defender.type));
+              }
 
             setBattleData({
-              attacker: { type: attacker.type, rank: TYPE_TO_RANK[attacker.type], player: attacker.owner == 1 ? "RED" : "BLUE" },
-              defender: { type: defender.type, rank: TYPE_TO_RANK[defender.type], player: defender.owner == 1 ? "RED" : "BLUE" },
+              attacker: { type: attacker.type, rank: TYPE_TO_RANK[attacker.type], player: attackerPlayer },
+              defender: { type: defender.type, rank: TYPE_TO_RANK[defender.type], player: defenderPlayer },
               result: battleResult,
             });
             setPhase("BATTLE");
