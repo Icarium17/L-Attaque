@@ -26,19 +26,26 @@ const VARIANTS = {
     glow: "91,155,255",
   },
   success: {
-  border: "#27ae60,#6ddb95,#1a6b3a,#27ae60,#6ddb95",
-  bg: "linear-gradient(to bottom, #0f1e14, #0a150d, #060d08)",
-  color: "#2ecc71",
-  colorSecond: "#eFFFFF",
-  glow: "46,204,113",
+    border: "#27ae60,#6ddb95,#1a6b3a,#27ae60,#6ddb95",
+    bg: "linear-gradient(to bottom, #0f1e14, #0a150d, #060d08)",
+    color: "#2ecc71",
+    colorSecond: "#eFFFFF",
+    glow: "46,204,113",
   },
   title: {
-  border: null,
-  bg: "transparent",
-  color: "#d4a44a",
-  colorSecond: "#ffffff",
-  glow: "212,164,74",
-},
+    border: null,
+    bg: "transparent",
+    color: "#d4a44a",
+    colorSecond: "#ffffff",
+    glow: "212,164,74",
+  },
+  score: {
+    border: "#c0a000,#ffe066,#7a6000,#c0a000,#ffe066",
+    bg: "linear-gradient(to bottom, #1a1600, #110f00, #0a0800)",
+    color: "#ffe066",
+    colorSecond: "#ffffff",
+    glow: "255,220,80", 
+  }
 };
 
 export default function Panel({
@@ -127,9 +134,14 @@ if (!message && !children && !title) return null;
         style={{
           background: v.bg,
           borderRadius: "15px",
-          padding: "16px 25px",
+          padding: variant == "score" ? "8px 10px" : "16px 25px",
           position: "relative",
           overflow: "hidden",
+          display: variant == "score" ? "flex" : undefined,
+          flexDirection: variant == "score" ? "column" : undefined,
+          justifyContent: variant == "score" ? "center" : undefined,
+          alignItems: variant == "score" ? "center" : undefined,
+          height: variant == "score" ? "100%" : undefined,
           ...style,
         }}
       >
@@ -173,7 +185,7 @@ if (!message && !children && !title) return null;
                 style={{
                   color: v.color,
                   fontWeight: 700,
-                  fontSize: variant == "title" ? "20px" : "16px",
+                  fontSize: variant == "title" ? "20px" : variant == "score" ? "15px" : "16px",
                   letterSpacing: variant == "title" ? "6px" : "3px",
                   textAlign: variant == "title" ? "center" : "left",
                   textTransform: "uppercase",
@@ -191,7 +203,7 @@ if (!message && !children && !title) return null;
               <div
                 style={{
                   color: v.colorSecond,
-                  fontSize: "16px",
+                  fontSize: variant == "score" ? "28px" : "16px",
                   lineHeight: 1.5,
                   opacity: 0.85,
                   textAlign: "center",

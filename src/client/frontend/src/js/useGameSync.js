@@ -13,7 +13,7 @@ function addToCounts(prev,type){
   return { ...prev, [type]: (prev[type] ?? 0) +1};
 }
 
-export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult ,setCapturedPieces, setLostPieces }) {
+export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult ,setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed }) {
   const navigate = useNavigate();
   const lastBattleRef = useRef(null);
 
@@ -41,9 +41,16 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
 
           const status = gameData?.status?.toUpperCase();
 
+          // Times
           if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
           if (gameData?.time_remaining)
             setTimeRemaining(gameData.time_remaining.map(val => Number(val)));
+
+          // Scores
+          if (gameData?.scores?.length == 2) {   
+              setScoreBlue(gameData.scores[0]);
+              setScoreRed(gameData.scores[1]);
+          }
 
           const boardData = result.result?.apiBoard || gameData?.board;
           if (boardData) setBoard(makeBoard(boardData));
