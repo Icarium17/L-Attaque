@@ -170,11 +170,11 @@ return (
 
       <div className="flex items-center gap-8 z-10">
         {/* Timers */}
-        {phase == "PLAYING" && (
-          <div className="flex flex-col justify-between h-[80vh] py-4">
+        {phase != "PLACEMENT" && phase != "WAITING" && (
+            <div className={`flex flex-col justify-between h-[80vh] py-4 ${phase != "PLAYING" ? "invisible" : ""}`}>
             <Timer timeLeft={timeRemaining[1] || 0} color="RED" turn={turn} onExpire={() => setError("Temps écoulé pour Red!")} />
             <Panel variant="score" title="SCORE" message={scoreRed.toString()}
-              className="absolute top-[15%] left-0"
+              className="absolute top-[15%] left-[15%] "
               style={{
                 backgroundImage: `url(${backgroundScore})`,
                 backgroundSize: "cover",
@@ -184,7 +184,7 @@ return (
               }} />
             <TurnIndicator turn={turn} />
             <Panel variant="score" title="SCORE" message={scoreBlue.toString()}
-              className="absolute bottom-[15%] left-0"
+              className="absolute bottom-[15%] left-[15%] "
               style={{
                 backgroundImage: `url(${backgroundScore})`,
                 backgroundSize: "cover",
