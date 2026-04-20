@@ -35,7 +35,7 @@ class Player(User):
         self.known_board.set_pieces(pieces)
 
     def update_belief_state_loser(self, piece_to_remove):
-        if piece_to_remove.owner != self:
+        if piece_to_remove.owner != self and self.belief_pieces is not None:
             piece_to_remove_type = piece_to_remove.type
             self.opponent_belief_pieces_left[piece_to_remove_type] -= 1
             for piece in self.belief_pieces:
@@ -43,7 +43,7 @@ class Player(User):
                     piece.update_probabilities(self.opponent_belief_pieces_left)
 
     def update_belief_state_winner(self, winner):
-        if winner.owner != self:
+        if winner.owner != self and self.belief_pieces is not None:
             self.belief_pieces[winner.id] = winner
             self.opponent_belief_pieces_left[winner.type] -= 1
 

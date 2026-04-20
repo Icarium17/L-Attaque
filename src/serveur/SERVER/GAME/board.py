@@ -98,6 +98,29 @@ class Board():
                     list_pieces.append(tile.piece.send())
 
         return list_pieces
+
+    def _find_piece_tile(self, piece, position=None):
+        if position is not None:
+            x, y = position
+            if 0 <= x < self.cols and 0 <= y < self.rows:
+                tile = self.tiles[y][x]
+                if tile.piece is piece or (
+                    tile.piece is not None
+                    and tile.piece.id == piece.id
+                    and tile.piece.owner == piece.owner
+                ):
+                    return tile
+
+        for row in self.tiles:
+            for tile in row:
+                if tile.piece is piece or (
+                    tile.piece is not None
+                    and tile.piece.id == piece.id
+                    and tile.piece.owner == piece.owner
+                ):
+                    return tile
+
+        return None
     
     def remove_piece(self, piece, player=None):
         """
@@ -106,18 +129,20 @@ class Board():
             piece: The piece object to remove.
             player: (optional) The player object whose pieces dict should be updated.
         """
-        x, y = piece.position
-        print(f"[DEBUG] Board.remove_piece: Removing piece id={piece.id} type={getattr(piece, 'type', None)} at pos=({x},{y})")
-        ####TODO : this is the problem
-        self.tiles[y][x].piece = None
+        tile = self._find_piece_tile(piece, piece.position)
+        if tile is not None:
+            tile.piece = None
 
         if player is not None and piece.id in player.pieces:
             del player.pieces[piece.id]
-        
 
-    def move_post_combat(self, piece, y, x):
-        self.tiles[piece.position[1]][piece.position[0]].piece = None
-        self.tiles[y][x].piece = piece
+    def move_post_combat(self, piece, y, x, source_position=None):
+        source_tile = self._find_piece_tile(piece, source_position)
+        if source_tile is not None:
+            source_tile.piece = None
+
+        destination_tile = self.tiles[y][x]
+        destination_tile.piece = piece
         piece.position = (x, y)
 
 

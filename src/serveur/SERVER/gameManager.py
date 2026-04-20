@@ -107,35 +107,35 @@ class GameManager():
         return player_order
     
     def make_move(self, player_id, move):
-        player = self.players[self.get_order(player_id)]
-        if player.order == -1:
-            return (0, "INVALID_KEY")
+        if self.status == "PLAYING":
+            player = self.players[self.get_order(player_id)]
+            if player.order == -1:
+                return (0, "INVALID_KEY")
 
-        valid_move = self.game_rules.validate_move(player.order, move)
-        print(valid_move[1])
-        if valid_move[0] == 0:
-            return valid_move
+            valid_move = self.game_rules.validate_move(player.order, move)
+            if valid_move[0] == 0:
+                return valid_move
 
-        tileFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]]
-        pieceFrom = tileFrom.piece
-        tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
+            tileFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]]
+            pieceFrom = tileFrom.piece
+            tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
 
-        if tileTo.piece and tileTo.piece.owner != player.order:
-            print("BATTLE")
-            self.battle = [pieceFrom.send(), tileTo.piece.send()]
-            self.combat(pieceFrom, tileTo.piece, tileTo)
-            self.status = "BATTLE"
-            self.timers.pause(6)
-            # Use a non-blocking timer to delay turn change
-            threading.Timer(10, self.change_turn).start()
-            return (1, "MOVE_SUCCESS_COMBAT_PAUSE")
-        else:
-            self.board.move(move)
-            for player in self.players:
-                player.move(move)
-            # TODO : Update belief states for all players based on the move and the result of the move (e.g. if a piece was captured, update the probabilities for that piece being in certain positions)
-            self.change_turn()
-            return (1, "MOVE_SUCCESS")
+            if tileTo.piece and tileTo.piece.owner != player.order:
+                self.battle = [pieceFrom.send(), tileTo.piece.send()]
+                self.combat(pieceFrom, tileTo.piece, tileTo)
+                self.status = "BATTLE"
+                self.timers.pause(6)
+                # Use a non-blocking timer to delay turn change
+                threading.Timer(10, self.change_turn).start()
+            else:
+                self.board.move(move)
+                for player in self.players:
+                    player.move(move)
+                # TODO : Update belief states for all players based on the move and the result of the move (e.g. if a piece was captured, update the probabilities for that piece being in certain positions)
+                self.change_turn()
+                return (1, "MOVE_SUCCESS")
+            
+        return (0, "BATTLE_HAPPENING")
     
     def change_turn(self):
         self.status = "PLAYING"
@@ -152,38 +152,42 @@ class GameManager():
         self.make_move(self.player_to_move, move)
 
     def combat(self, attacker, defender, defender_tile):
+        attacker_origin = attacker.position
         winner = self.game_rules.combat(attacker, defender)
         if winner is None:
-            print("Draw)")
             # Draw: both lose
             losers = [attacker, defender]
         elif winner is attacker:
-            print("attacker won")
             losers = [defender]
         else:
-            print("defender won")
             losers = [attacker]
-        self.set_boards_post_combat(winner, losers, defender_tile)
+        self.set_boards_post_combat(winner, losers, defender_tile, attacker_origin)
 
     
 
-    def set_boards_post_combat(self, winner, losers, tileTo):
-        # Always remove losers from player piece lists and all boards
-        ## TODO : remove from the opponents pieces
+    def set_boards_post_combat(self, winner, losers, tileTo, attacker_origin=None):
         for loser in losers:
             for player in self.players:
                 player.remove_piece(loser)
                 player.known_board.remove_piece(loser)
             self.board.remove_piece(loser)
 
-        # If there is a winner and it's not a bomb, move the winner onto the destination tile
         if winner is not None and winner.type != PieceType.Bombe:
-            if tileTo.piece is not winner:
-                for player in self.players:
-                    player.known_board.move_post_combat(winner, tileTo.y, tileTo.x)
-                self.board.move_post_combat(winner, tileTo.y, tileTo.x)
+            destination_tile = self.board.tiles[tileTo.y][tileTo.x]
+            winner_already_on_destination = (
+                destination_tile.piece is winner
+                or (
+                    destination_tile.piece is not None
+                    and destination_tile.piece.id == winner.id
+                    and destination_tile.piece.owner == winner.owner
+                )
+            )
 
-        # Update beliefs for winner and losers
+            if not winner_already_on_destination:
+                for player in self.players:
+                    player.known_board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
+                self.board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
+
         for player in self.players:
             if winner is not None and winner.type != PieceType.Bombe:
                 player.update_belief_state_winner(winner)
@@ -211,7 +215,6 @@ class GameManager():
         }
 
         if self.status == "BATTLE":
-            print("battle pieces")
             status["battle"] = self.battle ##TODO : à rajouter dans le front end
         
         return status

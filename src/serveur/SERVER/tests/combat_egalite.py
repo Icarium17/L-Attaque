@@ -1,5 +1,6 @@
 import unittest
 import random
+from unittest.mock import patch
 
 import sys
 import os
@@ -17,6 +18,15 @@ from GAME.gameRules import GameRules
 class FakeLobbyManager:
     def end_game(self, winner, loser, reason):
         pass
+
+
+class FakeTimer:
+    def __init__(self, interval, callback):
+        self.interval = interval
+        self.callback = callback
+
+    def start(self):
+        return None
 
 class TestCombatEgalite(unittest.TestCase):
     def setUp(self):
@@ -92,6 +102,108 @@ class TestCombatEgalite(unittest.TestCase):
         self.gm.set_boards_post_combat(winner, [capitaine], self.board.tiles[4][4])
         self.assertIs(self.board.tiles[3][4].piece, None)
         self.assertIs(self.board.tiles[4][4].piece, bomb)
+
+
+class TestGameManagerMakeMoveCombat(unittest.TestCase):
+    def setUp(self):
+        from USERS.user import User
+        from USERS.player import Player
+
+        self.lobby = FakeLobbyManager()
+        user1 = User(account_id=1, key=0, username="p1", score=0)
+        user2 = User(account_id=2, key=1, username="p2", score=0)
+        self.players = [
+            Player(user1, order=0, time_remaining=900),
+            Player(user2, order=1, time_remaining=900)
+        ]
+        self.gm = GameManager(self.lobby, self.players)
+
+    def test_make_move_attacker_wins_combat_updates_main_board(self):
+        from GAME.piece import Piece
+
+        attacker = Piece(1, PieceType.Marechal, (2, 2), 0)
+        defender = Piece(2, PieceType.Lieutenant, (2, 3), 1)
+
+        self.gm.board = Board("original")
+        self.gm.game_rules = GameRules(self.gm.board, "original")
+        self.gm.board.set_pieces([attacker, defender])
+
+        for player in self.gm.players:
+            player.known_board = Board("original")
+            player.known_board.set_pieces([attacker, defender])
+
+        self.gm.players[0].pieces = {attacker.id: attacker}
+        self.gm.players[1].pieces = {defender.id: defender}
+
+        move = Move((2, 2), (2, 3))
+
+        with patch("gameManager.threading.Timer", FakeTimer):
+            result = self.gm.make_move(0, move)
+
+        self.assertEqual(result, (0, "BATTLE_HAPPENING"))
+        self.assertEqual(self.gm.status, "BATTLE")
+        self.assertIsNone(self.gm.board.tiles[2][2].piece)
+        self.assertIs(self.gm.board.tiles[3][2].piece, attacker)
+        self.assertEqual(attacker.position, (2, 3))
+        self.assertNotIn(defender.id, self.gm.players[1].pieces)
+
+    def test_make_move_defender_wins_combat_keeps_defender_on_destination(self):
+        from GAME.piece import Piece
+
+        attacker = Piece(3, PieceType.Sergent, (4, 4), 0)
+        defender = Piece(4, PieceType.Major, (4, 5), 1)
+
+        self.gm.board = Board("original")
+        self.gm.game_rules = GameRules(self.gm.board, "original")
+        self.gm.board.set_pieces([attacker, defender])
+
+        for player in self.gm.players:
+            player.known_board = Board("original")
+            player.known_board.set_pieces([attacker, defender])
+
+        self.gm.players[0].pieces = {attacker.id: attacker}
+        self.gm.players[1].pieces = {defender.id: defender}
+
+        move = Move((4, 4), (4, 5))
+
+        with patch("gameManager.threading.Timer", FakeTimer):
+            result = self.gm.make_move(0, move)
+
+        self.assertEqual(result, (0, "BATTLE_HAPPENING"))
+        self.assertEqual(self.gm.status, "BATTLE")
+        self.assertIsNone(self.gm.board.tiles[4][4].piece)
+        self.assertIs(self.gm.board.tiles[5][4].piece, defender)
+        self.assertEqual(defender.position, (4, 5))
+        self.assertNotIn(attacker.id, self.gm.players[0].pieces)
+
+    def test_make_move_draw_removes_both_pieces(self):
+        from GAME.piece import Piece
+
+        attacker = Piece(5, PieceType.Colonel, (6, 6), 0)
+        defender = Piece(6, PieceType.Colonel, (6, 7), 1)
+
+        self.gm.board = Board("original")
+        self.gm.game_rules = GameRules(self.gm.board, "original")
+        self.gm.board.set_pieces([attacker, defender])
+
+        for player in self.gm.players:
+            player.known_board = Board("original")
+            player.known_board.set_pieces([attacker, defender])
+
+        self.gm.players[0].pieces = {attacker.id: attacker}
+        self.gm.players[1].pieces = {defender.id: defender}
+
+        move = Move((6, 6), (6, 7))
+
+        with patch("gameManager.threading.Timer", FakeTimer):
+            result = self.gm.make_move(0, move)
+
+        self.assertEqual(result, (0, "BATTLE_HAPPENING"))
+        self.assertEqual(self.gm.status, "BATTLE")
+        self.assertIsNone(self.gm.board.tiles[6][6].piece)
+        self.assertIsNone(self.gm.board.tiles[7][6].piece)
+        self.assertNotIn(attacker.id, self.gm.players[0].pieces)
+        self.assertNotIn(defender.id, self.gm.players[1].pieces)
 
 if __name__ == '__main__':
     unittest.main()

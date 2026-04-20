@@ -94,7 +94,7 @@ class MCTS:
         s = 0
         while not game_over and s < 25:
             self.heuristic_evaluation[self.difficulty]()
-            game_over = self.game_over()
+            game_over = self.game_over() ## TODO : find a way to make it lighter so its not such a bottleneck
             s += 1
 
         return game_over
