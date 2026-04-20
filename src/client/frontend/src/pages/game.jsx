@@ -1,5 +1,5 @@
 // React
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState} from "react";
 import { useNavigate } from "react-router";
 // Hooks custom
 import { useGameSync } from "../js/useGameSync.js";
@@ -23,7 +23,6 @@ import End from "../pages/end.jsx";
 import YourTurn from "../components/yourTurn.jsx";
 import Graveyard from "../components/graveyard.jsx";
 import Panel from "../components/panel.jsx";
-
 // Assets
 import backgroundGame from '../assets/images/background-game.png';
 import backgroundScore from '../assets/images/background-score.png';  
@@ -46,6 +45,10 @@ export default function Game() {
   // Ecran battle {  attacker: { rank: 10, type: "Marechal",  player: "RED"  },  defender: { rank: 2,  type: "Eclaireur", player: "BLUE" },  result:   "ATTACKER_WIN",}
   const [battleData, setBattleData] = useState(null); 
 
+  //  Ordre et couleurs des joueurs
+  const [playerOrder, setPlayerOrder] = useState(null);
+  const [playerColor, opponentColor] = playerOrder === 1 ? ["RED", "BLUE"] : ["BLUE", "RED"];
+
   // Etats cimetières
   const [capturedPieces, setCapturedPieces] = useState({});
   const [lostPieces, setLostPieces] = useState({});
@@ -63,7 +66,7 @@ export default function Game() {
   // Affiche la popup "Your Turn" quand le tour passe à BLUE après RED
   const setTurnWithPop = (newTurn) => {
   setTurn(prev => {
-    if (newTurn == "BLUE" && prev == "RED") {
+    if (newTurn == playerColor && prev == opponentColor) {
       setShowYourTurn(true);
       setTimeout(() => setShowYourTurn(false), 900);
     }
@@ -71,24 +74,24 @@ export default function Game() {
   });
 };
 
- // Affiche la popup au début de la phase PLAYING si c'est déjà le tour de BLUE
+ // Affiche la popup au début de la phase PLAYING si c'est déjà le tour du joueur
   useEffect(() => {
-  if (phase == "PLAYING" && turn == "BLUE") {
+  if (phase == "PLAYING" && turn == playerColor) {
     setShowYourTurn(true);
     setTimeout(() => setShowYourTurn(false), 900);
   }
   }, [phase]);
 
-  // Vérifie la session au chargement, retour accueil si absente
+  // Initialise la session utilisateur au montage, puis récupère l'ordre du joueur.
   useEffect(() => {
     const key = localStorage.getItem("sessionKey");
     const username = localStorage.getItem("username");
     if (!key || !username) { navigate("/"); return;}
       setSession({ username, key });
-}, [navigate]);
+  }, [navigate]);
 
   // Hook custom : Sync serveur (polling) : board, turn, timers, scores, battle, fin de partie
-  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces , setScoreBlue, setScoreRed });
+  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces , setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor});
   
   // Destructuration de usePlacement : retourne le pool de pièces à placer,l'index sélectionné, et les fonctions de placement (clic, drag & drop, auto, reset, envoi au serveur)
   // { propriétés extraites } = usePlacement(params)  | handleDragStart/handleBoardDrop renommés pour éviter conflit avec useCellClick
@@ -96,13 +99,13 @@ export default function Game() {
     pool, selectedPoolIndex,
     handlePoolClick, handlePlacementCellClick,handleAutoPlacement, handleResetPlacement, handleSubmitPlacement,
     handleDragStart: handlePlacementDragStart,handleBoardDrop: handlePlacementBoardDrop, handlePoolDrop} = 
-    usePlacement({ board, setBoard, phase, setPhase, setTurn, loading, setLoading, setError, selectedCell, setSelectedCell });
+    usePlacement({ board, setBoard, phase, setPhase, setTurn, loading, setLoading, setError, selectedCell, setSelectedCell,playerColor, playerOrder });
  
   // Logique clic ou drag case (sélection + déplacement)
   // { propriétés extraites } = useCellClick(params)
   const { 
     handleCellClick,handleDragStart: handlePlayingDragStart,handleBoardDrop: handlePlayingBoardDrop,} = 
-    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, handlePlacementCellClick, isLake});
+    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, handlePlacementCellClick, isLake, playerColor});
 
   // Sélectionne le bon handler drag/drop selon la phase (PLACEMENT ou PLAYING)
   const activeDragStart = phase == "PLACEMENT" ? handlePlacementDragStart : phase == "PLAYING"   ? handlePlayingDragStart: undefined;
@@ -150,7 +153,7 @@ return (
                   rank={piece.rank}
                   type={piece.type}
                   player={piece.player}
-                  playerColor="BLUE"
+                  playerColor = {playerColor}
                   revealed={true}
                 />
               </button>
@@ -192,14 +195,14 @@ return (
                 width: "120px",
                 height: "120px",
               }} />
-            <Timer timeLeft={timeRemaining[0] || 0} color="BLUE" turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
+            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
           </div>
         )}
 
         {/* Board */}
         <div className="relative grid grid-cols-10 gap-0.5 w-[min(900px,82vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
           {/* Bloquer toutes les interactions si pas son tour */}
-          {phase == "PLAYING" && turn != "BLUE" && (
+          {phase == "PLAYING" && turn != playerColor && (
             <div className="absolute inset-0 z-40 cursor-not-allowed" />
           )}
           {board.map((row, rowIndex) =>
@@ -211,7 +214,7 @@ return (
                 isLake={isLake(rowIndex, colIndex)}
                 isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
                 piece={cell}
-                playerColor="BLUE"
+                playerColor = {playerColor}
                 onClick={handleCellClick}
                 onDragStart={activeDragStart}
                 onDrop={activeBoardDrop}

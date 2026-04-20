@@ -209,6 +209,7 @@ class GameManager():
             "status": self.status, ##WIN, LOSE
             "board": list_pieces,
             "turn": "blue" if self.player_to_move == 0 else "red",
+            "order": player.order,  ## 0,1
             "time_remaining": times_remaining,
             "battle" : None,
             "scores" : [] ## [score_joueur, score_adversaire]

@@ -13,7 +13,7 @@ function addToCounts(prev,type){
   return { ...prev, [type]: (prev[type] ?? 0) +1};
 }
 
-export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult ,setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed }) {
+export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult ,setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed,  playerOrder, setPlayerOrder,playerColor, opponentColor }) {
   const navigate = useNavigate();
   const lastBattleRef = useRef(null);
 
@@ -39,6 +39,11 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
             return navigate("/");
           }
 
+          // Ordre du joueur
+          if (gameData?.order != undefined && playerOrder == null) {
+            setPlayerOrder(gameData.order);            
+          }
+
           const status = gameData?.status?.toUpperCase();
 
           // Times
@@ -52,8 +57,12 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
               setScoreRed(gameData.scores[1]);
           }
 
+          const currentOrder = gameData?.order != undefined ? gameData.order : playerOrder;
+          const currentPlayerColor = currentOrder == 1 ? "RED" : "BLUE";
+          const currentOpponentColor = currentOrder == 1 ? "BLUE" : "RED";
+
           const boardData = result.result?.apiBoard || gameData?.board;
-          if (boardData) setBoard(makeBoard(boardData));
+          if (boardData) setBoard(makeBoard(boardData, currentOrder, currentPlayerColor, currentOpponentColor));
 
           // PHASE BATTLE
           if (status == "BATTLE" && gameData.battle?.length == 2) { // verif si on a bien des data battle

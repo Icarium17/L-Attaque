@@ -24,7 +24,7 @@ export function createEmptyBoard() {
 /*
   Affiche le plateau et ses pieces a partir de la réponse de l'Api
 */
-export function makeBoard(apiBoard) {
+export function makeBoard(apiBoard, playerOrder = 0, playerColor = "BLUE", opponentColor = "RED") {
   const newGrid = Array.from({ length: 10 }, () => Array(10).fill(null));
   if (!apiBoard || !Array.isArray(apiBoard)) return newGrid;
 
@@ -36,10 +36,10 @@ export function makeBoard(apiBoard) {
   apiBoard.forEach((p) => {
     if (!p.position || !Array.isArray(p.position)) return;
     const [x, y] = p.position;
-    const player = p.owner == 0 ? "BLUE" : "RED";
+    const player = p.owner == playerOrder ? playerColor : opponentColor;
     const rank = typeToRank[p.type] ?? "?";
     if (y >= 0 && y < 10 && x >= 0 && x < 10) {
-          newGrid[y][x] = { rank, type: p.type, player, revealed: player == "BLUE" };
+          newGrid[y][x] = { rank, type: p.type, player, revealed: p.owner == playerOrder };
        }
     });
    return newGrid;

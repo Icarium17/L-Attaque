@@ -52,7 +52,7 @@ class GameAction extends CommonAction {
             $success = true;
             $message = "Move effectue";
             $apiBoard = $statusResult->board; 
-            $turn = strtoupper($statusResult->turn); 
+            $turn = strtoupper($statusResult->turn?? '');
             
             return ["result" => compact("success", "message", "apiBoard", "turn"), "response_svr" => $statusResult];
         }
@@ -92,9 +92,9 @@ class GameAction extends CommonAction {
 
             $success = true;
             $status = $apiResult -> status;
-            $turn = strtoupper($apiResult->turn);
-            $time_remaining = $apiResult -> time_remaining;
-            $apiBoard   = $apiResult -> board; 
+            $turn = strtoupper($apiResult->turn ?? '');
+            $time_remaining = $apiResult->time_remaining ?? null;
+            $apiBoard = $apiResult->board ?? null;
             return ["result" => compact("success","status","turn","time_remaining","apiBoard"), "response_svr" => $apiResult];
         }
 

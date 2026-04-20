@@ -2,8 +2,8 @@ import {useRef, useState } from "react";
 import { submitPlacement } from "./gameService.js";
 import { createPieces, createEmptyBoard } from "./boardUtils.js";
 
-export function usePlacement({ board, setBoard, phase, setPhase, setTurn, loading, setLoading, setError, selectedCell, setSelectedCell }) {
-  const [pool, setPool] = useState(() => createPieces("BLUE"));
+export function usePlacement({ board, setBoard, phase, setPhase,  setLoading, setError, selectedCell, setSelectedCell,  playerColor }) {
+  const [pool, setPool] = useState(() => createPieces(playerColor));
   const [selectedPoolIndex, setSelectedPoolIndex] = useState(null);
   const dragSource = useRef(null); //  type:'pool',index ou type:'board',row,col 
 
@@ -173,16 +173,13 @@ const handlePoolDrop = () => {
       });
     });
 
-
     submitPlacement(placement)
       .then((data) => {
         if (data?.result?.error) { setError(data.result.error); return; }
         const gameData = data.response_svr;
         if (gameData?.status) {
           if (gameData?.status == "SETUP_SUCCESS" ) {
-          setPhase("PLAYING");}      // A MODIFIER EN ATTENDANT ON JOUE 
-          if (gameData.board) setBoard(gameData.board);
-          if (gameData.turn) setTurn(gameData.turn);
+          setPhase("PLAYING");}     
           setError("");
         }
       })
