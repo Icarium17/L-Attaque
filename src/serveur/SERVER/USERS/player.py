@@ -9,43 +9,100 @@ class Player(User):
         self.order = order
         self.known_board = None
         self.time_remaining = time_remaining
+        
         self.pieces_left = {}
-        self.opponent_belief_pieces_left = {}
         self.pieces = {} 
-        self.belief_pieces = None
+        
+        self.opponent_belief_pieces_left = {}
+        self.belief_pieces = {}
+        self.opponent_pieces = {}
+        self.initialize_piece_left()
+
         self.score = 0
 
-        self.initialize_piece_left()
 
     def initialize_piece_left(self):
         for piece in PieceType:
             self.pieces_left[piece] = piece.count
             self.opponent_belief_pieces_left[piece] = piece.count
+
+    def sync_owned_pieces(self):
+        self.pieces = self.known_board.get_pieces(self.order)
+
+    def remove_owned_piece(self, piece_id):
+        if piece_id in self.pieces:
+            del self.pieces[piece_id]
+
+    def add_belief_pieces(self, pieces):
+        self.belief_pieces.update({piece.id: piece for piece in pieces})
+
+    def update_belief_piece(self, piece):
+        self.belief_pieces[piece.id] = piece
+
+    def remove_belief_piece(self, piece_id):
+        return self.belief_pieces.pop(piece_id, None)
+
+    def add_revealed_opponent_piece(self, piece):
+        self.opponent_pieces[piece.id] = piece
+
+    def remove_revealed_opponent_piece(self, piece_id):
+        return self.opponent_pieces.pop(piece_id, None)
+
+    def get_hidden_belief_pieces(self):
+        return list(self.belief_pieces.values())
+
+    def get_revealed_opponent_pieces(self):
+        return list(self.opponent_pieces.values())
+
+    def get_all_known_opponent_pieces(self):
+        known_opponent_pieces = {piece.id: piece for piece in self.belief_pieces.values()}
+        known_opponent_pieces.update(self.opponent_pieces)
+        return known_opponent_pieces
+
+    def decrement_opponent_piece_left(self, piece_type):
+        if piece_type is not None:
+            self.opponent_belief_pieces_left[piece_type] -= 1
     
     def move(self, move):
         self.known_board.move(move)
 
     def remove_piece(self, piece):
-        # Remove from pieces dict if present
         if piece and piece.id in self.pieces:
-            del self.pieces[piece.id]
+            self.remove_owned_piece(piece.id)
 
         
     def position_pieces(self, pieces):
         self.known_board.set_pieces(pieces)
 
+    def update_belief_state_move(self, x, y, distance):
+        piece = self.known_board.tiles[y][x].piece
+        if not isinstance(piece, BeliefPiece):
+            return
+
+        piece.update_probabilities_on_move(distance)
+        self.update_belief_piece(piece)
+
     def update_belief_state_loser(self, piece_to_remove):
-        if piece_to_remove.owner != self and self.belief_pieces is not None:
+        if piece_to_remove.owner != self.order:
+            known_piece = self.remove_belief_piece(piece_to_remove.id)
+            self.remove_revealed_opponent_piece(piece_to_remove.id)
             piece_to_remove_type = piece_to_remove.type
-            self.opponent_belief_pieces_left[piece_to_remove_type] -= 1
-            for piece in self.belief_pieces:
-                if isinstance(piece, BeliefPiece):
-                    piece.update_probabilities(self.opponent_belief_pieces_left)
+
+            self.decrement_opponent_piece_left(piece_to_remove_type)
+
+            if isinstance(known_piece, BeliefPiece):
+                for piece in self.get_hidden_belief_pieces():
+                    if isinstance(piece, BeliefPiece):
+                        piece.update_probabilities(self.opponent_belief_pieces_left)
 
     def update_belief_state_winner(self, winner):
-        if winner.owner != self and self.belief_pieces is not None:
-            self.belief_pieces[winner.id] = winner
-            self.opponent_belief_pieces_left[winner.type] -= 1
+        if winner.owner != self.order:
+            self.remove_belief_piece(winner.id)
+            known_piece = self.known_board.tiles[winner.position[1]][winner.position[0]].piece
+            self.add_revealed_opponent_piece(known_piece)
+            self.decrement_opponent_piece_left(winner.type)
+
+
 
 
     

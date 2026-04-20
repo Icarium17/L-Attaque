@@ -36,6 +36,9 @@ class Piece():
         self.position = position
         self.owner = owner ## int avec l'ordre du joueur
 
+    def clone(self):
+        return Piece(self.id, self.type, self.position, self.owner)
+
     def send(self):
         
         piece = {
@@ -51,7 +54,13 @@ class BeliefPiece(Piece):
         super().__init__(id, None, position, owner)
         self.probabilities = {}
         self.set_probabilities() # TODO : À modifier quand le jeu va fonctionner, pour que tout puisse être updaté rapidement.
+
+    def clone(self):
+        belief_piece = BeliefPiece(self.id, self.position, self.owner)
+        belief_piece.probabilities = self.probabilities.copy()
+        return belief_piece
         
+    ## At the start, sets all probabilities the same
     def set_probabilities(self):
         total_pieces = sum(piece.count for piece in PieceType)
         for piece in PieceType:
@@ -64,13 +73,22 @@ class BeliefPiece(Piece):
         for type in self.probabilities:
             self.probabilities[type] /= s
 
-    def update_probabilities(self, pieces_left):
-        total_pieces = sum(pieces_left.values())
 
-        for type in self.probabilities:
-            if self.probabilities[type] > 0 :
-                self.probabilities[type] = pieces_left[type] / total_pieces
-            else:
-                self.probabilities[type] = 0
+    def update_probabilities(self, pieces_left):
+        for t in self.probabilities:
+            self.probabilities[t] *= pieces_left[t]
+
+        self.normalize()
+    
+    def update_probabilities_on_move(self, distance):
+        # Any movement eliminates immobile pieces
+        self.probabilities[PieceType.Drapeau] = 0
+        self.probabilities[PieceType.Bombe] = 0
+
+        # Scout rule (long movement)
+        if distance > 1:
+            for t in self.probabilities:
+                if t != PieceType.Eclaireur:
+                    self.probabilities[t] = 0
 
         self.normalize()

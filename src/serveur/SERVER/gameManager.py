@@ -38,6 +38,9 @@ class GameManager():
             player.known_board = Board(self.game_type)
             player.user.status = "SETTING_UP"
 
+    def clone_pieces(self, pieces):
+        return [piece.clone() for piece in pieces]
+
     def check_valid_setup(self, player_id, pieces) -> str:
         player_order = self.get_order(player_id)
         if player_order == -1:
@@ -48,8 +51,9 @@ class GameManager():
             return positions
         
         self.board.set_pieces(pieces)
-        self.players[player_order].position_pieces(pieces) 
-        self.players[player_order].pieces = {piece.id: piece for piece in pieces} 
+        player_pieces = self.clone_pieces(pieces)
+        self.players[player_order].position_pieces(player_pieces)
+        self.players[player_order].sync_owned_pieces()
         self.set_unknowns_pieces(player_id, pieces) 
         self.players_ready.add(player_id)
 
@@ -72,8 +76,8 @@ class GameManager():
         ai_player = self.players[order]
         ai_pieces = ai_player.set_up_random_pieces()
         self.board.set_pieces(ai_pieces) ##ok
-        ai_player.position_pieces(ai_pieces)
-        ai_player.pieces = {piece.id: piece for piece in ai_pieces}
+        ai_player.position_pieces(self.clone_pieces(ai_pieces))
+        ai_player.sync_owned_pieces()
         self.set_unknowns_pieces(ai_player.key, ai_pieces) ##ok
         self.players_ready.add(ai_player.key)
         ai_player.game_rules = self.game_rules
@@ -81,14 +85,15 @@ class GameManager():
 
     def set_unknowns_pieces(self, player_id, pieces):
         player_order = self.get_order(player_id)
-        
-        belief_pieces = []
-        for piece in pieces:
-            belief = BeliefPiece(piece.id, piece.position, player_order)
-            belief_pieces.append(belief)
+
         for opponent in self.players[:player_order] + self.players[player_order + 1:]:
+            belief_pieces = []
+            for piece in pieces:
+                belief = BeliefPiece(piece.id, piece.position, player_order)
+                belief_pieces.append(belief)
+
             opponent.position_pieces(belief_pieces)
-        self.players[player_order].belief_pieces = belief_pieces
+            opponent.add_belief_pieces(belief_pieces)
         
     def check_board(self):
         for y in range(self.board.rows):
@@ -128,10 +133,12 @@ class GameManager():
                 # Use a non-blocking timer to delay turn change
                 threading.Timer(10, self.change_turn).start()
             else:
+                distance = tileFrom.get_distance(tileTo)
                 self.board.move(move)
                 for player in self.players:
+                    if player.order != self.player_to_move:
+                        player.update_belief_state_move(tileFrom.x, tileFrom.y, distance) ## TODO : check if this works
                     player.move(move)
-                # TODO : Update belief states for all players based on the move and the result of the move (e.g. if a piece was captured, update the probabilities for that piece being in certain positions)
                 self.change_turn()
                 return (1, "MOVE_SUCCESS")
             
@@ -173,20 +180,9 @@ class GameManager():
             self.board.remove_piece(loser)
 
         if winner is not None and winner.type != PieceType.Bombe:
-            destination_tile = self.board.tiles[tileTo.y][tileTo.x]
-            winner_already_on_destination = (
-                destination_tile.piece is winner
-                or (
-                    destination_tile.piece is not None
-                    and destination_tile.piece.id == winner.id
-                    and destination_tile.piece.owner == winner.owner
-                )
-            )
-
-            if not winner_already_on_destination:
-                for player in self.players:
-                    player.known_board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
-                self.board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
+            for player in self.players:
+                player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x, attacker_origin)
+            self.board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
 
         for player in self.players:
             if winner is not None and winner.type != PieceType.Bombe:

@@ -164,3 +164,6 @@ class Tile():
         self.y = y
         self.state = state
         self.piece = None
+    
+    def get_distance(self, tileTo):
+        return abs(self.x - tileTo.x) + abs(self.y - tileTo.y)
