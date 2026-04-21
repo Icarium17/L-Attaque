@@ -84,7 +84,7 @@ class Player(User):
 
     def update_belief_state_loser(self, piece_to_remove):
         if piece_to_remove.owner != self.order:
-            known_piece = self.remove_belief_piece(piece_to_remove.id)
+            known_piece = self.remove_belief_piece(piece_to_remove.id) ##This could be a problem if the piece is not in belief_piece but in opponent_pieces
             self.remove_revealed_opponent_piece(piece_to_remove.id)
             piece_to_remove_type = piece_to_remove.type
 
