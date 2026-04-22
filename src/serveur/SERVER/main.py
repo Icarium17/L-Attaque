@@ -159,6 +159,7 @@ def handle_get_status():
     key = data.get('key')
 
     # result : {"status": "playing", "board": [list of piece, type, position], "turn": "blue"} int 0 to blue
+    # TODO : ajouter scores des joueurs
     result = lobby.execute_action("getStatus", (key,))
     return jsonify(result)
 
