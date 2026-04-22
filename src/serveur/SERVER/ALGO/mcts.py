@@ -32,13 +32,17 @@ class MCTS:
             2: self.heuristic_evaluation_hard
         }
         self.difficulty = self.ai.difficulty
-
-        self.opp_pieces_copy = self.ai.opponent_belief_pieces_left.copy()
         
 
     def algo(self):
         self.algo_infoSet = InfoSet(copy.deepcopy(self.ai.known_board), self.ai.order, self.game_rules)
-        self.algo_infoSet.actualize_belief_pieces(self.opp_pieces_copy)
+        hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
+        revealed_opponent_pieces = self.ai.get_revealed_opponent_pieces()
+        self.algo_infoSet.sync_opponent_knowledge(hidden_belief_pieces, revealed_opponent_pieces)
+        self.algo_infoSet.actualize_belief_pieces(
+            hidden_belief_pieces,
+            self.ai.opponent_belief_pieces_left.copy(),
+        )
         self.current_node = self.root_node
 
         filtered_untried_moves = self.selection()

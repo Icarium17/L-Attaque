@@ -33,23 +33,6 @@ class InfoSet:
         possible_moves = self.game_rules.get_remaining_moves(pieces, self.player_turn, self.board_state)
         return possible_moves
 
-    # def simulate_move(self, move):
-    #     """
-    #     Simulate a move and return the resulting board state if valid, else None.
-        
-    #     Args:
-    #         move: The move to simulate.
-        
-    #     Returns:
-    #         Board or None: The new board state if the move is valid, else None.
-    #     """
-    #     valid = self.validate_move(move)
-    #     if not valid:
-    #         return None
-    #     new_board_state = copy.deepcopy(self.board_state)
-    #     new_board_state.move(move)
-        
-
     def validate_move(self, move):
         """
         Validate a move for the current player and board state.
@@ -63,20 +46,6 @@ class InfoSet:
         valid, _ = self.game_rules.validate_move(self.player_turn, move, self.board_state)
         return valid
 
-    # def new_infoSet(self, move):
-    #     """
-    #     Return a new InfoSet after applying a move, or None if move is invalid.
-        
-    #     Args:
-    #         move: The move to apply.
-        
-    #     Returns:
-    #         InfoSet or None: The new InfoSet if the move is valid, else None.
-    #     """
-    #     new_board_state = self.simulate_move(move)
-    #     if new_board_state is None:
-    #         return None
-    #     return InfoSet(new_board_state, 1 - self.player_turn, self.game_rules)
 
     def update_infoSet(self, move):
         """
@@ -94,11 +63,23 @@ class InfoSet:
         self.board_state.move(move)
         self.player_turn = 1 - self.player_turn
 
-    def actualize_belief_pieces(self, pieces_left):
+    def sync_opponent_knowledge(self, hidden_belief_pieces, revealed_opponent_pieces):
+        for piece in hidden_belief_pieces:
+            self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece.clone()
+
+        for piece in revealed_opponent_pieces:
+            self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece.clone()
+
+    def actualize_belief_pieces(self, hidden_belief_pieces, pieces_left):
+        belief_piece_ids = {piece.id for piece in hidden_belief_pieces}
         belief_pieces = []
         for row in self.board_state.tiles:
             for tile in row:
-                if tile.piece is not None and isinstance(tile.piece, BeliefPiece):
+                if (
+                    tile.piece is not None
+                    and isinstance(tile.piece, BeliefPiece)
+                    and tile.piece.id in belief_piece_ids
+                ):
                     belief_pieces.append(tile.piece)
 
         possible_setup = self.assign_types_backtracking(belief_pieces, pieces_left)
@@ -220,3 +201,6 @@ class InfoSet:
 
 
     
+
+# Add a small test that sets up one revealed enemy piece plus several hidden belief pieces and verifies MCTS only samples the hidden ones.
+# Refactor InfoSet further so it can be built from a pure knowledge snapshot without depending on a copied board at all, if you want a cleaner imperfect-information model.

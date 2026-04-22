@@ -4,7 +4,22 @@ from GAME.board import Board
 from GAME.piece import PieceType
 
 class GameRules():
-    def __init__(self, board, game_type):
+    """
+    Encapsulate setup, movement, combat, scoring, and end-state rules for a game.
+
+    This class centralizes the rule checks used by the live game, AI search,
+    and end-state evaluation. It validates setup and moves, resolves combat,
+    tracks repeated-move restrictions, and exposes helpers for checking whether
+    a position is effectively lost.
+    """
+
+    def __init__(self, game_type):
+        """
+        Initialize a GameRules instance for the given game type.
+
+        Args:
+            game_type (str): The ruleset or board variant to use.
+        """
         self.max_pieces = {
             "original" : 40
         }
@@ -13,12 +28,25 @@ class GameRules():
             "original" : ((6, 10), (0, 4))
         }
 
-        self.board = board
+        ##self.board = board
         self.game_type = game_type
         self.last_moves = [] ##liste contenant la liste des derniers moves de chaque joueur pour éviter les répétitions de mouvements
         
     ##Positionnement initial
     def validate_placement(self, player_order, pieces) -> tuple[int, str] :
+        """
+        Validate a player's initial placement.
+
+        This checks both the required number of each piece type and whether all
+        pieces are inside the allowed setup rows for that player.
+
+        Args:
+            player_order (int): The player's board-side index.
+            pieces (list): The placed pieces to validate.
+
+        Returns:
+            tuple[int, str]: A success flag and a status code describing the result.
+        """
         piece_counts = {ptype: 0 for ptype in PieceType}
         for piece in pieces:
             piece_counts[piece.type] += 1
@@ -36,14 +64,37 @@ class GameRules():
             return (1, "SETUP_SUCCESS")
         
     def _check_positions(self, valid_rows, pieces) -> bool:
+        """
+        Check whether every piece is inside the allowed setup rows.
+
+        Args:
+            valid_rows (range): The rows the player is allowed to use.
+            pieces (list): The pieces to inspect.
+
+        Returns:
+            bool: True if every piece is in a valid row, otherwise False.
+        """
         for piece in pieces:
             if piece.position[1] not in valid_rows:
                 return False
         return True
 
-    def validate_move(self, player_order, move, board=None) -> tuple[int, str]:
-        if board is None:
-            board = self.board
+    def validate_move(self, player_order, move, board, update_history=True) -> tuple[int, str]:
+        """
+        Validate a move against the current board and rule set.
+
+        The validation covers ownership, bounds, diagonal movement, blocked
+        terrain, repeated moves, immobile pieces, and special scout movement.
+
+        Args:
+            player_order (int): The player attempting the move.
+            move (Move): The move to validate.
+            board (Board): The board state to validate against.
+            update_history (bool): Whether repeated-move tracking should be updated.
+
+        Returns:
+            tuple[int, str]: A success flag and a status code describing the result.
+        """
         x_0, y_0, x_1, y_1 = move.get_params()
 
         d_x = abs(x_1 - x_0)
@@ -77,7 +128,7 @@ class GameRules():
             if d_x != 0 or d_y != 0:
                 return (0, "IMMOBILE_PIECE")
             
-        if not self._check_last_moves(player_order, move): ## if the move is identical to the last 4 moves
+        if not self._check_last_moves(player_order, move, update_history): ## if the move is identical to the last 4 moves
             return (0, "REPEATED_MOVE")
         
         if tileTo.state == 1:
@@ -108,6 +159,19 @@ class GameRules():
         return (1, "MOVE_SUCCESS")
     
     def combat(self, attacker, defender):
+        """
+        Resolve combat between an attacking piece and a defending piece.
+
+        Special Stratego-style rules such as bombs, flags, and spies are handled
+        before falling back to the standard power comparison.
+
+        Args:
+            attacker (Piece): The attacking piece.
+            defender (Piece): The defending piece.
+
+        Returns:
+            Piece or None: The winning piece, or None when both pieces are eliminated.
+        """
         at = attacker.type
         dt = defender.type
 
@@ -137,38 +201,128 @@ class GameRules():
             return None
         return attacker if ap > dp else defender
 
-    def _check_last_moves(self, player_order, move) -> bool:
-        
+    def _check_last_moves(self, player_order, move, update_history=True) -> bool:
+        """
+        Check whether a move violates the repeated-move restriction.
+
+        When history tracking is enabled, this method also records or resets the
+        recent move sequence for the player.
+
+        Args:
+            player_order (int): The player whose move history is checked.
+            move (Move): The move to test.
+            update_history (bool): Whether to mutate the stored history.
+
+        Returns:
+            bool: True if the move is allowed, otherwise False.
+        """
         if len(self.last_moves) <= player_order:
-            self.last_moves.append([])
+            if not update_history:
+                return True
+            while len(self.last_moves) <= player_order:
+                self.last_moves.append([])
 
         last_moves = self.last_moves[player_order]
         if len(last_moves) == 0: 
-            last_moves.append(move)
+            if update_history:
+                last_moves.append(move)
             return True
         
         if last_moves[-1] == move: 
             if len(last_moves) == 4: 
                 return False
-            last_moves.append(move) 
+            if update_history:
+                last_moves.append(move) 
         
         else: 
-            last_moves.clear() 
-            last_moves.append(move)
+            if update_history:
+                last_moves.clear() 
+                last_moves.append(move)
 
         return True
-    
-    
 
-    def check_impassable_bomb_wall(self, my_pieces, opponent_pieces, opponent_order, board):
-        # Count demineurs and bombs
-        demineur_count = sum(1 for p in my_pieces.values() if p.type == PieceType.Demineur)
-        bomb_count = sum(1 for p in opponent_pieces.values() if p.type == PieceType.Bombe)
-        # Find the flag piece
-        flag_pieces = [p for p in opponent_pieces.values() if p.type == PieceType.Drapeau]
+    def get_piece_counts(self, pieces=None, counts=None):
+        """
+        Return a per-piece-type count map for a position.
+
+        This helper reuses a cached count map when one is already available,
+        otherwise it builds the counts from the provided pieces.
+
+        Args:
+            pieces (dict, optional): Mapping of piece ids to piece objects.
+            counts (dict, optional): Precomputed count map to reuse.
+
+        Returns:
+            dict: A mapping from PieceType to the number of remaining pieces.
+        """
+        if counts is not None:
+            return counts
+
+        piece_counts = {piece_type: 0 for piece_type in PieceType}
+        if pieces is None:
+            return piece_counts
+
+        for piece in pieces.values():
+            if piece.type is not None:
+                piece_counts[piece.type] += 1
+
+        return piece_counts
+
+    def get_flag_position(self, pieces=None, flag_position=None):
+        """
+        Return the flag position for a position.
+
+        This helper prefers a cached flag position when one is available and
+        falls back to scanning the provided pieces when necessary.
+
+        Args:
+            pieces (dict, optional): Mapping of piece ids to piece objects.
+            flag_position (tuple, optional): Cached flag position to reuse.
+
+        Returns:
+            tuple or None: The flag coordinates, or None if no flag is present.
+        """
+        if flag_position is not None:
+            return flag_position
+
+        if pieces is None:
+            return None
+
+        for piece in pieces.values():
+            if piece.type == PieceType.Drapeau:
+                return piece.position
+
+        return None
+
+    def check_impassable_bomb_wall(self, my_pieces, opponent_pieces, opponent_order, board, my_piece_counts=None, opponent_piece_counts=None, opponent_flag_position=None):
+        """
+        Detect whether the opponent flag is sealed behind an impassable bomb wall.
+
+        The condition is considered true when the current player has no miners,
+        the opponent still has bombs, and the opponent flag is surrounded on all
+        orthogonal sides by opponent bombs.
+
+        Args:
+            my_pieces (dict): The current player's pieces.
+            opponent_pieces (dict): The opponent's pieces.
+            opponent_order (int): The opponent's player index.
+            board (Board): The board state to inspect.
+            my_piece_counts (dict, optional): Cached counts for the current player.
+            opponent_piece_counts (dict, optional): Cached counts for the opponent.
+            opponent_flag_position (tuple, optional): Cached opponent flag position.
+
+        Returns:
+            bool: True if the bomb-wall condition is met, otherwise False.
+        """
+        my_piece_counts = self.get_piece_counts(my_pieces, my_piece_counts)
+        opponent_piece_counts = self.get_piece_counts(opponent_pieces, opponent_piece_counts)
+        opponent_flag_position = self.get_flag_position(opponent_pieces, opponent_flag_position)
+
+        demineur_count = my_piece_counts[PieceType.Demineur]
+        bomb_count = opponent_piece_counts[PieceType.Bombe]
         if demineur_count == 0:
-            if bomb_count > 0 and flag_pieces:
-                x_flag, y_flag = flag_pieces[0].position
+            if bomb_count > 0 and opponent_flag_position is not None:
+                x_flag, y_flag = opponent_flag_position
                 directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
                 for dx, dy in directions:
                     nx, ny = x_flag + dx, y_flag + dy
@@ -179,20 +333,124 @@ class GameRules():
                 return True  # All adjacent tiles are bombs
         return False
     
-    def check_no_mobile_pieces(self, my_pieces):
-        for piece in my_pieces.values():
-            if piece.type != PieceType.Drapeau and piece.type != PieceType.Bombe:
-                return False
-        return True
+    def check_no_mobile_pieces(self, my_pieces=None, piece_counts=None):
+        """
+        Check whether a player has any mobile pieces left.
+
+        Args:
+            my_pieces (dict, optional): Mapping of piece ids to piece objects.
+            piece_counts (dict, optional): Cached count map for the same position.
+
+        Returns:
+            bool: True if only bombs and the flag remain, otherwise False.
+        """
+        piece_counts = self.get_piece_counts(my_pieces, piece_counts)
+        mobile_pieces = sum(
+            count for piece_type, count in piece_counts.items()
+            if piece_type not in (PieceType.Drapeau, PieceType.Bombe)
+        )
+        return mobile_pieces == 0
                                
-    def check_flag_captured(self, pieces):
-        return not any(piece.type == PieceType.Drapeau for piece in pieces.values())
+    def check_flag_captured(self, pieces=None, piece_counts=None):
+        """
+        Check whether the flag is missing from a position.
+
+        Args:
+            pieces (dict, optional): Mapping of piece ids to piece objects.
+            piece_counts (dict, optional): Cached count map for the same position.
+
+        Returns:
+            bool: True if no flag remains, otherwise False.
+        """
+        piece_counts = self.get_piece_counts(pieces, piece_counts)
+        return piece_counts[PieceType.Drapeau] == 0
+
+    def has_remaining_moves(self, player_order, pieces, board):
+        """
+        Check whether at least one legal move exists for the player.
+
+        This is the fast path used by end-state checks. It stops as soon as it
+        finds a legal move instead of enumerating the full move list.
+
+        Args:
+            player_order (int): The player whose mobility is being tested.
+            pieces (dict): Mapping of piece ids to piece objects.
+            board (Board): The board state to inspect.
+
+        Returns:
+            bool: True if at least one legal move exists, otherwise False.
+        """
+        if not pieces:
+            return False
+
+        directions = ((0, 1), (1, 0), (0, -1), (-1, 0))
+
+        for piece in pieces.values():
+            if piece.type == PieceType.Drapeau or piece.type == PieceType.Bombe:
+                continue
+
+            start_x, start_y = piece.position
+
+            if piece.type == PieceType.Eclaireur:
+                for dx, dy in directions:
+                    next_x = start_x + dx
+                    next_y = start_y + dy
+
+                    while 0 <= next_x < board.cols and 0 <= next_y < board.rows:
+                        tile = board.tiles[next_y][next_x]
+                        if tile.state == 1:
+                            break
+                        if tile.piece is not None and tile.piece.owner == player_order:
+                            break
+
+                        move = Move(piece.position, (next_x, next_y))
+                        if self._check_last_moves(player_order, move, update_history=False):
+                            return True
+
+                        if tile.piece is not None:
+                            break
+
+                        next_x += dx
+                        next_y += dy
+                continue
+
+            for dx, dy in directions:
+                next_x = start_x + dx
+                next_y = start_y + dy
+                if not (0 <= next_x < board.cols and 0 <= next_y < board.rows):
+                    continue
+
+                tile = board.tiles[next_y][next_x]
+                if tile.state == 1:
+                    continue
+                if tile.piece is not None and tile.piece.owner == player_order:
+                    continue
+
+                move = Move(piece.position, (next_x, next_y))
+                if self._check_last_moves(player_order, move, update_history=False):
+                    return True
+
+        return False
     
-    def get_remaining_moves(self, pieces, player_order, board = None, reason = 0): 
+    def get_remaining_moves(self, pieces, player_order, board, reason = 0): 
+        """
+        Enumerate legal moves for a position.
+
+        This is the full move-generation path used when callers need the actual
+        move list, with a legacy early-exit mode preserved for existing callers.
+
+        Args:
+            pieces (dict): Mapping of piece ids to piece objects.
+            player_order (int): The player whose moves are being generated.
+            board (Board): The board state to inspect.
+            reason (int): Optional mode flag used by existing callers.
+
+        Returns:
+            list or bool: A list of legal moves, or True in early-exit mode once a move exists.
+        """
         ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
         possible_moves = []
-        if board is None:
-            board = self.board
+
         for piece in pieces.values():
             if piece.type == PieceType.Drapeau or piece.type == PieceType.Bombe:
                 continue
@@ -219,39 +477,86 @@ class GameRules():
         return possible_moves
     
     def check_remaining_moves(self, player_order, pieces, board = None, reason = 0):
+        """
+        Check whether a player still has legal moves.
+
+        Args:
+            player_order (int): The player whose mobility is being tested.
+            pieces (dict): Mapping of piece ids to piece objects.
+            board (Board, optional): The board state to inspect.
+            reason (int): Optional mode flag used by existing callers.
+
+        Returns:
+            bool: True if at least one legal move remains, otherwise False.
+        """
         if len(pieces) == 0:
             return False
 
-        possible_moves = self.get_remaining_moves(pieces, player_order, board, reason)
         if reason == 1:
-            return possible_moves
+            return self.has_remaining_moves(player_order, pieces, board)
+
+        possible_moves = self.get_remaining_moves(pieces, player_order, board, reason)
         return len(possible_moves) != 0
     
     ## TODO : Add an actual scoring system
     def calc_score(self, player):
+        """
+        Compute a player's score from the remaining pieces.
+
+        Args:
+            player (Player): The player whose score should be computed.
+
+        Returns:
+            int: The total score contributed by the remaining piece counts.
+        """
         score = 0
-        for piece_type, count in player.pieces_left.items():
+        for piece_type, count in self.get_piece_counts(counts=player.pieces_left).items():
             score += piece_type.score * count
             
         return score
 
-    def check_player_end_state(self, player, players, board=None, my_pieces=None, opponent_pieces = None, reason = 0):
-        player_order = player.order
-        board = board if board is not None else self.board
-        my_pieces = my_pieces if my_pieces is not None else player.pieces
-        opponent_pieces = opponent_pieces if opponent_pieces is not None else players[1 - player_order]
+    def check_player_end_state(self, player, players, board, my_pieces=None, opponent_pieces = None, reason = 0):
+        """
+        Evaluate whether a player has reached a losing end state.
 
-        if self.check_flag_captured(my_pieces):
+        The method checks, in order, whether the player's flag is gone, whether
+        only immobile pieces remain, whether no legal moves are available, and
+        whether the opponent flag is unreachable behind a bomb wall.
+
+        Args:
+            player (Player): The player being evaluated.
+            players (list): The full player list for winner/loser resolution.
+            board (Board): The board state to inspect.
+            my_pieces (dict, optional): Override piece mapping for the player.
+            opponent_pieces (dict, optional): Override piece mapping for the opponent.
+            reason (int): Optional mode flag used by existing callers.
+
+        Returns:
+            tuple[bool, tuple | None]: Whether the game is over for the player and,
+            if so, the winner/loser/reason payload.
+        """
+        player_order = player.order
+        my_pieces = my_pieces if my_pieces is not None else player.pieces
+        opponent_pieces = opponent_pieces if opponent_pieces is not None else players[1 - player_order].pieces
+        my_end_state_cache = player.end_state_cache if my_pieces is player.pieces else None
+        my_piece_counts = my_end_state_cache["piece_counts"] if my_end_state_cache is not None else None
+        opponent = players[1 - player_order]
+        opponent_end_state_cache = opponent.end_state_cache if opponent_pieces is opponent.pieces else None
+        opponent_piece_counts = opponent_end_state_cache["piece_counts"] if opponent_end_state_cache is not None else None
+        opponent_flag_position = opponent_end_state_cache["flag_position"] if opponent_end_state_cache is not None else None
+
+        if self.check_flag_captured(my_pieces, my_piece_counts):
             return (True, (players[(player_order + 1) % len(players)], player, f"{player.username}'s flag was captured"))
+
+        if self.check_no_mobile_pieces(my_pieces, my_piece_counts):
+            return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no mobile pieces left"))
         
         if not self.check_remaining_moves(player_order, my_pieces, board, reason):
             return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no moves left"))
         
-        if self.check_impassable_bomb_wall(my_pieces, opponent_pieces, (1-player_order), board):
+        if self.check_impassable_bomb_wall(my_pieces, opponent_pieces, (1-player_order), board, my_piece_counts, opponent_piece_counts, opponent_flag_position):
             return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no way to win"))
-        
-        if self.check_no_mobile_pieces(my_pieces):
-            return (True, (players[(player_order + 1) % len(players)], player, f"{player.username} has no mobile pieces left"))
+
         return (False, None)
 
 

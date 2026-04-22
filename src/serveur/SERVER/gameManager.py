@@ -11,7 +11,7 @@ class GameManager():
         self.lobbyManager = lobbyManager
         self.game_type = game_type
         self.board = Board(self.game_type)
-        self.game_rules = GameRules(self.board, self.game_type)
+        self.game_rules = GameRules(self.game_type)
         self.players = players
         self.set_player_boards()
         self.player_to_move = 0
@@ -117,7 +117,7 @@ class GameManager():
             if player.order == -1:
                 return (0, "INVALID_KEY")
 
-            valid_move = self.game_rules.validate_move(player.order, move)
+            valid_move = self.game_rules.validate_move(player.order, move, self.board)
             if valid_move[0] == 0:
                 return valid_move
 
@@ -168,6 +168,10 @@ class GameManager():
             losers = [defender]
         else:
             losers = [attacker]
+        ##Score
+        if winner is not None:
+            self.players[winner.owner].score += losers[0].type.score
+
         self.set_boards_post_combat(winner, losers, defender_tile, attacker_origin)
 
     
@@ -208,7 +212,7 @@ class GameManager():
             "order": player.order,  ## 0,1
             "time_remaining": times_remaining,
             "battle" : None,
-            "scores" : [] ## [score_joueur, score_adversaire]
+            "scores" : [self.players[0].score, self.players[1].score] 
         }
 
         if self.status == "BATTLE":
@@ -222,7 +226,7 @@ class GameManager():
     ## TODO : Check the end game conditions after each moves
     def check_end_state(self):
         for player in self.players:
-            ended, result = self.game_rules.check_player_end_state(player, self.players)
+            ended, result = self.game_rules.check_player_end_state(player, self.players, self.board)
             if ended:
                 self.timers.stop()
                 winner, loser, reason = result

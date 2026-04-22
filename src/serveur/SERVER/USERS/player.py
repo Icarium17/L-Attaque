@@ -10,7 +10,10 @@ class Player(User):
         self.known_board = None
         self.time_remaining = time_remaining
         
-        self.pieces_left = {}
+        self.end_state_cache = {
+            "piece_counts": {},
+            "flag_position": None,
+        }
         self.pieces = {} 
         
         self.opponent_belief_pieces_left = {}
@@ -20,18 +23,49 @@ class Player(User):
 
         self.score = 0
 
+    @property
+    def pieces_left(self):
+        return self.end_state_cache["piece_counts"]
+
+    @pieces_left.setter
+    def pieces_left(self, value):
+        self.end_state_cache["piece_counts"] = value
+
+    @property
+    def flag_position(self):
+        return self.end_state_cache["flag_position"]
+
+    @flag_position.setter
+    def flag_position(self, value):
+        self.end_state_cache["flag_position"] = value
+
 
     def initialize_piece_left(self):
         for piece in PieceType:
             self.pieces_left[piece] = piece.count
             self.opponent_belief_pieces_left[piece] = piece.count
 
+    def rebuild_piece_counts(self):
+        self.flag_position = None
+        for piece_type in PieceType:
+            self.pieces_left[piece_type] = 0
+
+        for piece in self.pieces.values():
+            if piece.type is not None:
+                self.pieces_left[piece.type] += 1
+                if piece.type == PieceType.Drapeau:
+                    self.flag_position = piece.position
+
     def sync_owned_pieces(self):
         self.pieces = self.known_board.get_pieces(self.order)
+        self.rebuild_piece_counts()
 
     def remove_owned_piece(self, piece_id):
-        if piece_id in self.pieces:
-            del self.pieces[piece_id]
+        piece = self.pieces.pop(piece_id, None)
+        if piece is not None and piece.type is not None and self.pieces_left[piece.type] > 0:
+            self.pieces_left[piece.type] -= 1
+            if piece.type == PieceType.Drapeau:
+                self.flag_position = None
 
     def add_belief_pieces(self, pieces):
         self.belief_pieces.update({piece.id: piece for piece in pieces})
