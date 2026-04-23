@@ -1,0 +1,69 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import MainLayout from "../layouts/main-layout";
+import Button from "../components/button.jsx";
+import backgroundleader from '../assets/images/background-leader.png';
+ 
+
+export default function LeaderBoard() {
+  const [session, setSession] = useState(null);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const key = localStorage.getItem("sessionKey");
+    const username = localStorage.getItem("username");
+
+    if (key && username) {
+      setSession({ username, key });
+    }
+  }, [navigate]);
+
+  const goToLobby = () => {
+    navigate("/lobby");
+  };
+
+  return (
+    <MainLayout
+      title="Classement - L'Attaque"
+      background={backgroundleader}
+      session={session}
+      hideMenu={true}
+    >
+<div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[70%]">
+  <div className="bg-gray-950/70 border-2 border-yellow-600/60 rounded-lg p-6">
+    <h1 className="text-center text-yellow-500 text-4xl mb-6">
+      CLASSEMENT
+       </h1>
+          <div className="overflow-hidden rounded border border-yellow-700/40">
+            <table className="w-full text-left text-lg">
+              <tbody>
+                <tr className="bg-gray-900/80 text-yellow-300">
+                  <th className="py-3 px-4"> </th>
+                  <th className="py-3 px-4">Joueur</th>
+                  <th className="py-3 px-4">Victoires</th>
+                  <th className="py-3 px-4">Défaites</th>
+                  <th className="py-3 px-4">Score</th>
+                </tr>
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-gray-400 italic">
+                    Aucun résultat
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div className="absolute top-[90%] left-[45%] w-[22%] flex flex-col gap-[3%] z-10">
+        <Button
+          variant="danger"
+          onClick={goToLobby}
+          className="w-full sm:w-2/3]"
+        >
+          RETOUR
+        </Button>
+      </div>
+    </MainLayout>
+  );
+}

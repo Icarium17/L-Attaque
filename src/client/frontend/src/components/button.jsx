@@ -30,10 +30,10 @@ const VARIANTS = {
     glow:   '231,76,60',
   },
   success: {
-  border: '#27ae60,#6fcf97,#1a7a42,#27ae60,#6fcf97',
-  bg:     ['#111e16,#0b150e', '#1a2e20,#112218', '#0b150e,#060d08'],
-  color:  ['#eafff1', '#6fcf97', '#27ae60'],
-  glow:   '111,207,151',
+    border: '#27ae60,#6fcf97,#1a7a42,#27ae60,#6fcf97',
+    bg:     ['#111e16,#0b150e', '#1a2e20,#112218', '#0b150e,#060d08'],
+    color:  ['#eafff1', '#6fcf97', '#27ae60'],
+    glow:   '111,207,151',
   },
   ghost: {
     border: null, 

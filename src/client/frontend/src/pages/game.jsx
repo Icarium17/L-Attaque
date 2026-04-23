@@ -12,7 +12,7 @@ import { isLake } from "../js/gameConfig.js";
 import MainLayout from "../layouts/main-layout";
 import Cell from "../components/cell.jsx";
 import Piece from "../components/piece.jsx";
-import Button from "../components/Button.jsx";
+import Button from "../components/button.jsx";
 import Loading from "../components/loading.jsx";
 import GameMessage from "../components/gameMessage.jsx";
 import Timer from "../components/timer.jsx";
