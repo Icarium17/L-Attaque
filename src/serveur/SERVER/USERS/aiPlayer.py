@@ -44,15 +44,17 @@ class AIPlayer(Player):
 
         self.game_rules = None
         self.players = None
+        self.set_types = None
 
     def initialize_game(self):
         return super().initialize_game()
 
     def generate_piece_list_easy(self):
         pieces_types = [
-            piece_type
+            piece_type 
             for piece_type, count in self.pieces_left.items()
             for _ in range(count)
+            if piece_type not in self.set_types ## Voir si ça fonctionne
         ]
         return self.random(pieces_types)
     
@@ -128,10 +130,12 @@ class AIPlayer(Player):
             pieces.append(Piece(id, PieceType.Bomb, position, self.order))
             id+=1
 
-        ##TODO : faire le setup avec setup_pieces()??
+        self.set_types = PieceType.Bombe
+
+        self.setup_pieces(pieces=pieces)
         
-    def setup_pieces(self, pieces, types):
-        piece_types = self.generate_pieces[self.difficulty](types)
+    def setup_pieces(self, pieces = None):
+        piece_types = self.generate_pieces[self.difficulty]()
         rows = self.rows[self.order]
 
         idx = 0
