@@ -8,6 +8,8 @@ import Lobby from './pages/lobby'
 import Game from './pages/game'
 import Admin from './pages/admin'
 import LeaderBoard from './pages/leaderboard'
+import Tutorial from './pages/tutorial'
+
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
@@ -17,6 +19,9 @@ createRoot(document.getElementById('root')).render(
       <Route path="/game" element={<Game />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/leaderboard" element={<LeaderBoard />} />
+      <Route path="/tutorial" element={<Tutorial />} />
     </Routes>
   </BrowserRouter>
 )
+
+ 

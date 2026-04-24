@@ -4,6 +4,8 @@ import Index from "./pages/index";
 import Lobby from "./pages/lobby";
 import Game from "./pages/game";
 import Admin from "./pages/admin";
+import LeaderBoard from './pages/leaderboard'
+import Tutorial from './pages/tutorial'
 
 export default function App() {
   return (
@@ -12,6 +14,8 @@ export default function App() {
       <Route path="/lobby" element={<Lobby />} />
       <Route path="/game" element={<Game />} />
       <Route path="/admin" element={<Admin/>} />
+      <Route path="/leaderboard" element={<LeaderBoard />} />
+      <Route path="/tutorial" element={<Tutorial />} />
     </Routes>
   );
 }
