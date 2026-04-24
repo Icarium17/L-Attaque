@@ -514,6 +514,11 @@ class GameRules():
             score += piece_type.score * count
             
         return score
+    
+    def calc_score_surrender(self):
+        return PieceType.Drapeau.score
+        
+
 
     def check_player_end_state(self, player, players, board, my_pieces=None, opponent_pieces = None, reason = 0):
         """

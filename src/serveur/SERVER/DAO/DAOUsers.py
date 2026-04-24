@@ -54,5 +54,14 @@ class DAOUsers():
         
     def get_high_scores(self, limit = 10):
         with Connection() as db:
-            cursor = db.execute("SELECT username, score FROM users ORDER BY score DESC LIMIT %s", (limit,))
-            return cursor.fetchall()
+            cursor = db.execute("SELECT username, score, games_won, games_lost FROM users ORDER BY score DESC LIMIT %s", (limit,))
+            rows = cursor.fetchall()
+            return {
+            row[0]: {   # id as key
+                "username": row[1],
+                "score": row[2],
+                "games_won": row[3],
+                "games_lost": row[4],
+            }
+            for row in rows
+        }

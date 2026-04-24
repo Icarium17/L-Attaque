@@ -74,7 +74,7 @@ class GameManager():
 
     def setup_ai_player(self, order):
         ai_player = self.players[order]
-        ai_pieces = ai_player.set_up_random_pieces()
+        ai_pieces = ai_player.setup_pieces()
         self.board.set_pieces(ai_pieces) ##ok
         ai_player.position_pieces(self.clone_pieces(ai_pieces))
         ai_player.sync_owned_pieces()
@@ -174,8 +174,6 @@ class GameManager():
 
         self.set_boards_post_combat(winner, losers, defender_tile, attacker_origin)
 
-    
-
     def set_boards_post_combat(self, winner, losers, tileTo, attacker_origin=None):
         for loser in losers:
             for player in self.players:
@@ -194,6 +192,21 @@ class GameManager():
             for loser in losers:
                 player.update_belief_state_loser(loser)
 
+    def pause(self, my_key):
+        player = self.get_player(my_key)
+        opponent = self.players[1 - player.order]
+        if not isinstance(opponent, AIPlayer):
+            return (0, "CANNOT_PAUSE_VS_PLAYER")
+        
+        if self.status != "PAUSED":
+            self.status = "PAUSED"
+            self.timers.pause()
+            return (1, "GAME_PAUSED")
+        
+        else :
+            self.status = "PLAYING"
+            self.timers.start(player.order)
+            return (1, "GAME_RESTARTED") 
         
         
 
@@ -245,11 +258,19 @@ class GameManager():
         print(f"Game ended! Winner: {self.winner.username}, Loser: {self.loser.username}, Reason: {self.end_reason}")
         for player in self.players:
             player.user.score += self.game_rules.calc_score(player)
-        self.lobbyManager.end_game(self.winner, self.loser, self.end_reason)
+        threading.Timer(10, self.lobbyManager.end_game, args=(self.winner, self.loser, self.end_reason)).start()
 
     def timer_expired(self, player):
         self.declare_winner(self.players[(player + 1) % len(self.players)], self.players[player], f"{self.players[player].username}'s timer expired")
 
+    def surrender(self, my_key):
+        self.status = "SURRENDER"
+        self.timers.stop()
+        surrenderer = self.get_player(my_key)
+        winner = self.players[1 - self.surrenderer.order]
+        print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
+        winner.score += self.game_rules.calc_score_surrender()
+        threading.Timer(10, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
     
 
 class PlayerTimer:

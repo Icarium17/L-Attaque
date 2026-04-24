@@ -1,3 +1,5 @@
+import threading
+
 from DAO.DAOUsers import DAOUsers
 from USERS.player import Player
 from GAME.move import Move
@@ -34,6 +36,7 @@ class LobbyManager:
             "chat" : self.chat,
             "leaderboard" : self.leaderboard,
             "getActivePlayers" : self.get_active_players,  
+            "pause" : self.pause,
         }
 
         self.DAOUsers = DAOUsers()
@@ -145,8 +148,23 @@ class LobbyManager:
     def restart_game(self):
         print("restart_game called")
 
-    def surrender(self):
+    def surrender(self, my_key):
         print("surrender called")
+
+        game = self.games[my_key] 
+
+        game.surrender(my_key)
+
+        return ("GAME_SURRENDERED")
+
+    def pause(self, my_key):
+        print("pause called")
+        game = self.games[my_key]
+
+        result = game.pause(my_key)
+
+        return result
+
 
     def save(self):
         print("save called")
@@ -207,7 +225,6 @@ class LobbyManager:
         return status, message
         
 
-
     ## Other
     def chat(self):
         print("chat called")
@@ -236,4 +253,5 @@ class LobbyManager:
         ##TODO : Implement self.DAOUsers.update_score(winner.id, winner.user.score)  # Increment winner's score
         ##self.DAOUsers.update_score(loser.id, loser.user.score)   # Decrement loser's score
         ##TODO : Send end game message to both players with reason and updated scores
+
     

@@ -163,9 +163,39 @@ def handle_get_status():
     result = lobby.execute_action("getStatus", (key,))
     return jsonify(result)
 
+##Retourne dictionnaire de dictionnaire, contenant {username, score, games_won, games_lost}
 @app.route('/get_high_scores', methods=['POST'])
 def handle_get_high_scores():
     result = lobby.execute_action('leaderboard')
+
+    return jsonify(result)
+
+
+@app.route('/surrender', methods=['POST'])
+def surrender():
+    data = request.get_json()
+    my_key = data.get('key')
+    result = lobby.execute_action('surrender', (my_key,))
+
+    return jsonify(result)
+
+
+@app.route('/pause', methods=['POST'])
+def pause():
+    data = request.get_json()
+    my_key = data.get('key')
+    result = lobby.execute_action('pause', (my_key,))
+
+    return jsonify(result)
+
+
+
+
+
+
+
+
+
 
 
 
