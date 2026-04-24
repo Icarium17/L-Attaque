@@ -163,6 +163,11 @@ def handle_get_status():
     result = lobby.execute_action("getStatus", (key,))
     return jsonify(result)
 
+@app.route('/get_high_scores', methods=['POST'])
+def handle_get_high_scores():
+    result = lobby.execute_action('leaderboard')
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

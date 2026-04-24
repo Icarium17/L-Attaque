@@ -39,12 +39,20 @@ class DAOUsers():
         
     def get_all_users(self):
         with Connection() as db:
-            return db.fetch("SELECT _id, username FROM users")
+            cursor = db.fetch("SELECT _id, username FROM users")
+            return cursor.fetchall()
 
     def delete_user(self, user_id):
         with Connection() as db:
-            return db.execute("DELETE FROM users WHERE _id = %s", (user_id,))
+            cursor = db.execute("DELETE FROM users WHERE _id = %s", (user_id,))
+            return cursor.fetchall()
         
     def update_score(self, user_id, new_score):
         with Connection() as db:
-            return db.execute("UPDATE users SET score = %s WHERE _id = %s", (new_score, user_id))
+            cursor = db.execute("UPDATE users SET score = score + %s WHERE _id = %s", (new_score, user_id))
+            return cursor.fetchall()
+        
+    def get_high_scores(self, limit = 10):
+        with Connection() as db:
+            cursor = db.execute("SELECT username, score FROM users ORDER BY score DESC LIMIT %s", (limit,))
+            return cursor.fetchall()

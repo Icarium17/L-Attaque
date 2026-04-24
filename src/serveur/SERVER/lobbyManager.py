@@ -214,6 +214,7 @@ class LobbyManager:
 
     def leaderboard(self):
         print("leaderboard called")
+        self.DAO
 
     def get_status(self, args):
         print("get_status called")

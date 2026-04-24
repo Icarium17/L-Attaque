@@ -45,6 +45,7 @@ class AIPlayer(Player):
         self.game_rules = None
         self.players = None
         self.set_types = None
+        self.last_moves = []
 
     def initialize_game(self):
         return super().initialize_game()
