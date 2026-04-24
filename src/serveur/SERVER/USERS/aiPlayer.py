@@ -86,7 +86,7 @@ class AIPlayer(Player):
         return self.generate_pieces(piece_types)
     
     def generate_piece_list_medium(self):
-        pieces = self.spread_out_bomb_clusters_flag()
+        pieces = self.spread_out_bombs()
         piece_types = self.generate_rest_of_types()
         return self.generate_pieces(piece_types, pieces)
 
@@ -110,6 +110,9 @@ class AIPlayer(Player):
     def random(self, piece_types = None):
         random.shuffle(piece_types)
         return piece_types
+    
+    def spread_out_bombs(self):
+        return self.bomb_clusters(6, 2)
     
     def single_bomb_cluster(self):
         return self.bomb_clusters(1)
@@ -165,7 +168,6 @@ class AIPlayer(Player):
 
         bomb_positions = []
         if cluster_nb < 6:
-            id = 0
             for center in centers:
                 possible = [
                     (c, r)
@@ -178,7 +180,7 @@ class AIPlayer(Player):
                 ]
                 bomb_positions.extend(random.sample(possible, min(2, len(possible))))
 
-        
+        id = 0
         for pos in centers + bomb_positions:
             pieces.append(Piece(id, PieceType.Bombe, pos, self.order))
             id += 1
@@ -186,9 +188,6 @@ class AIPlayer(Player):
         self.exclude_types = {PieceType.Bombe}
         return pieces
         
-    def spread_out_bombs(self):
-        self.bomb_clusters(6, 2)
-
     def bomb_side(self):
         pass
 
