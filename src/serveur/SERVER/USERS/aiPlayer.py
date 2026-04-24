@@ -187,7 +187,7 @@ class AIPlayer(Player):
         return pieces
         
     def spread_out_bombs(self):
-        self.bomb_clusters(6)
+        self.bomb_clusters(6, 2)
 
     def bomb_side(self):
         pass
