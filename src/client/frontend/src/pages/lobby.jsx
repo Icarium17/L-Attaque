@@ -8,6 +8,7 @@ import backgroundLobby from '../assets/images/background-lobby.png';
 import logo from '../assets/images/logo.png';
 import buttonBg from '../assets/images/button-bg.png';
 
+
 export default function Lobby() {
   const [session, setSession] = useState(null);
   const [error, setError] = useState("");
@@ -36,6 +37,7 @@ export default function Lobby() {
       session={session}
       hideMenu={true}
     >
+
       <div className="relative flex flex-col items-center justify-center ml-72">        
         <div className="absolute inset-0 bg-gray-950/50" />
          <div className="relative z-10 flex flex-col items-center justify-center w-full px-6">          
@@ -99,13 +101,14 @@ export default function Lobby() {
                 <div className="absolute top-[92%] left-[45%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
-                onClick={goToGame} 
+                onClick={() => navigate("/tutorial")}
                 className="w-full sm:w-2/3 text-[clamp(16px,1.6vw,28px)]"
                 >
                 TUTORIEL
                 </Button>                     
           </div>
           {error && <div className="mt-4"><Notification message={error} /></div>}
+            
       </MainLayout>
   );
 }
