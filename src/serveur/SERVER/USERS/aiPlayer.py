@@ -45,10 +45,10 @@ class AIPlayer(Player):
         self.last_moves = []
 
         self.exclude_types = set()
-        self.setup_library = AISetupLibrary(self) 
-        self.setup_builder = AISetupBuilder(self) 
+        self.setup_library = AISetupLibrary(self)
+        self.setup_builder = AISetupBuilder(self)
         self.setup = self.setup_library.full_builders
-        self.setup_motifs = self.setup_library.medium_motifs_for_order(self.order) ##TODO : i dont like that
+        self.setup_motifs = self.setup_library.medium_motifs_for_order(self.order)  ##TODO : i dont like that
         self.placement_strategy = self.setup_motifs
 
     def initialize_game(self):
@@ -80,34 +80,7 @@ class AIPlayer(Player):
         """
         return self.setup[self.difficulty]()
 
-    def generate_piece_list_easy(self):
-        """
-        Generate an easy-difficulty setup using a randomized full-board placement.
-
-        Returns:
-            list: List of Piece objects for the easy setup.
-        """
-        piece_types = self.setup_builder.generate_rest_of_types()
-        return self.setup_builder.generate_pieces(piece_types)
-    
-    def generate_piece_list_medium(self):
-        """
-        Generate a medium-difficulty setup using a curated motif and randomized fill.
-
-        Returns:
-            list: List of Piece objects for the medium setup.
-        """
-        return self.setup_library.build_medium_setup()
-
-    def generate_piece_list_hard(self):
-        """
-        Generate a hard-difficulty setup.
-
-        Returns:
-            list: List of Piece objects for the hard setup.
-        """
-        # TODO : implement
-        return self.generate_piece_list_easy()
+    # Removed generate_piece_list_easy, generate_piece_list_medium, generate_piece_list_hard
     
     def choose_move(self):
         """
@@ -758,10 +731,42 @@ class AISetupLibrary:
             ],
         }
         self.full_builders = {
-            0: ai_player.generate_piece_list_easy,
-            1: self.build_medium_setup,
-            2: ai_player.generate_piece_list_hard,
+            0: self.generate_piece_list_easy,
+            1: self.generate_piece_list_medium,
+            2: self.generate_piece_list_hard,
         }
+    def generate_piece_list_easy(self):
+        """
+        Generate an easy-difficulty setup using a randomized full-board placement.
+
+        Returns:
+            list: List of Piece objects for the easy setup.
+        """
+        piece_types = self.ai_player.setup_builder.generate_rest_of_types()
+        return self.ai_player.setup_builder.generate_pieces(piece_types)
+    
+    def generate_piece_list_medium(self):
+        """
+        Build a medium setup by selecting a random preset builder for the current player order.
+
+        Returns:
+            list: Full setup as a list of Piece objects.
+        """
+        preset_builder = random.choice(1, 2)
+        builders = self.medium_preset_builders_by_order[preset_builder]
+        return random.choice(builders)()
+
+
+
+    def generate_piece_list_hard(self):
+        """
+        Generate a hard-difficulty setup.
+
+        Returns:
+            list: List of Piece objects for the hard setup.
+        """
+        # TODO : implement
+        return self.generate_piece_list_easy()
 
     def medium_motifs_for_order(self, order):
         """
@@ -896,15 +901,3 @@ class AISetupLibrary:
 
         piece_types = self.ai_player.setup_builder.generate_remaining_types(pieces)
         return self.ai_player.setup_builder.generate_pieces(piece_types, pieces)
-
-    def build_medium_setup(self):
-        """
-        Build a medium setup by selecting a random preset builder for the current player order.
-
-        Returns:
-            list: Full setup as a list of Piece objects.
-        """
-        builders = self.medium_preset_builders_by_order[self.ai_player.order]
-        return random.choice(builders)()
-
-
