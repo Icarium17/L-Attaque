@@ -16,6 +16,7 @@ class GameAction extends CommonAction {
             return ["result" => compact("error")];
         }
 
+        // Gestion déplacer pièce
         if ($action == "make_move") {
             $data = [
                 "user_key" => $key, 
@@ -57,7 +58,6 @@ class GameAction extends CommonAction {
             return ["result" => compact("success", "message", "apiBoard", "turn"), "response_svr" => $statusResult];
         }
 
-
         // Gestion envoi placement
         if ($action == "submit_placement") {
             $data = [
@@ -96,6 +96,20 @@ class GameAction extends CommonAction {
             $time_remaining = $apiResult->time_remaining ?? null;
             $apiBoard = $apiResult->board ?? null;
             return ["result" => compact("success","status","turn","time_remaining","apiBoard"), "response_svr" => $apiResult];
+        }
+
+        // Gestion capituler
+        if ($action == "surrender") {
+            $data = ["key" => $key];
+            $apiResult = parent::callPython("surrender", $data);
+
+            if ($apiResult == null) {
+                $error = "Erreur Serveur";
+                return ["result" => compact("error")];
+            }
+            $success = true;
+            $status = $apiResult;
+        return ["result" => compact("success","status")];
         }
 
         $error = "Action inconnue";

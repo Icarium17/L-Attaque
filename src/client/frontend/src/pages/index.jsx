@@ -1,4 +1,4 @@
-import Button from "../components/Button.jsx";
+import Button from "../components/button.jsx";
 import Notification from "../components/notification.jsx";
 import Loading from "../components/loading.jsx";
 import MainLayout from "../layouts/main-layout";

@@ -26,6 +26,9 @@ import Panel from "../components/panel.jsx";
 // Assets
 import backgroundGame from '../assets/images/background-game.png';
 import backgroundScore from '../assets/images/background-score.png';  
+import surrender from '../assets/images/surrender.png';  
+import blueName from '../assets/images/blue-name.png';  
+import redName from '../assets/images/red-name.png';
 
 export default function Game() {
   const navigate = useNavigate();
@@ -111,7 +114,23 @@ export default function Game() {
   const activeDragStart = phase == "PLACEMENT" ? handlePlacementDragStart : phase == "PLAYING"   ? handlePlayingDragStart: undefined;
   const activeBoardDrop = phase == "PLACEMENT" ? handlePlacementBoardDrop : phase == "PLAYING"   ? handlePlayingBoardDrop: undefined;
 
-
+  // Fonction capituler
+  const surrenderGame = () => {
+    setLoading(true);
+    let formData = new FormData();
+    const key = localStorage.getItem("sessionKey");
+    formData.append("action", "surrender");
+    formData.append("key", key);
+    fetch("/api/game.php", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+            setLoading(false);
+            if (data.result.success && data.result.status == "GAME_SURRENDERED") {
+                setGameResult("LOSE");
+            }
+        });
+};
+ 
 return (
   <MainLayout
     title="Game - L'Attaque"
@@ -148,7 +167,6 @@ return (
                     : "border-gray-500 bg-gray-800 text-blue-200 hover:border-blue-300"
                   }`}
                 >
-
                 <Piece
                   rank={piece.rank}
                   type={piece.type}
@@ -171,11 +189,28 @@ return (
         </div>
       )}
 
-      <div className="flex items-center gap-8 z-10">
+      <div className="flex items-center gap-10 z-10">
         {/* Timers */}
         {phase != "PLACEMENT" && phase != "WAITING" && (
             <div className={`flex flex-col justify-between h-[80vh] py-4 ${phase != "PLAYING" ? "invisible" : ""}`}>
             <Timer timeLeft={timeRemaining[1] || 0} color="RED" turn={turn} onExpire={() => setError("Temps écoulé pour Red!")} />
+            <Panel 
+              variant="name" 
+              title="Adversaire"
+              className="absolute top-[32%] left-[18%]"
+              style={{
+                backgroundImage: `url(${redName})`,
+                backgroundSize: "contain",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                width: "400px",
+                height: "150px",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }} 
+            />
             <Panel variant="score" title="SCORE" message={scoreRed.toString()}
               className="absolute top-[15%] left-[15%] "
               style={{
@@ -185,6 +220,24 @@ return (
                 width: "120px",
                 height: "120px",
               }} />
+            <Panel 
+              variant="name" 
+              title={session.username}
+              className="absolute top-[60%] left-[18%]"
+              style={{
+                backgroundImage: `url(${blueName})`,
+                backgroundSize: "contain",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                width: "400px",
+                height: "150px",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }} 
+            />
+
             <TurnIndicator turn={turn} />
             <Panel variant="score" title="SCORE" message={scoreBlue.toString()}
               className="absolute bottom-[15%] left-[15%] "
@@ -198,7 +251,25 @@ return (
             <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
           </div>
         )}
-
+        {phase == "PLAYING" && (
+        <div>
+        <Button 
+            variant="ghost" 
+            text="Capituler"
+            onClick={surrenderGame} 
+            className="absolute bottom-[5%] left-[77%] w-30!"
+          style={{ 
+            width: "120px",
+            height: "120px",
+            background: `url(${surrender}) center/cover no-repeat`,
+            color: "#bf213b",
+            textShadow: "0 0 8px rgba(0,0,0,0.8)",
+            fontSize: "12px",
+            paddingTop: "50px",  
+        }}
+        />
+        </div>
+        )}
         {/* Board */}
         <div className="relative grid grid-cols-10 gap-0.5 w-[min(900px,82vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
           {/* Bloquer toutes les interactions si pas son tour */}
@@ -239,7 +310,7 @@ return (
 
       {/*Cimetières  */}
       {phase == "PLAYING" && (
-        <div className="absolute left-[calc(55%+min(450px,41vh)+20px)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-1 h-[70vh] z-20">
+        <div className="absolute left-[calc(57%+min(450px,41vh)+20px)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-2 h-[70vh] z-20">
           <Graveyard title="Pièces Capturées" counts={capturedPieces} />
           <Graveyard title="Pièces Perdues" counts={lostPieces} />
         </div>

@@ -45,7 +45,14 @@ const VARIANTS = {
     color: "#ffe066",
     colorSecond: "#ffffff",
     glow: "255,220,80", 
-  }
+  },
+  name: {
+    border: null,
+    bg: "transparent",
+    color: "#ffffff",
+    colorSecond: "#ffffff",
+    glow: "231,76,60",
+  },
 };
 
 export default function Panel({
@@ -185,9 +192,9 @@ if (!message && !children && !title) return null;
                 style={{
                   color: v.color,
                   fontWeight: 700,
-                  fontSize: variant == "title" ? "20px" : variant == "score" ? "15px" : "16px",
+                  fontSize: variant == "title" ? "20px" : variant == "score" ? "15px" : variant == "name" ? "24px" : "16px",
                   letterSpacing: variant == "title" ? "6px" : "3px",
-                  textAlign: variant == "title" ? "center" : "left",
+                  textAlign: variant == "title" || variant == "name" ? "center" : "left",
                   textTransform: "uppercase",
                   whiteSpace: "nowrap",
                   textShadow: variant == "title"

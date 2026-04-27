@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Button from "../components/Button.jsx";
+import Button from "../components/button.jsx";
 import victoryImg from "../assets/images/victory.png";
 import defaiteImg from "../assets/images/defeat.png";
 
@@ -14,11 +14,11 @@ export default function end({ result, onClose }) {
 
   const handleClose = () => {
     setVisible(false);
-    setTimeout(() => onClose?.(), 4000);
+    setTimeout(() => onClose?.(), 2000);
   };
 
   return (
-    <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">  
       <div className={`flex flex-col items-center gap-8 p-10 rounded-2xl border ${isWin ? "border-yellow-500/40 bg-yellow-950/20" : "border-red-900/40 bg-red-950/20"}`}>
         <img
           src={isWin ? victoryImg : defaiteImg}
