@@ -39,29 +39,25 @@ class DAOUsers():
         
     def get_all_users(self):
         with Connection() as db:
-            cursor = db.fetch("SELECT _id, username FROM users")
-            return cursor.fetchall()
+            return db.fetch("SELECT _id, username FROM users")
 
     def delete_user(self, user_id):
         with Connection() as db:
-            cursor = db.execute("DELETE FROM users WHERE _id = %s", (user_id,))
-            return cursor.fetchall()
+            return db.execute("DELETE FROM users WHERE _id = %s", (user_id,))
         
     def update_score(self, user_id, new_score):
         with Connection() as db:
-            cursor = db.execute("UPDATE users SET score = score + %s WHERE _id = %s", (new_score, user_id))
-            return cursor.fetchall()
+            return db.execute("UPDATE users SET score = score + %s WHERE _id = %s", (new_score, user_id))
         
     def get_high_scores(self, limit = 10):
         with Connection() as db:
-            cursor = db.execute("SELECT username, score, games_won, games_lost FROM users ORDER BY score DESC LIMIT %s", (limit,))
-            rows = cursor.fetchall()
+            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users ORDER BY score DESC LIMIT %s", (limit,))
             return {
-            row[0]: {   # id as key
-                "username": row[1],
-                "score": row[2],
-                "games_won": row[3],
-                "games_lost": row[4],
+                row["username"]: {
+                    "username" : row["username"],
+                    "score": row["score"],
+                    "games_won": row["games_won"],
+                    "games_lost": row["games_lost"],
+                }
+                for row in rows
             }
-            for row in rows
-        }

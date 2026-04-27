@@ -46,7 +46,6 @@ class InfoSet:
         valid, _ = self.game_rules.validate_move(self.player_turn, move, self.board_state)
         return valid
 
-
     def update_infoSet(self, move):
         """
         Update the current InfoSet in place by applying a move, if valid.
@@ -92,84 +91,155 @@ class InfoSet:
                 piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner)
                 self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece
 
-        
-
-
-    ## TODO : make this better. the algo shouldnt have to fall back on a random distribution if this function doesnt work so often
-    def assign_types_backtracking(self, belief_pieces, pieces_left, i=0, assignment=None, do_sort=True, start_time=None, timeout=0.5):
+    def assign_types_backtracking(self, belief_pieces, pieces_left, timeout=0.5):
         """
-        Recursively assign types to belief pieces using backtracking and probability weights.
+        Assign types to belief pieces using a sorted backtracking search.
 
-        This function attempts to assign a type to each belief piece such that all constraints are satisfied,
-        using a backtracking algorithm guided by probability weights. It can optionally sort the pieces to improve efficiency.
+        This wrapper sorts the belief pieces once, then delegates the recursive search
+        to a helper focused only on backtracking. If the search times out after finding
+        a partial assignment, the remaining belief pieces are assigned with the random
+        fallback so the best partial result is not discarded. If no valid partial or
+        complete assignment can be found, the function returns `None`.
 
         Args:
             belief_pieces (list): List of BeliefPiece objects to assign types to.
             pieces_left (dict): Dictionary of remaining piece types to assign (type -> count).
-            i (int): Current index in belief_pieces (default 0).
-            assignment (list): Current assignment list (default None).
-            do_sort (bool): Whether to sort belief_pieces by constraint (default True, only at top level).
-            start_time (float): Time when the function was first called (for timeout).
             timeout (float): Maximum allowed time in seconds for the search.
 
         Returns:
-            list or None: List of assigned types if successful, else None if no valid assignment is found or timeout is reached.
+            list or None: List of assigned types for all belief pieces if a complete
+            assignment is found or if a timed-out partial assignment can be completed
+            with the random fallback, else `None` if no valid assignment is found.
         """
-        if assignment is None:
-            assignment = []
+        if not belief_pieces:
+            return []
 
-        if start_time is None:
-            start_time = time.monotonic()
-        elif time.monotonic() - start_time > timeout:
+        sorted_indices, sorted_belief_pieces = self._sort_belief_pieces_by_constraints(belief_pieces, pieces_left)
+        result, completed, timed_out = self._assign_types_backtracking_recursive(
+            list(sorted_belief_pieces), pieces_left, 0, [], time.monotonic(), timeout
+        )
+        if result is None:
             return None
 
-        if do_sort:
-            def num_possible_types(bp):
-                return sum(1 for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0)
-            indexed_belief_pieces = list(enumerate(belief_pieces))
-            sorted_indexed = sorted(indexed_belief_pieces, key=lambda x: num_possible_types(x[1]))
-            if not sorted_indexed:
-                return None  # TODO : hadle correctly
-            sorted_indices, sorted_belief_pieces = zip(*sorted_indexed)
-            result = self.assign_types_backtracking(list(sorted_belief_pieces), pieces_left, 0, [], do_sort=False, start_time=start_time, timeout=timeout)
-            if result is not None:
-                reordered = [None] * len(result)
-                for idx, val in zip(sorted_indices, result):
-                    reordered[idx] = val
-                return reordered
-            return None
+        if timed_out and not completed:
+            remaining_pieces_left = pieces_left.copy()
+            for assigned_type in result:
+                remaining_pieces_left[assigned_type] -= 1
+
+            remaining_belief_pieces = list(sorted_belief_pieces[len(result):])
+            result = result + self.assign_types_random(remaining_belief_pieces, remaining_pieces_left)
+
+        reordered = [None] * len(result)
+        for idx, val in zip(sorted_indices, result):
+            reordered[idx] = val
+        return reordered
+
+    def _sort_belief_pieces_by_constraints(self, belief_pieces, pieces_left):
+        """
+        Sort belief pieces by how constrained they are.
+
+        Pieces with fewer currently valid types are placed first so the backtracking
+        search hits dead ends earlier and explores fewer useless branches.
+
+        Args:
+            belief_pieces (list): List of BeliefPiece objects to sort.
+            pieces_left (dict): Dictionary of remaining piece types to assign (type -> count).
+
+        Returns:
+            tuple: A pair `(sorted_indices, sorted_belief_pieces)` preserving the original
+            positions and the reordered belief pieces.
+        """
+        def num_possible_types(bp):
+            return sum(1 for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0)
+
+        indexed_belief_pieces = list(enumerate(belief_pieces))
+        return zip(*sorted(indexed_belief_pieces, key=lambda x: num_possible_types(x[1])))
+
+    def _assign_types_backtracking_recursive(self, belief_pieces, pieces_left, i, assignment, start_time, timeout):
+        """
+        Recursively assign types to sorted belief pieces using backtracking.
+
+        At each recursion level, the function selects one valid type for the current
+        belief piece, updates `pieces_left`, and explores the next piece. If a branch
+        fails, the change is undone and the next candidate type is tried. If the search
+        times out, the deepest partial assignment found so far is returned so the caller
+        can complete the remaining pieces with a fallback strategy.
+
+        Args:
+            belief_pieces (list): Sorted list of BeliefPiece objects to assign.
+            pieces_left (dict): Dictionary of remaining piece types to assign (type -> count).
+            i (int): Index of the current belief piece in the sorted list.
+            assignment (list): Types chosen so far for earlier pieces.
+            start_time (float): Monotonic timestamp marking the start of the search.
+            timeout (float): Maximum allowed time in seconds for the search.
+
+        Returns:
+            tuple: `(assignment, completed, timed_out)` where `assignment` is the best
+            assignment found for this branch, `completed` indicates whether all pieces
+            were assigned, and `timed_out` indicates whether the search stopped because
+            of the timeout. On timeout, `assignment` may be only a partial prefix of
+            the full assignment; on branch failure without timeout, `assignment` is `None`.
+        """
+        if time.monotonic() - start_time > timeout:
+            return assignment, False, True
 
         if i == len(belief_pieces):
-            return assignment  
+            return assignment, True, False
 
         bp = belief_pieces[i]
         possible_types = [t for t in bp.probabilities if bp.probabilities[t] > 0 and pieces_left[t] > 0]
         if not possible_types:
-            return None
+            return None, False, False
 
-        weights = [bp.probabilities[t] for t in possible_types]
-        total = sum(weights)
-        if total > 0:
-            weights = [w / total for w in weights]
-        else:
-            weights = [1 / len(possible_types)] * len(possible_types)
-
-        sampled_types = random.choices(possible_types, weights=weights, k=len(possible_types))
-
-        seen = set()
-        sampled_types = [x for x in sampled_types if not (x in seen or seen.add(x))]
+        sampled_types = self._weighted_shuffle_without_replacement(possible_types, bp.probabilities)
+        best_partial_assignment = None
 
         for t in sampled_types:
             pieces_left[t] -= 1
-            result = self.assign_types_backtracking(
-                belief_pieces, pieces_left, i+1, assignment + [t], do_sort=False, start_time=start_time, timeout=timeout
+            result, completed, timed_out = self._assign_types_backtracking_recursive(
+                belief_pieces, pieces_left, i+1, assignment + [t], start_time, timeout
             )
-            pieces_left[t] += 1  
-            if result is not None:
-                return result
+            pieces_left[t] += 1
+            if completed:
+                return result, True, timed_out
+            if timed_out and result is not None:
+                if best_partial_assignment is None or len(result) > len(best_partial_assignment):
+                    best_partial_assignment = result
 
-        return None
-    
+        if best_partial_assignment is not None:
+            return best_partial_assignment, False, True
+
+        return None, False, False
+
+    def _weighted_shuffle_without_replacement(self, possible_types, probabilities):
+        """
+        Build a random weighted ordering of candidate types without duplicates.
+
+        Higher-probability types are more likely to appear earlier in the returned
+        list, but each type appears at most once.
+
+        Args:
+            possible_types (list): Candidate types that may be assigned.
+            probabilities (dict): Probability mapping for the current belief piece.
+
+        Returns:
+            list: A weighted random ordering of `possible_types` without replacement.
+        """
+        remaining_types = list(possible_types)
+        ordered_types = []
+
+        while remaining_types:
+            weights = [probabilities[t] for t in remaining_types]
+            total = sum(weights)
+            if total <= 0:
+                ordered_types.extend(random.sample(remaining_types, k=len(remaining_types)))
+                break
+
+            chosen_type = random.choices(remaining_types, weights=weights, k=1)[0]
+            ordered_types.append(chosen_type)
+            remaining_types.remove(chosen_type)
+
+        return ordered_types
 
     def assign_types_random(self, belief_pieces, pieces_left):
         """
@@ -198,9 +268,3 @@ class InfoSet:
             if pieces_left_copy.get(best_type, 0) > 0:
                 pieces_left_copy[best_type] -= 1
         return assignment
-
-
-    
-
-# Add a small test that sets up one revealed enemy piece plus several hidden belief pieces and verifies MCTS only samples the hidden ones.
-# Refactor InfoSet further so it can be built from a pure knowledge snapshot without depending on a copied board at all, if you want a cleaner imperfect-information model.

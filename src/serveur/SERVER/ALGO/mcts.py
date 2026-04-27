@@ -2,6 +2,7 @@ import random
 from ALGO.infoSet import InfoSet
 from ALGO.node import Node
 import copy
+import time
 
 class MCTS:
     """
@@ -27,33 +28,65 @@ class MCTS:
         self.current_node = self.root_node
 
         self.heuristic_evaluation = {
-            0: self.heuristic_evaluation_easy,
-            1: self.heuristic_evaluation_medium,
-            2: self.heuristic_evaluation_hard
+            0: self.simulation_easy,
+            1: self.simulation_medium,
+            2: self.simulation_hard
         }
         self.difficulty = self.ai.difficulty
+
+        self.previous_move = None
         
 
     def algo(self):
+        algo_start = time.monotonic()
+
+        step_start = time.monotonic()
         self.algo_infoSet = InfoSet(copy.deepcopy(self.ai.known_board), self.ai.order, self.game_rules)
+        print(f"[MCTS] InfoSet creation: {time.monotonic() - step_start:.6f}s")
+
+        step_start = time.monotonic()
         hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
         revealed_opponent_pieces = self.ai.get_revealed_opponent_pieces()
+        print(f"[MCTS] Retrieve belief/revealed pieces: {time.monotonic() - step_start:.6f}s")
+
+        step_start = time.monotonic()
         self.algo_infoSet.sync_opponent_knowledge(hidden_belief_pieces, revealed_opponent_pieces)
+        print(f"[MCTS] Sync opponent knowledge: {time.monotonic() - step_start:.6f}s")
+
+        step_start = time.monotonic()
         self.algo_infoSet.actualize_belief_pieces(
             hidden_belief_pieces,
             self.ai.opponent_belief_pieces_left.copy(),
         )
+        print(f"[MCTS] Actualize belief pieces: {time.monotonic() - step_start:.6f}s")
+
+        step_start = time.monotonic()
         self.current_node = self.root_node
+        print(f"[MCTS] Reset current node: {time.monotonic() - step_start:.6f}s")
 
+        step_start = time.monotonic()
         filtered_untried_moves = self.selection()
+        print(f"[MCTS] Selection: {time.monotonic() - step_start:.6f}s")
+
         if filtered_untried_moves is not None:
+            step_start = time.monotonic()
             self.expansion(filtered_untried_moves)
+            print(f"[MCTS] Expansion: {time.monotonic() - step_start:.6f}s")
+
+            step_start = time.monotonic()
             win_score = self.simulation()
+            print(f"[MCTS] Simulation: {time.monotonic() - step_start:.6f}s")
 
-        else :
+        else:
+            print("[MCTS] Expansion: skipped (no untried moves)")
+            step_start = time.monotonic()
             win_score = self.game_over
+            print(f"[MCTS] Game over fallback: {time.monotonic() - step_start:.6f}s")
 
+        step_start = time.monotonic()
         self.backpropagation(win_score)
+        print(f"[MCTS] Backpropagation: {time.monotonic() - step_start:.6f}s")
+        print(f"[MCTS] Total algo(): {time.monotonic() - algo_start:.6f}s")
 
     
     def selection(self):
@@ -116,7 +149,7 @@ class MCTS:
             node.win_score += win_score
             node = node.parent
 
-    def heuristic_evaluation_easy(self):
+    def simulation_easy(self):
         """
         Perform a random move for easy difficulty.
         """
@@ -126,18 +159,33 @@ class MCTS:
         move = random.choice(possible_moves)
         self.algo_infoSet.update_infoSet(move)
 
-    def heuristic_evaluation_medium(self):
+    def simulation_medium(self):
         """
         Placeholder for a better heuristic for medium difficulty. Currently random.
         """
-        self.heuristic_evaluation_easy()
+        self.simulation_easy()
 
-    def heuristic_evaluation_hard(self):
+    def simulation_hard(self):
         """
         Placeholder for a perfect heuristic for hard difficulty. Currently random.
         """
-        self.heuristic_evaluation_easy()
+        self.simulation_easy()
 
+    def heuristic_evaluation_easy(self, move):
+        if self.previous_move is not None:
+            if move == self.previous_move:
+                return 0
+            
+        return 1
+
+    def heuristic_evaluatin_medium(self, moves):
+        pass
+
+    def heuristic_evaluation_hard(self, moves):
+        pass
+
+    def prior_evaluation(self, move):
+        pass
 
     def game_over(self):
         """

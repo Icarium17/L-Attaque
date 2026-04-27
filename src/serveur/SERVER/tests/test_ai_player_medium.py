@@ -10,8 +10,8 @@ class DummyUser:
 
 class TestAIPlayerMediumSetup(unittest.TestCase):
     def test_generate_piece_list_medium_places_bombs_and_40_pieces(self):
-        ai = AIPlayer(DummyUser(), order=0, difficulty=1)
-        pieces = ai.generate_piece_list_medium()
+        ai = AIPlayer(DummyUser(), order=0, difficulty=2)
+        pieces = ai.setup_pieces()
         # Count bombs
         bomb_positions = [p.position for p in pieces if getattr(p, 'type', None) == PieceType.Bombe]
         print("All pieces:")

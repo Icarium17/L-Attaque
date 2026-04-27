@@ -231,7 +231,7 @@ class LobbyManager:
 
     def leaderboard(self):
         print("leaderboard called")
-        self.DAO
+        return self.DAOUsers.get_high_scores()
 
     def get_status(self, args):
         print("get_status called")
