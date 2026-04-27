@@ -29,6 +29,8 @@ import backgroundScore from '../assets/images/background-score.png';
 import surrender from '../assets/images/surrender.png';  
 import blueName from '../assets/images/blue-name.png';  
 import redName from '../assets/images/red-name.png';
+import pause from '../assets/images/pause.png';  
+import play from '../assets/images/play.png';
 
 export default function Game() {
   const navigate = useNavigate();
@@ -62,6 +64,10 @@ export default function Game() {
 
   // Ecran fin de jeu  {"WIN" | "LOSE"}
   const [gameResult, setGameResult] = useState(null); 
+
+  
+  // Etat PAUSE
+  const [isPaused, setIsPaused] = useState(false);  
 
   // PopUp YourTurn
   const [showYourTurn, setShowYourTurn] = useState(false);
@@ -113,6 +119,26 @@ export default function Game() {
   // Sélectionne le bon handler drag/drop selon la phase (PLACEMENT ou PLAYING)
   const activeDragStart = phase == "PLACEMENT" ? handlePlacementDragStart : phase == "PLAYING"   ? handlePlayingDragStart: undefined;
   const activeBoardDrop = phase == "PLACEMENT" ? handlePlacementBoardDrop : phase == "PLAYING"   ? handlePlayingBoardDrop: undefined;
+
+ 
+  // Fonction pause
+  const togglePause = () => {
+    const key = localStorage.getItem("sessionKey");
+    let formData = new FormData();
+    formData.append("action", isPaused ? "resume" : "pause");
+    formData.append("key", key);
+
+    fetch("/api/game.php", { method: "POST", body: formData })
+      .then(res => res.json())
+      .then(data => {
+        if (data.result.success) {
+          setIsPaused(data.result.isPaused);
+        } else {
+          setError(data.result.error || "Pause impossible.");
+        }
+      })
+      .catch(() => setError("Erreur du serveur."));
+  };
 
   // Fonction capituler
   const surrenderGame = () => {
@@ -251,30 +277,56 @@ return (
             <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
           </div>
         )}
+        {/* Bouton surrender & pause */}
         {phase == "PLAYING" && (
-        <div>
+        <div className="flex flex-col gap-2">
+        
+        {/* Surrender Button */}
         <Button 
             variant="ghost" 
             text="Capituler"
             onClick={surrenderGame} 
-            className="absolute bottom-[5%] left-[77%] w-30!"
+            className="absolute bottom-[11%] left-[65%] w-30!"
           style={{ 
             width: "120px",
             height: "120px",
-            background: `url(${surrender}) center/cover no-repeat`,
+            background: `url(${surrender}) center/cover no-repeat`, 
             color: "#bf213b",
             textShadow: "0 0 8px rgba(0,0,0,0.8)",
             fontSize: "12px",
             paddingTop: "50px",  
         }}
         />
+
+        {/* Pause/Play Button */}
+        <Button 
+            variant="ghost" 
+            text={isPaused ? "Reprendre" : "Pause"} 
+            onClick={togglePause} 
+            className="absolute bottom-[11%] left-[71%] w-30!"  
+          style={{ 
+            width: "120px",
+            height: "120px",
+            background: `url(${isPaused ? play : pause}) center/cover no-repeat`,  
+            color: "#ffffff",
+            textShadow: "0 0 8px rgba(0,0,0,0.8)",
+            fontSize: "10px",
+            paddingTop: "70px",  
+        }}
+        />
         </div>
-        )}
+        )} 
         {/* Board */}
         <div className="relative grid grid-cols-10 gap-0.5 w-[min(900px,82vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
           {/* Bloquer toutes les interactions si pas son tour */}
           {phase == "PLAYING" && turn != playerColor && (
             <div className="absolute inset-0 z-40 cursor-not-allowed" />
+          )}
+          {/* Bloquer toutes les interactions si en pause */}
+          {phase == "PLAYING" && isPaused && (
+            <div className="absolute inset-0 z-40 cursor-not-allowed bg-black/50 flex items-center justify-center">
+              <span className="text-yellow-400 text-4xl font-bold">PAUSE</span>
+            </div>
           )}
           {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => (
