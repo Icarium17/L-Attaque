@@ -52,18 +52,25 @@ class Piece():
 class BeliefPiece(Piece):
     def __init__(self, id, position, owner):
         super().__init__(id, None, position, owner)
+        self.evidence_weights = {}
         self.probabilities = {}
-        self.set_probabilities() # TODO : À modifier quand le jeu va fonctionner, pour que tout puisse être updaté rapidement.
+        self.set_probabilities() 
 
     def clone(self):
         belief_piece = BeliefPiece(self.id, self.position, self.owner)
+        belief_piece.evidence_weights = self.evidence_weights.copy()
         belief_piece.probabilities = self.probabilities.copy()
         return belief_piece
+    
+    def upgrade(self, type_piece):
+        piece = Piece(self.id, type_piece, self.position, self.owner)
+        return piece
         
-    ## At the start, sets all probabilities the same
+    ## At the start, all types are equally compatible, and probabilities follow piece counts
     def set_probabilities(self):
         total_pieces = sum(piece.count for piece in PieceType)
         for piece in PieceType:
+            self.evidence_weights[piece] = 1.0
             self.probabilities[piece] = piece.count / total_pieces
 
     def normalize(self): #when a piece becomes impossible (when it moves, it cant be a flag...)
@@ -76,19 +83,29 @@ class BeliefPiece(Piece):
 
     def update_probabilities(self, pieces_left):
         for t in self.probabilities:
-            self.probabilities[t] *= pieces_left[t]
+            self.probabilities[t] = self.evidence_weights[t] * pieces_left[t]
 
         self.normalize()
     
     def update_probabilities_on_move(self, distance):
         # Any movement eliminates immobile pieces
-        self.probabilities[PieceType.Drapeau] = 0
-        self.probabilities[PieceType.Bombe] = 0
+        self.evidence_weights[PieceType.Drapeau] = 0
+        self.evidence_weights[PieceType.Bombe] = 0
 
         # Scout rule (long movement)
         if distance > 1:
-            for t in self.probabilities:
+            for t in self.evidence_weights:
                 if t != PieceType.Eclaireur:
-                    self.probabilities[t] = 0
+                    self.evidence_weights[t] = 0
 
-        self.normalize()
+    def check_upgrade_bp_to_piece(self):
+        possible_types = [
+            piece_type
+            for piece_type, probability in self.probabilities.items()
+            if probability > 0
+        ]
+
+        if len(possible_types) == 1:
+            return self.upgrade(possible_types[0])
+
+        return None

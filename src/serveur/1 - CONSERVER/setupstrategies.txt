@@ -1,0 +1,209 @@
+spread_out_bombs
+single_bomb_cluster
+spread_out_bomb_clusters
+bomb_side
+spread_out_bomb_clusters_flag
+x_bomb
+x_bomb_flag
+diagonal_bombs
+front_line_bombs
+front_line_flag
+safe_flag
+corner_flag
+scouts_front
+bottle_neck_lakes
+strong_center
+
+
+bombs
+	spread_out_bombs
+	single_bomb_cluster
+	spread_out_bomb_clusters
+	bomb_side
+	spread_out_bomb_clusters_flag
+	x_bomb
+	x_bomb_flag
+	diagonal_bombs
+	front_line_bombs
+front_line
+	front_line_flag
+	scouts_front
+	bottle_neck_lakes
+flag_placement
+	safe_flag
+	corner_flag
+	front_line_flag
+middle
+	strong_center
+
+
+##Overall
+fake_flag_corner
+protected_miners
+hidden_spy_backline
+open_center_lane
+heavy_left / heavy_right
+separated_top_ranks
+scout_bait_front
+lake_ambush
+front_loaded_attack
+anti_corner_flag
+
+##Flag
+safe_flag
+corner_flag
+center_flag_hidden
+offset_corner_flag
+deep_back_flag
+front_line_flag
+double_bluff_flag
+rotating_flag_zone
+
+##Bombs
+spread_out_bombs
+single_bomb_cluster
+double_bomb_cluster
+spread_out_bomb_clusters
+flag_ring_bombs
+fake_flag_bombs
+x_bomb
+diagonal_bombs
+side_bomb_wall
+center_bombs
+lake_bombs
+choke_bombs
+reverse_cluster
+
+##High-Rank Development
+backline_marshal
+center_marshal
+wing_marshal
+split_marshal_general
+stacked_elite_force
+hidden_general
+counterattack_elites
+deep_reserve_elites
+front_loaded_elites
+mirrored_elites
+
+#Utility piece Placement
+protected_miners
+distributed_miners
+hidden_miners
+miner_strike_lane
+late_game_miners
+
+hidden_spy
+spy_near_elites
+aggressive_spy
+decoy_spy
+
+rear_scouts
+front_scouts
+distributed_scouts
+scout_lane
+
+#Mobility/LaneControl
+open_center_lane
+closed_center_wall
+left_flank_lane
+right_flank_lane
+dual_lane_pressure
+cross_rotation_paths
+sealed_backfield
+rapid_response_grid
+
+#Information Warfare
+rank_screening
+unknown_wall
+bluff_frontline
+fake_weak_side
+fake_flag_corner
+sacrifice_probe_line
+scout_bait
+identity_preservation
+piece_shuffle_ready
+
+
+#Offensive Posture
+strong_center
+left_heavy_attack
+right_heavy_attack
+front_loaded_attack
+delayed_center_push
+flank_breakthrough
+elite_spearhead
+miner_follow_attack
+two_wave_attack
+
+#Defensive Posture
+deep_reserves
+elastic_defense
+counter_punch_setup
+fortress_corner
+retreat_channels
+rear_rank_layering
+bombed_wing_defense
+hidden_counterforce
+
+#Lake Control
+bottle_neck_lakes
+lake_ambush
+double_choke_control
+lake_scout_post
+lake_bomb_screen
+lake_flank_pressure
+lake_mirror_control
+
+#Balance/Geometry
+symmetric_setup
+asymmetric_setup
+left_heavy
+right_heavy
+center_heavy
+distributed_strength
+compressed_strength
+rank_gradient_forward
+rank_gradient_backward
+
+#Opponent Exploitation/Anti
+anti_corner_flag
+anti_cluster_bombs
+anti_frontline_flag
+anti_scout_opening
+anti_center_push
+anti_passive_setup
+anti_elite_stack
+anti_miner_rush
+
+##Game-Phase Planning
+early_info_setup
+midgame_counterattack
+late_game_mobility
+miner_endgame_plan
+scout_endgame_plan
+elite_preservation
+attrition_setup
+chaos_setup
+
+
+##Archetypes :
+Fortress
+Bluff Corner
+Aggro Center
+Flank Rush
+Balanced Unknown
+Scout Control
+Bomb Maze
+Counterattack
+
+
+# choose archetype, use motifs that correspond
+
+
+
+
+
+
+
+
