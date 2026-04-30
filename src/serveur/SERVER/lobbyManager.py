@@ -48,15 +48,15 @@ class LobbyManager:
         print("create_profile called")
 
         username, password = args ## TODO : modifier pour que ça prenne en compte les autres paramètres (langue, etc)
-        user_created, user_id, session_key, score = self.DAOUsers.create_user(
+        user_created, user_id, session_key, status = self.DAOUsers.create_user(
             username, password, 'French', 0, 'User', True, True
         )
 
         if user_created:
-            user = User(user_id, session_key, username, score, "IDLE")
+            user = User(user_id, session_key, username, 0, "IDLE")
             self.active_users[user.key] = user
-            return "USER_CREATED", session_key
-        return "ERROR", -1
+            return "USER_CREATED", session_key, status
+        return "ERROR", -1, "ERROR"
 
     def login(self, args):
         print("login called")
@@ -101,6 +101,8 @@ class LobbyManager:
 
         elif mode == "multiplayer":
             return self._start_pvp_game(my_key)
+        
+        return "ERROR", ""
 
     def _start_pvp_game(self, my_key): ### TODO : pas sure que ça va marcher ...
         self.wait_list.append(my_key)
