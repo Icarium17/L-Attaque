@@ -62,12 +62,13 @@ def handle_signup():
     username = data.get('username')
     password = data.get('password')
 
-    status, key = lobby.execute_action("signup", (username, password))
+    status, key, message = lobby.execute_action("signup", (username, password))
 
     return jsonify({
         "status": status,
         "key" : key,
-        "username": username
+        "username": username, 
+        "message" : message
     })
 
 @app.route('/signin', methods=['POST'])
@@ -116,13 +117,20 @@ def handle_delete_user():
 @app.route('/start_game', methods=["POST"])
 def handle_start_game():
     data = request.get_json()
+    print("Received data:", data)
+    if data is None:
+        return jsonify({"status": "error", "message": "No JSON payload received"}), 400
     my_key = data.get('key')
     mode = data.get('mode')
-    result = lobby.execute_action("startGame", (my_key, mode))
+    if mode is None:
+        print("Warning: 'mode' is missing from payload!")
+        return jsonify({"status": "error", "message": "'mode' is required in payload"}), 400
+    print("mode:", mode)
+    result, username = lobby.execute_action("startGame", (my_key, mode))
 
     return jsonify({   
-        "status": result[0],
-        "opponent_username": result[1]
+        "status": result,
+        "opponent_username": username
     })
 
 @app.route('/set_pieces', methods=['POST'])
@@ -188,17 +196,6 @@ def pause():
     result = lobby.execute_action('pause', (my_key,))
 
     return jsonify(result)
-
-
-
-
-
-
-
-
-
-
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

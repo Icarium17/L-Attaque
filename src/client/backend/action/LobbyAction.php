@@ -10,6 +10,7 @@ class LobbyAction extends CommonAction {
     protected function executeAction() {
         $action = isset($_POST["action"]) ? $_POST["action"] : null;
         $key = $_POST["key"] ?? $_SESSION["key"] ?? null;
+        $mode = $_POST["mode"] ?? $_SESSION["mode"] ?? null;
 
         if (empty($key)) {
             $error = "Session inactive";
