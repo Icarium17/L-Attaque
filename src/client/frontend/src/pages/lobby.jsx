@@ -12,6 +12,7 @@ import buttonBg from '../assets/images/button-bg.png';
 export default function Lobby() {
   const [session, setSession] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   // Si pas en session redirige vers index.jsx
@@ -26,8 +27,34 @@ export default function Lobby() {
   }, [navigate]);
 
  
-  const goToGame = () => {
-    navigate("/game");  
+  const initGame = (mode) => {
+    if (!session) return;
+    
+    setLoading(true);
+    let formData = new FormData();
+    
+    formData.append("action", "start_game"); 
+    formData.append("key", session.key);
+    formData.append("mode", mode);
+
+    fetch("/api/lobby.php", { method: "POST", body: formData })
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
+
+        if (data.result && data.result.success) {
+          navigate("/game", { state: { gameMode: mode } });  
+        } 
+        else if (data.result && data.result.error) {
+          setError(data.result.error);
+          setTimeout(() => setError(""), 3000);
+        }
+      })
+      .catch(() => {
+        setLoading(false);
+        setError("Erreur serveur");
+        setTimeout(() => setError(""), 3000);
+      });
   };
     
   return (
@@ -48,27 +75,37 @@ export default function Lobby() {
           />
         </div>
          </div>      
-         <div className="absolute top-[16%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
+
+         <div className="absolute top-[14%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
-                onClick={goToGame} 
+                onClick={() => initGame('ai')}
                 className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
                 style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}                 
                 >
-                NOUVEAU JEU
+                CONTRE L'IA
                 </Button>  
           </div>
-            <div className="absolute top-[29%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
+          <div className="absolute top-[26%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
-                onClick={goToGame} 
+                onClick={() => initGame('multiplayer')} 
+                className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
+                style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}          
+                >
+                CONTRE LE JOUEUR
+                </Button>  
+          </div>
+            <div className="absolute top-[38%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
+                <Button 
+                variant="ghost"
                 className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
                 style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}          
                 >
                 REPRENDRE
                 </Button>  
           </div>
-            <div className="absolute top-[43%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
+            <div className="absolute top-[50%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
                 onClick={() => navigate("/leaderboard")}
@@ -78,20 +115,18 @@ export default function Lobby() {
                 CLASSEMENT
                 </Button>  
           </div>
-       <div className="absolute top-[58%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
+          <div className="absolute top-[62%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
+                    <Button 
+                    variant="ghost"
+                    className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
+                    style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}          
+                    >
+                    OPTIONS
+                    </Button>  
+              </div>
+         <div className="absolute top-[74%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
-                onClick={goToGame} 
-                className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
-                style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}          
-                >
-                OPTIONS
-                </Button>  
-          </div>
-      <div className="absolute top-[73%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
-                <Button 
-                variant="ghost"
-                onClick={goToGame} 
                 className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
                 style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}          
                 >
