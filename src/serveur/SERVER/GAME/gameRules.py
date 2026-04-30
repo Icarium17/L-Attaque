@@ -383,6 +383,11 @@ class GameRules():
         if not pieces:
             return False
 
+        tiles = board.tiles
+        rows = board.rows
+        cols = board.cols
+        check_last = self._check_last_moves
+
         directions = ((0, 1), (1, 0), (0, -1), (-1, 0))
 
         for piece in pieces.values():
@@ -396,38 +401,38 @@ class GameRules():
                     next_x = start_x + dx
                     next_y = start_y + dy
 
-                    while 0 <= next_x < board.cols and 0 <= next_y < board.rows:
-                        tile = board.tiles[next_y][next_x]
-                        if tile.state == 1:
-                            break
-                        if tile.piece is not None and tile.piece.owner == player_order:
+                    while 0 <= next_x < cols and 0 <= next_y < rows:
+                        tile = tiles[next_y][next_x]
+                        piece_on_tile = tile.piece
+
+                        if tile.state == 1 or (piece_on_tile and piece_on_tile.owner == player_order):
                             break
 
-                        move = Move(piece.position, (next_x, next_y))
-                        if self._check_last_moves(player_order, move, update_history=False):
+                        if check_last(player_order, (start_x, start_y, next_x, next_y), update_history=False):
                             return True
 
-                        if tile.piece is not None:
+                        if piece_on_tile:
                             break
 
                         next_x += dx
                         next_y += dy
+
                 continue
 
             for dx, dy in directions:
                 next_x = start_x + dx
                 next_y = start_y + dy
-                if not (0 <= next_x < board.cols and 0 <= next_y < board.rows):
+
+                if not (0 <= next_x < cols and 0 <= next_y < rows):
                     continue
 
-                tile = board.tiles[next_y][next_x]
-                if tile.state == 1:
-                    continue
-                if tile.piece is not None and tile.piece.owner == player_order:
+                tile = tiles[next_y][next_x]
+                piece_on_tile = tile.piece
+
+                if tile.state == 1 or (piece_on_tile and piece_on_tile.owner == player_order):
                     continue
 
-                move = Move(piece.position, (next_x, next_y))
-                if self._check_last_moves(player_order, move, update_history=False):
+                if check_last(player_order, (start_x, start_y, next_x, next_y), update_history=False):
                     return True
 
         return False
@@ -450,29 +455,43 @@ class GameRules():
         """
         ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
         possible_moves = []
+        DIRECTIONS = [(0,1), (1,0), (0,-1), (-1,0)]
 
         for piece in pieces.values():
-            if piece.type == PieceType.Drapeau or piece.type == PieceType.Bombe:
+            if piece.type in (PieceType.Drapeau, PieceType.Bombe):
                 continue
+            x, y = piece.position
             if piece.type != PieceType.Eclaireur:
-                for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-                    new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
-                    move = Move(piece.position, (new_x, new_y))
-                    valid, reason = self.validate_move(player_order, move, board)
-                    if valid == 1: ## For end of game checks. If there is at least 1 move available, the game is not over.
-                        if reason == 1:
-                            return True
-                        possible_moves.append(move)
-            else:  # piece.type == "Éclaireur"
-                for i in range(1, max(board.rows, board.cols)):
-                    for dx, dy in [(0, i), (i, 0), (0, -i), (-i, 0)]:
-                        new_x, new_y = piece.position[0] + dx, piece.position[1] + dy
-                        move = Move(piece.position, (new_x, new_y))
-                        valid, reason = self.validate_move(player_order, move, board)
-                        if valid == 1:
-                            if reason == 1: ## For end of game checks. If there is at least 1 move available, the game is not over.
-                                return True
+                for dx, dy in DIRECTIONS:
+                    new_x, new_y = x + dx, y + dy
+                    if not (0 <= new_x < board.rows and 0 <= new_y < board.cols):
+                        continue
+
+                    target = board.tiles[new_y][new_x]
+
+                    if target is not None and target.piece is not None and target.piece.owner == piece.owner:
+                        continue
+
+                    move = Move((x, y), (new_x, new_y))
+                    possible_moves.append(move)
+            else:
+                for dx, dy in DIRECTIONS:
+                    new_x, new_y = x + dx, y + dy
+
+                    while 0 <= new_x < board.rows and 0 <= new_y < board.cols:
+                        target = board.tiles[new_y][new_x]
+
+                        move = Move((x, y), (new_x, new_y))
+
+                        if target is None:
                             possible_moves.append(move)
+                        else:
+                            if target.piece is not None and target.piece.owner != piece.owner:
+                                possible_moves.append(move)
+                            break
+
+                        new_x += dx
+                        new_y += dy
 
         return possible_moves
     

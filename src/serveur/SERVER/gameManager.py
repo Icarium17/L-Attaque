@@ -7,21 +7,43 @@ from GAME.piece import BeliefPiece, PieceType
 from USERS.aiPlayer import AIPlayer
 
 class GameManager():
-    def __init__(self, lobbyManager, players, game_type = "original"):
+    def __init__(self, lobbyManager, players, status = None, game_type = "original"):
         self.lobbyManager = lobbyManager
         self.game_type = game_type
         self.board = Board(self.game_type)
         self.game_rules = GameRules(self.game_type)
-        self.players = players
-        self.set_player_boards()
+        self.players = players 
         self.player_to_move = 0
         self.players_ready = set()
-        self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired) 
         self.winner = None
         self.loser = None
         self.end_reason = None
-        self.status = "PLAYING"
+        self.status = status if status else ("WAITING" if len(players) == 1 else "PLAYING")
         self.battle = None
+        self.timers = None
+        self.set_player_boards()
+        if len(players) == 2:
+            self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired)
+        else:
+            self.wait_timer()
+
+    def wait_timer(self):
+        self.wait_timer_duration = 100
+        self.wait_timer_start = time.time()
+        self.wait_timer = threading.Timer(self.wait_timer_duration, self.remove_game)
+        self.wait_timer.start()
+
+
+    def add_second_player(self, player):
+        self.players.append(player)
+        self.set_player_boards()
+        self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired) 
+        # Do NOT set status to PLAYING yet; wait until both players have set up their pieces
+        self.status = "SETTING_UP"
+        
+
+    def remove_game(self):
+        self.lobbyManager.too_long_wait(self.players[0].key)
 
     ###### Start and Setup ###### 
 
@@ -35,8 +57,10 @@ class GameManager():
     
     def set_player_boards(self):
         for player in self.players:
-            player.known_board = Board(self.game_type)
-            player.user.status = "SETTING_UP"
+            if player.known_board is None:
+                player.known_board = Board(self.game_type)
+                if hasattr(player, "user"):
+                    player.user.status = "SETTING_UP"
 
     def clone_pieces(self, pieces):
         return [piece.clone() for piece in pieces]
@@ -60,16 +84,16 @@ class GameManager():
         ##setup pieces AI. TODO : change once it works
         for player in self.players:
             if isinstance(player, AIPlayer):
-                print("AI")
                 self.setup_ai_player(player.order)
-        ##self.check_board() ## TODO : Retirer une fois que tout fonctionne
-        if all(p.key in self.players_ready for p in self.players):
-            self.timers.start(0)
+
+        if len(self.players) == 2 and all(p.key in self.players_ready for p in self.players):
+            if self.timers:
+                self.timers.start(0)
             for p in self.players:
-                p.user.status = "GAME_READY"
-        else :
+                if hasattr(p, "user"):
+                    p.user.status = "PLAYING"
+        else:
             self.players[player_order].user.status = "WAITING_FOR_OPPONENT"
-        
         return ("SETUP_SUCCESS")
 
     def setup_ai_player(self, order):
@@ -213,25 +237,35 @@ class GameManager():
     def get_status(self, player_id):
         player = self.players[self.get_order(player_id)]
         if player.order == -1:
-            return {"status": "INVALID_KEY"}
+            return {"status": "INVALID_KEY"} ##TODO : change for the player only
         
-        list_pieces = self.board.return_pieces() ##TODO : change for the player only
-        times_remaining = [player.time_remaining for player in self.players]
-       
-        status = {
-            "status": self.status, ##WIN, LOSE
-            "board": list_pieces,
-            "turn": "blue" if self.player_to_move == 0 else "red",
-            "order": player.order,  ## 0,1
-            "time_remaining": times_remaining,
-            "battle" : None,
-            "scores" : [self.players[0].score, self.players[1].score] 
-        }
+        list_pieces = self.board.return_pieces()
 
-        if self.status == "BATTLE":
-            status["battle"] = self.battle ##TODO : à rajouter dans le front end
+        status = {
+                "status": self.status, 
+                "board": list_pieces,
+                "turn": "blue" if self.player_to_move == 0 else "red",
+                "order" : player.order}
         
+        if self.status != "WAITING":
+            times_remaining = [player.time_remaining for player in self.players]
+            status["battle"] = None,
+            scores = [self.players[0].score, self.players[1].score] 
+            
+            if self.status == "BATTLE":
+                status["battle"] = self.battle ##TODO : à rajouter dans le front end
+            
+        else:
+            elapsed = time.time() - self.wait_timer_start
+            time_left = max(0, self.wait_timer_duration - elapsed)
+            times_remaining = [time_left, time_left]
+            scores = [0, 0]
+            status["battle"] = None 
+
+        status["scores"] = scores
+        status["time_remaining"] = times_remaining
         return status
+
     
 
     ###### End Game ######

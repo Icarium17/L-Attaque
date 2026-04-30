@@ -117,15 +117,9 @@ def handle_delete_user():
 @app.route('/start_game', methods=["POST"])
 def handle_start_game():
     data = request.get_json()
-    print("Received data:", data)
-    if data is None:
-        return jsonify({"status": "error", "message": "No JSON payload received"}), 400
     my_key = data.get('key')
     mode = data.get('mode')
-    if mode is None:
-        print("Warning: 'mode' is missing from payload!")
-        return jsonify({"status": "error", "message": "'mode' is required in payload"}), 400
-    print("mode:", mode)
+    print(mode)
     result, username = lobby.execute_action("startGame", (my_key, mode))
 
     return jsonify({   

@@ -8,7 +8,7 @@ class Player(User):
     This class tracks the player's own remaining pieces, cached flag position, and the imperfect
     information view of opponent pieces through hidden belief pieces and revealed opponent pieces.
     """
-    def __init__(self, user_instance, order, time_remaining = (60*15)):
+    def __init__(self, user_instance, order, time_remaining = (60*20)):
         """
         Initialize a Player from an existing user instance.
 

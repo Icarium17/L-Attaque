@@ -104,21 +104,25 @@ class LobbyManager:
         
         return "ERROR", ""
 
-    def _start_pvp_game(self, my_key): ### TODO : pas sure que ça va marcher ...
-        self.wait_list.append(my_key)
-        if len(self.wait_list) >= 2:
+    def _start_pvp_game(self, my_key): 
+        if self.wait_list:
             player1_key = self.wait_list.pop(0)
-            self.wait_list.remove(my_key)          
-
             player1 = Player(self.active_users[player1_key], 0)
             player2 = Player(self.active_users[my_key], 1)
-
-            game = GameManager(self, [player1, player2])
+            if player1_key in self.games and len(self.games[player1_key].players) == 1:
+                game = self.games[player1_key]
+                self.games[my_key] = game
+                game.add_second_player(player2)
+            else:
+                game = GameManager(self, [player1, player2])
             self.games[player1_key] = game
             self.games[my_key] = game
-
             return "GAME_STARTED", player2.username
         else:
+            self.wait_list.append(my_key)
+            player1 = Player(self.active_users[my_key], 0)
+            game = GameManager(self, [player1])
+            self.games[my_key] = game
             return "WAITING_FOR_OPPONENT", ""
 
     def _start_ai_game(self, my_key):
@@ -164,23 +168,22 @@ class LobbyManager:
     def save(self):
         print("save called")
 
+    def too_long_wait(self, player_key): #TODO : rework
+        print("Its been too long")
+        self.games[player_key] 
+
 
     ## Play Game
     def set_pieces(self, args):
         print("set_pieces called")
         my_key, pieces_recieved = args
         pieces_set = []
-
-        if my_key not in self.games: ##TODO : this is just for testing, it should be changed when the game loop is implemented, because the game will be created when the player starts searching for a game, not when they set their pieces, so this condition will never be true. For now, it allows us to test the set_pieces function without having to implement the game loop and the search for a game first.
-            self.start_game((my_key,))
-
-        if not self.games[my_key]:
-            self.start_game((my_key,))
         
         game = self.games[my_key] 
         player = game.get_player(self.active_users[my_key].key)
         pieces_set = self.convert_pieces(pieces_recieved, player)
         valid = game.check_valid_setup(my_key, pieces_set)
+
         if valid:
             return valid, self.active_users[my_key].status
         return "INVALID_PIECE_SETUP", self.active_users[my_key].status

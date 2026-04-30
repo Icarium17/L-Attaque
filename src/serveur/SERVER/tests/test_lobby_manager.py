@@ -23,11 +23,13 @@ class TestLobbyManager(unittest.TestCase):
         # Waitlist is empty, user1 tries to start multiplayer
         result, opponent = self.lobby.start_game(("KEY1", "multiplayer"))
         self.assertEqual(result, "WAITING_FOR_OPPONENT")
-        self.assertIsNone(opponent)
+        self.assertEqual(opponent, "")  # Now returns empty string, not None
         self.assertIn("KEY1", self.lobby.wait_list)
-        # No game should be created yet
-        self.assertNotIn("KEY1", self.lobby.games)
-        self.assertEqual(len(self.lobby.games), 0)
+        # A pending game should be created for KEY1 with only one player
+        self.assertIn("KEY1", self.lobby.games)
+        game = self.lobby.games["KEY1"]
+        self.assertEqual(len(game.players), 1)
+        self.assertEqual(game.status, "WAITING")
 
     def test_start_game_multiplayer_waitlist_has_user(self):
         # Add user1 to waitlist, user2 tries to start multiplayer
@@ -40,7 +42,10 @@ class TestLobbyManager(unittest.TestCase):
         # Game should be created for both users
         self.assertIn("KEY1", self.lobby.games)
         self.assertIn("KEY2", self.lobby.games)
-        self.assertIs(self.lobby.games["KEY1"], self.lobby.games["KEY2"])
+        game = self.lobby.games["KEY1"]
+        self.assertIs(game, self.lobby.games["KEY2"])
+        self.assertEqual(len(game.players), 2)
+        self.assertEqual(game.status, "PLAYING")
 
 if __name__ == "__main__":
     unittest.main()
