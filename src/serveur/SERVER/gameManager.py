@@ -230,7 +230,7 @@ class GameManager():
         else :
             self.status = "PLAYING"
             self.timers.start(player.order)
-            return (1, "GAME_RESTARTED) 
+            return (1, "GAME_RESTARTED") 
         
         
 
