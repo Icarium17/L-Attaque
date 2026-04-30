@@ -20,73 +20,103 @@ class MCTS:
         """
         self.ai = ai
         self.game_rules = game_rules
-        self.infoSet_main = InfoSet(copy.deepcopy(ai.known_board), ai.order, game_rules)
         self.player_to_move = self.ai.order
         self.players = players
 
-        self.root_node = Node(None, None)
-        self.current_node = self.root_node
-
-        self.heuristic_evaluation = {
+        self.simulation_by_level = {
             0: self.simulation_easy,
             1: self.simulation_medium,
             2: self.simulation_hard
         }
         self.difficulty = self.ai.difficulty
 
+        self._setup(ai)
+
+    def _setup(self, ai):
+        self.root_node = Node(None, None)
+        self.current_node = self.root_node
         self.previous_move = None
+
+        self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
+        self.algo_infoSet = None
+        self.revealed_opponent_pieces = self.ai.get_revealed_opponent_pieces()
+        self.infoSet_main = InfoSet(copy.deepcopy(ai.known_board), ai.order, self.game_rules)
+        self.infoSet_main.sync_opponent_knowledge(self.hidden_belief_pieces, self.revealed_opponent_pieces)
+
+        self.rollout_index = 0
         
+    def _reset_rollout_state(self):
+        self.current_node = self.root_node
+
+        if self.rollout_index % 5 == 0:
+            actualize_start_ns = time.perf_counter_ns()
+            self.algo_infoSet = copy.deepcopy(self.infoSet_main)
+            self.algo_infoSet.actualize_belief_pieces(
+                self.hidden_belief_pieces,
+                self.ai.opponent_belief_pieces_left.copy(),
+            )
+            self.determinized_root = copy.deepcopy(self.algo_infoSet)
+            return {
+                "mode": "redeterminized",
+                "actualize_ns": time.perf_counter_ns() - actualize_start_ns,
+                "actualize_stats": self.algo_infoSet.actualize_stats or {},
+            }
+        else:
+            self.algo_infoSet = copy.deepcopy(self.determinized_root)
+            return {
+                "mode": "cached-root",
+                "actualize_ns": 0,
+                "actualize_stats": {},
+            }
+
 
     def algo(self):
-        algo_start = time.monotonic()
+        algo_start_ns = time.perf_counter_ns()
 
-        step_start = time.monotonic()
-        self.algo_infoSet = InfoSet(copy.deepcopy(self.ai.known_board), self.ai.order, self.game_rules)
-        print(f"[MCTS] InfoSet creation: {time.monotonic() - step_start:.6f}s")
-
-        step_start = time.monotonic()
-        hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
-        revealed_opponent_pieces = self.ai.get_revealed_opponent_pieces()
-        print(f"[MCTS] Retrieve belief/revealed pieces: {time.monotonic() - step_start:.6f}s")
-
-        step_start = time.monotonic()
-        self.algo_infoSet.sync_opponent_knowledge(hidden_belief_pieces, revealed_opponent_pieces)
-        print(f"[MCTS] Sync opponent knowledge: {time.monotonic() - step_start:.6f}s")
-
-        step_start = time.monotonic()
-        self.algo_infoSet.actualize_belief_pieces(
-            hidden_belief_pieces,
-            self.ai.opponent_belief_pieces_left.copy(),
+        step_start_ns = time.perf_counter_ns()
+        reset_stats = self._reset_rollout_state()
+        reset_ns = time.perf_counter_ns() - step_start_ns
+        actualize_stats = reset_stats["actualize_stats"]
+        print(
+            "[MCTS] Reset rollout state: "
+            f"{reset_ns}ns "
+            f"(mode={reset_stats['mode']}, "
+            f"actualize={reset_stats['actualize_ns']}ns, "
+            f"hidden={actualize_stats.get('hidden_belief_pieces', 0)}, "
+            f"recursive_calls={actualize_stats.get('recursive_calls', 0)}, "
+            f"backtracking={actualize_stats.get('backtracking_ns', 0)}ns, "
+            f"completed={actualize_stats.get('assignment_completed', False)}, "
+            f"timed_out={actualize_stats.get('timed_out', False)}, "
+            f"random_fallback={actualize_stats.get('used_random_fallback', False)})"
         )
-        print(f"[MCTS] Actualize belief pieces: {time.monotonic() - step_start:.6f}s")
-
-        step_start = time.monotonic()
-        self.current_node = self.root_node
-        print(f"[MCTS] Reset current node: {time.monotonic() - step_start:.6f}s")
-
-        step_start = time.monotonic()
+        
+        step_start_ns = time.perf_counter_ns()
         filtered_untried_moves = self.selection()
-        print(f"[MCTS] Selection: {time.monotonic() - step_start:.6f}s")
+        print(f"[MCTS] Selection: {time.perf_counter_ns() - step_start_ns}ns")
 
         if filtered_untried_moves is not None:
-            step_start = time.monotonic()
+            step_start_ns = time.perf_counter_ns()
             self.expansion(filtered_untried_moves)
-            print(f"[MCTS] Expansion: {time.monotonic() - step_start:.6f}s")
+            print(f"[MCTS] Expansion: {time.perf_counter_ns() - step_start_ns}ns")
 
-            step_start = time.monotonic()
+            step_start_ns = time.perf_counter_ns()
             win_score = self.simulation()
-            print(f"[MCTS] Simulation: {time.monotonic() - step_start:.6f}s")
+            print(f"[MCTS] Simulation: {time.perf_counter_ns() - step_start_ns}ns")
 
         else:
             print("[MCTS] Expansion: skipped (no untried moves)")
-            step_start = time.monotonic()
-            win_score = self.game_over
-            print(f"[MCTS] Game over fallback: {time.monotonic() - step_start:.6f}s")
+            step_start_ns = time.perf_counter_ns()
+            win_score = self.game_over()
+            print(f"[MCTS] Game over fallback: {time.perf_counter_ns() - step_start_ns}ns")
 
-        step_start = time.monotonic()
+        step_start_ns = time.perf_counter_ns()
         self.backpropagation(win_score)
-        print(f"[MCTS] Backpropagation: {time.monotonic() - step_start:.6f}s")
-        print(f"[MCTS] Total algo(): {time.monotonic() - algo_start:.6f}s")
+        print(f"[MCTS] Backpropagation: {time.perf_counter_ns() - step_start_ns}ns")
+        print(f"[MCTS] Total algo(): {time.perf_counter_ns() - algo_start_ns}ns")
+
+        self.rollout_index += 1
+
+        
 
     
     def selection(self):
@@ -127,12 +157,24 @@ class MCTS:
         Simulate a random playout from the current node to a terminal state or step limit.
         Returns the result of the simulation (game outcome).
         """
+        simulation_start_ns = time.perf_counter_ns()
         game_over = 0
         s = 0
         while not game_over and s < 25:
-            self.heuristic_evaluation[self.difficulty]()
+            step_start_ns = time.perf_counter_ns()
+            self.simulation_by_level[self.difficulty]()
+            rollout_step_ns = time.perf_counter_ns() - step_start_ns
+
+            step_start_ns = time.perf_counter_ns()
             game_over = self.game_over() ## TODO : find a way to make it lighter so its not such a bottleneck
+            game_over_ns = time.perf_counter_ns() - step_start_ns
+            print(
+                f"[MCTS] Simulation step {s}: "
+                f"rollout={rollout_step_ns}ns, game_over={game_over_ns}ns"
+            )
             s += 1
+
+        print(f"[MCTS] Simulation total: {time.perf_counter_ns() - simulation_start_ns}ns")
 
         return game_over
     
@@ -153,11 +195,26 @@ class MCTS:
         """
         Perform a random move for easy difficulty.
         """
+        step_start_ns = time.perf_counter_ns()
         possible_moves = self.algo_infoSet.get_all_possible_moves()
+        get_moves_ns = time.perf_counter_ns() - step_start_ns
         if len(possible_moves) == 0:
             raise ValueError("MCTS : possible_moves is empty")
+
+        step_start_ns = time.perf_counter_ns()
         move = random.choice(possible_moves)
+        choose_move_ns = time.perf_counter_ns() - step_start_ns
+
+        step_start_ns = time.perf_counter_ns()
         self.algo_infoSet.update_infoSet(move)
+        update_infoset_ns = time.perf_counter_ns() - step_start_ns
+        print(
+            "[MCTS] simulation_easy: "
+            f"get_moves={get_moves_ns}ns, "
+            f"choose_move={choose_move_ns}ns, "
+            f"update_infoSet={update_infoset_ns}ns, "
+            f"move_count={len(possible_moves)}"
+        )
 
     def simulation_medium(self):
         """

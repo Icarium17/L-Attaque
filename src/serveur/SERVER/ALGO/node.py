@@ -50,18 +50,3 @@ class Node:
         return best_child
     
     
-    
- 
-    # def get_random_child(self, filtered_untried_moves):
-    #     """
-    #     Create and return a new child node for a random untried move.
-    #     Returns the new child node, or None if no untried moves remain or move is invalid.
-    #     """
-    #     if not filtered_untried_moves:
-    #         return None
-    #     move = random.choice(filtered_untried_moves)
-        
-    #     return move
-    
-    
-    

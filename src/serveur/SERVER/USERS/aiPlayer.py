@@ -36,7 +36,7 @@ class AIPlayer(Player):
         }
 
         self.move_timers = { ## TODO : tinker with the times, this doesnt look right
-            0:3,
+            0:1,
             1:3,
             2:3
         }
@@ -66,17 +66,6 @@ class AIPlayer(Player):
 
         Returns:
             list: List of Piece objects representing the AI starting setup.
-
-            setup_pieces()
-        -> self.setup[1]()
-        -> build_medium_setup()
-        -> random medium builder by order
-        -> random motif inside that builder
-        -> build_from_motif(motif)
-        -> motif()
-        -> generate_remaining_types(preplaced pieces)
-        -> generate_pieces(remaining types, preplaced pieces)
-        -> final list of 40 Piece objects
         """
         return self.setup[self.difficulty]()
     
@@ -771,7 +760,8 @@ class AISetupLibrary:
         """
         
         # TODO : implement
-        return self.generate_piece_list_easy()
+        piece_types = self.setup_builder.generate_remaining_types()
+        return self.setup_builder.generate_pieces(piece_types)
     
     def generate_piece_list_medium(self):
         print("AISetupLibrary.generate_piece_list_medium called")

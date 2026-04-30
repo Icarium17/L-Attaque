@@ -21,6 +21,7 @@ class InfoSet:
         self.board_state = board_state
         self.player_turn = player_turn
         self.game_rules = game_rules
+        self.actualize_stats = None
 
     def get_all_possible_moves(self):
         """
@@ -81,9 +82,19 @@ class InfoSet:
                 ):
                     belief_pieces.append(tile.piece)
 
+        self.actualize_stats = {
+            "hidden_belief_pieces": len(belief_pieces),
+            "recursive_calls": 0,
+            "backtracking_ns": 0,
+            "used_random_fallback": False,
+            "assignment_completed": False,
+            "timed_out": False,
+        }
+
         possible_setup = self.assign_types_backtracking(belief_pieces, pieces_left)
 
         if possible_setup is None:
+            self.actualize_stats["used_random_fallback"] = True
             possible_setup = self.assign_types_random(belief_pieces, pieces_left)
 
         if possible_setup is not None:
@@ -112,16 +123,25 @@ class InfoSet:
             with the random fallback, else `None` if no valid assignment is found.
         """
         if not belief_pieces:
+            if self.actualize_stats is not None:
+                self.actualize_stats["assignment_completed"] = True
             return []
 
         sorted_indices, sorted_belief_pieces = self._sort_belief_pieces_by_constraints(belief_pieces, pieces_left)
+        start_ns = time.perf_counter_ns()
         result, completed, timed_out = self._assign_types_backtracking_recursive(
             list(sorted_belief_pieces), pieces_left, 0, [], time.monotonic(), timeout
         )
+        if self.actualize_stats is not None:
+            self.actualize_stats["backtracking_ns"] = time.perf_counter_ns() - start_ns
+            self.actualize_stats["assignment_completed"] = completed
+            self.actualize_stats["timed_out"] = timed_out
         if result is None:
             return None
 
         if timed_out and not completed:
+            if self.actualize_stats is not None:
+                self.actualize_stats["used_random_fallback"] = True
             remaining_pieces_left = pieces_left.copy()
             for assigned_type in result:
                 remaining_pieces_left[assigned_type] -= 1
@@ -180,6 +200,9 @@ class InfoSet:
             of the timeout. On timeout, `assignment` may be only a partial prefix of
             the full assignment; on branch failure without timeout, `assignment` is `None`.
         """
+        if self.actualize_stats is not None:
+            self.actualize_stats["recursive_calls"] += 1
+
         if time.monotonic() - start_time > timeout:
             return assignment, False, True
 
