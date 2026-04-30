@@ -17,13 +17,13 @@ class LobbyAction extends CommonAction {
         }
 
 
-        if ($action == "init_game") {
+        if ($action == "start_game") {
             $data = [
                 "key" => $key,
                 "mode" => $mode
             ];
             
-            $apiResult = parent::callPython( "init_game", $data);
+            $apiResult = parent::callPython("start_game", $data);
 
             if ($apiResult == null) {
                 $error = "Erreur Serveur)";
@@ -31,15 +31,14 @@ class LobbyAction extends CommonAction {
             }
             
             $success = true;
+            $status = $apiResult -> status;
             $message = "Jeu initialisé";
-            return ["result" => compact("success", "message"), "response_svr" => $apiResult];
+            return ["result" => compact("success","status", "message"), "response_svr" => $apiResult];
         }
 
         $error = "Action inconnue";
         return ["result" => compact("error")];
-    }
-    
+    }    
 }
 
-
- 
+       

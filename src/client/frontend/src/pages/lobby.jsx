@@ -27,7 +27,7 @@ export default function Lobby() {
   }, [navigate]);
 
  
-  const initGame = (mode) => {
+  const startGame = (mode) => {
     if (!session) return;
     
     setLoading(true);
@@ -79,7 +79,7 @@ export default function Lobby() {
          <div className="absolute top-[14%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
-                onClick={() => initGame('ai')}
+                onClick={() => startGame('ai')}
                 className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
                 style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}                 
                 >
@@ -89,7 +89,7 @@ export default function Lobby() {
           <div className="absolute top-[26%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
                 <Button 
                 variant="ghost"
-                onClick={() => initGame('multiplayer')} 
+                onClick={() => startGame('multiplayer')} 
                 className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
                 style={{ background: `url(${buttonBg}) center/100% 100% no-repeat` ,minHeight: '140px'  }}          
                 >
