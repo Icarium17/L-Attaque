@@ -26,9 +26,6 @@ class LobbyManager:
             "modifyProfile" : self.modify_profile,
             "startGame" : self.start_game,
             "setPieces" : self.set_pieces,
-            "startGameSpecificPlayer" : self.start_game_specific_player,
-            "challenge" : self.challenge,
-            "answerChallenge" : self.answer_challenge,
             "restartGame" : self.restart_game,
             "surrender" : self.surrender,
             "save" : self.save,
@@ -97,34 +94,39 @@ class LobbyManager:
     ## Start/End Game
     def start_game(self, args): 
         print("start_game called")
-        (my_key,) = args ##add game_type to args
+        (my_key, mode) = args
 
-        game_type = self.game_types[0] ##TODO : get game type from args
-        if game_type == "multiplayer":
-            self.wait_list.append(my_key)
-            if len(self.wait_list) >= 2:
-                player1_key = self.wait_list.pop(0)
-                player2_key = self.wait_list.pop(0)
+        if mode == "ai":
+            self._start_ai_game(my_key)
 
-                player1 = Player(self.active_users[player1_key], 0)
-                player2 = Player(self.active_users[player2_key], 1)
+        elif mode == "multiplayer":
+            self._start_pvp_game(my_key)
 
-                game = GameManager(self, [player1, player2])
-                self.games[player1_key] = game
-                self.games[player2_key] = game
+    def _start_pvp_game(self, my_key): ### TODO : pas sure que ça va marcher ...
+        self.wait_list.append(my_key)
+        if len(self.wait_list) >= 2:
+            player1_key = self.wait_list.pop(0)
+            self.wait_list.remove(my_key)          
 
-                return "GAME_STARTED", player2.username
-            else:
-                return "WAITING_FOR_OPPONENT", None
-            
-        if game_type == "ai":
-            player = Player(self.active_users[my_key], 0)
-            ai_user = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
-            ai_player = AIPlayer(ai_user, 1, 0)
-            game = GameManager(self, [player, ai_player])
+            player1 = Player(self.active_users[player1_key], 0)
+            player2 = Player(self.active_users[my_key], 1)
+
+            game = GameManager(self, [player1, player2])
+            self.games[player1_key] = game
             self.games[my_key] = game
 
-            return "GAME_STARTED", ai_player.username
+            return "GAME_STARTED", player2.username
+        else:
+            return "WAITING_FOR_OPPONENT", None
+
+    def _start_ai_game(self, my_key):
+        player = Player(self.active_users[my_key], 0)
+        ai_user = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
+        ai_player = AIPlayer(ai_user, 1, 0)
+        game = GameManager(self, [player, ai_player])
+        self.games[my_key] = game
+
+        return "GAME_STARTED", ai_player.username
 
     def get_active_players(self):
         print("get_active_players called")
@@ -136,29 +138,20 @@ class LobbyManager:
         
         return users
     
-    def start_game_specific_player(self):
-        print("start_game_specific_player called")
-
-    def challenge(self):
-        print("challenge called")
-
-    def answer_challenge(self):
-        print("answer_challenge called")
-
     def restart_game(self):
         print("restart_game called")
 
-    def surrender(self, my_key):
+    def surrender(self, args):
         print("surrender called")
-
+        (my_key,) = args
         game = self.games[my_key] 
-
         game.surrender(my_key)
 
         return ("GAME_SURRENDERED")
 
-    def pause(self, my_key):
+    def pause(self, args):
         print("pause called")
+        (my_key,) = args
         game = self.games[my_key]
 
         result = game.pause(my_key)

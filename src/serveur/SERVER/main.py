@@ -117,7 +117,8 @@ def handle_delete_user():
 def handle_start_game():
     data = request.get_json()
     my_key = data.get('key')
-    result = lobby.execute_action("startGame", (my_key,))
+    mode = data.get('mode')
+    result = lobby.execute_action("startGame", (my_key, mode))
 
     return jsonify({   
         "status": result[0],

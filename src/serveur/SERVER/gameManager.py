@@ -129,7 +129,7 @@ class GameManager():
                 self.battle = [pieceFrom.send(), tileTo.piece.send()]
                 self.combat(pieceFrom, tileTo.piece, tileTo)
                 self.status = "BATTLE"
-                self.timers.pause(6)
+                self.timers.stop(6)
                 # Use a non-blocking timer to delay turn change
                 threading.Timer(10, self.change_turn).start()
             else:
@@ -200,7 +200,7 @@ class GameManager():
         
         if self.status != "PAUSED":
             self.status = "PAUSED"
-            self.timers.pause()
+            self.timers.stop()
             return (1, "GAME_PAUSED")
         
         else :
@@ -267,7 +267,7 @@ class GameManager():
         self.status = "SURRENDER"
         self.timers.stop()
         surrenderer = self.get_player(my_key)
-        winner = self.players[1 - self.surrenderer.order]
+        winner = self.players[1 - surrenderer.order]
         print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
         winner.score += self.game_rules.calc_score_surrender()
         threading.Timer(10, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
@@ -302,13 +302,20 @@ class PlayerTimer:
             self.current_player = next_player
             self.last_switch_time = now
 
-    def stop(self):
+    def stop(self, duration = None):
+        def resume_after_delay(player_idx, delay):
+            time.sleep(delay)
+            self.start(player_idx)
+
         with self.lock:
             if self.running and self.last_switch_time is not None:
                 elapsed = time.time() - self.last_switch_time
                 self.times[self.current_player] -= elapsed
             self.running = False
             self.last_switch_time = None
+
+            if duration is not None:
+                threading.Thread(target=resume_after_delay, args=(self.current_player, duration), daemon=True).start()
 
     def _run(self):
         while True:
@@ -331,23 +338,4 @@ class PlayerTimer:
                 if times_copy[self.current_player] < 0:
                     times_copy[self.current_player] = 0
             return times_copy
-        
-    def pause(self, duration=None):
-        """Pause the timer for the current player. If duration is set, resume after duration seconds; else pause indefinitely."""
-        def resume_after_delay(player_idx, delay):
-            time.sleep(delay)
-            self.start(player_idx)
-
-        with self.lock:
-            if self.running and self.last_switch_time is not None:
-                elapsed = time.time() - self.last_switch_time
-                self.times[self.current_player] -= elapsed
-                self.players[self.current_player].time_remaining -= elapsed
-                if self.players[self.current_player].time_remaining < 0:
-                    self.players[self.current_player].time_remaining = 0
-                self.running = False
-                self.last_switch_time = None
-                if duration is not None:
-                    threading.Thread(target=resume_after_delay, args=(self.current_player, duration), daemon=True).start()
-
-
+    
