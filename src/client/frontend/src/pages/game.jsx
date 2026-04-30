@@ -286,7 +286,7 @@ return (
             variant="ghost" 
             text="Capituler"
             onClick={surrenderGame} 
-            className="absolute bottom-[11%] left-[65%] w-30!"
+            className="absolute bottom-[6%] left-[74%] w-!"
           style={{ 
             width: "120px",
             height: "120px",
@@ -303,7 +303,7 @@ return (
             variant="ghost" 
             text={isPaused ? "Reprendre" : "Pause"} 
             onClick={togglePause} 
-            className="absolute bottom-[11%] left-[71%] w-30!"  
+            className="absolute bottom-[6%] left-[79%] w-30!"  
           style={{ 
             width: "120px",
             height: "120px",
