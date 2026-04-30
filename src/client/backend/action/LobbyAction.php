@@ -36,7 +36,7 @@ class LobbyAction extends CommonAction {
             return ["result" => compact("success","status", "message"), "response_svr" => $apiResult];
         }
 
-        $error = "Action inconnue";
+        $error = "Pas de réponse serveur";
         return ["result" => compact("error")];
     }    
 }

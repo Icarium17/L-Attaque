@@ -65,7 +65,6 @@ export default function Game() {
   // Ecran fin de jeu  {"WIN" | "LOSE"}
   const [gameResult, setGameResult] = useState(null); 
 
-  
   // Etat PAUSE
   const [isPaused, setIsPaused] = useState(false);  
 
