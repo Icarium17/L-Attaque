@@ -122,21 +122,30 @@ export default function Game() {
  
   // Fonction pause
   const togglePause = () => {
-    const key = localStorage.getItem("sessionKey");
-    let formData = new FormData();
-    formData.append("action", isPaused ? "resume" : "pause");
-    formData.append("key", key);
+  const key = localStorage.getItem("sessionKey");
 
-    fetch("/api/game.php", { method: "POST", body: formData })
-      .then(res => res.json())
-      .then(data => {
-        if (data.result.success) {
-          setIsPaused(data.result.isPaused);
-        } else {
-          setError(data.result.error || "Pause impossible.");
-        }
-      })
-      .catch(() => setError("Erreur du serveur."));
+  let formData = new FormData();
+  formData.append("action", isPaused ? "resume" : "pause");
+  formData.append("key", key);
+
+  fetch("/api/game.php", { method: "POST", body: formData })
+    .then(res => res.json())
+    .then(data => {
+
+      const status = data.result.pauseStatus?.[1];
+
+      if (data.result.success && status == "GAME_PAUSED") {
+        setIsPaused(true);
+      } 
+      else if (data.result.success && status == "GAME_RESTARTED") {
+        setIsPaused(false);
+      } 
+      else {
+        setError(data.result.error || "Pause impossible.");
+      }
+
+    })
+    .catch(() => setError("Erreur du serveur."));
   };
 
   // Fonction capituler

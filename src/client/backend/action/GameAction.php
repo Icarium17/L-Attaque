@@ -116,14 +116,14 @@ class GameAction extends CommonAction {
             $data = ["key" => $key];
             $apiResult = parent::callPython("pause", $data);
             
-            if ($apiResult == null || !isset($apiResult->is_paused)) {
-                $error = "Erreur Serveur (Pause)";
+            if ($apiResult == null ) {
+                $error = "Erreur Serveur";
                 return ["result" => compact("error")];
             }
-            
+
             $success = true;
-            $isPaused = $apiResult->is_paused;
-            return ["result" => compact("success", "isPaused")];
+            $pauseStatus = $apiResult;
+            return ["result" => compact("success", "pauseStatus")];
         }
 
         $error = "Action inconnue";
