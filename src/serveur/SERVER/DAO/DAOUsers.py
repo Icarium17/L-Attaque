@@ -6,14 +6,19 @@ class DAOUsers():
     def create_user(self, username, password, preferred_language, id_avatar, rights, animation, contrast):
         hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
-        sql = """
-        INSERT INTO users (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-
-        params = (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast)
-
         with Connection() as db:
+            # Check if username already exists
+            existing_user = db.fetch("SELECT * FROM users WHERE username=%s", (username,))
+            if existing_user:
+                return False, 0  # Username already exists
+
+            sql = """
+            INSERT INTO users (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+
+            params = (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast)
+
             if db.execute(sql, params):
                 user_id = db.cursor.lastrowid
                 session_key = secrets.token_hex(32)
