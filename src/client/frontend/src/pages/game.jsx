@@ -31,6 +31,7 @@ import blueName from '../assets/images/blue-name.png';
 import redName from '../assets/images/red-name.png';
 import pause from '../assets/images/pause.png';  
 import play from '../assets/images/play.png';
+import save from '../assets/images/save.png';
 
 export default function Game() {
   const navigate = useNavigate();
@@ -365,6 +366,22 @@ return (
             textShadow: "0 0 8px rgba(0,0,0,0.8)",
             fontSize: "10px",
             paddingTop: "70px",  
+        }}
+        />
+        {/* Save Button */}
+        <Button 
+            variant="ghost" 
+            text="Sauvegarder"
+            onClick={surrenderGame} 
+            className="absolute bottom-[5%] left-[84%] w-!"
+          style={{ 
+            width: "155px",
+            height: "155px",
+            background: `url(${save}) center/cover no-repeat`, 
+            color: "#bf213b",
+            textShadow: "0 0 8px rgba(0,0,0,0.8)",
+            fontSize: "8px",
+            paddingTop: "90px",  
         }}
         />
         </div>
