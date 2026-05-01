@@ -218,7 +218,7 @@ return (
       )}
       {/* WAITING */}
       {phase == "WAITING" && (
-        <div className="w-full py-10 flex flex-col items-center justify-center bg-black/30 rounded-lg border border-yellow-500/20 backdrop-blur-sm">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md">
           <Loading message="Attente..." size={80} />
         </div>
       )}

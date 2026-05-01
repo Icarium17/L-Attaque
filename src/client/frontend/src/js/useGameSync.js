@@ -18,7 +18,7 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
   const lastBattleRef = useRef(null);
 
   useEffect(() => {
-    if (phase != "PLAYING") return;
+    if (phase != "PLAYING" && phase != "WAITING") return;
 
     let cancelled = false;
     let timerId;

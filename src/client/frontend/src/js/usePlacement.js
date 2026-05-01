@@ -179,7 +179,7 @@ const handlePoolDrop = () => {
         const gameData = data.response_svr;
         if (gameData?.status) {
           if (gameData?.status == "SETUP_SUCCESS" ) {
-          setPhase("PLAYING");}     
+          setPhase("WAITING");}     
           setError("");
         }
       })
