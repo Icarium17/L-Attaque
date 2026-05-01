@@ -285,45 +285,7 @@ return (
             <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
           </div>
         )}
-        {/* Bouton surrender & pause */}
-        {phase == "PLAYING" && (
-        <div className="flex flex-col gap-2">
         
-        {/* Surrender Button */}
-        <Button 
-            variant="ghost" 
-            text="Capituler"
-            onClick={surrenderGame} 
-            className="absolute bottom-[6%] left-[74%] w-!"
-          style={{ 
-            width: "120px",
-            height: "120px",
-            background: `url(${surrender}) center/cover no-repeat`, 
-            color: "#bf213b",
-            textShadow: "0 0 8px rgba(0,0,0,0.8)",
-            fontSize: "12px",
-            paddingTop: "50px",  
-        }}
-        />
-
-        {/* Pause/Play Button */}
-        <Button 
-            variant="ghost" 
-            text={isPaused ? "Reprendre" : "Pause"} 
-            onClick={togglePause} 
-            className="absolute bottom-[6%] left-[79%] w-30!"  
-          style={{ 
-            width: "120px",
-            height: "120px",
-            background: `url(${isPaused ? play : pause}) center/cover no-repeat`,  
-            color: "#ffffff",
-            textShadow: "0 0 8px rgba(0,0,0,0.8)",
-            fontSize: "10px",
-            paddingTop: "70px",  
-        }}
-        />
-        </div>
-        )} 
         {/* Board */}
         <div className="relative grid grid-cols-10 gap-0.5 w-[min(900px,82vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
           {/* Bloquer toutes les interactions si pas son tour */}
@@ -367,6 +329,46 @@ return (
           <YourTurn show={showYourTurn} />
         </div>
       </div>
+
+      {/* Bouton surrender & pause */}
+        {phase == "PLAYING" && (
+        <div className="flex flex-col gap-2">
+        
+        {/* Surrender Button */}
+        <Button 
+            variant="ghost" 
+            text="Capituler"
+            onClick={surrenderGame} 
+            className="absolute bottom-[6%] left-[74%] w-!"
+          style={{ 
+            width: "120px",
+            height: "120px",
+            background: `url(${surrender}) center/cover no-repeat`, 
+            color: "#bf213b",
+            textShadow: "0 0 8px rgba(0,0,0,0.8)",
+            fontSize: "12px",
+            paddingTop: "50px",  
+        }}
+        />
+
+        {/* Pause/Play Button */}
+        <Button 
+            variant="ghost" 
+            text={isPaused ? "Reprendre" : "Pause"} 
+            onClick={togglePause} 
+            className="absolute bottom-[6%] left-[79%] w-30!"  
+          style={{ 
+            width: "120px",
+            height: "120px",
+            background: `url(${isPaused ? play : pause}) center/cover no-repeat`,  
+            color: "#ffffff",
+            textShadow: "0 0 8px rgba(0,0,0,0.8)",
+            fontSize: "10px",
+            paddingTop: "70px",  
+        }}
+        />
+        </div>
+        )} 
 
       {/*Cimetières  */}
       {phase == "PLAYING" && (
