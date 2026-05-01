@@ -227,7 +227,7 @@ return (
         {/* Timers */}
         {phase != "PLACEMENT" && phase != "WAITING" && (
             <div className={`flex flex-col justify-between h-[80vh] py-4 ${phase != "PLAYING" ? "invisible" : ""}`}>
-            <Timer timeLeft={timeRemaining[1] || 0} color="RED" turn={turn} onExpire={() => setError("Temps écoulé pour Red!")} />
+            <Timer timeLeft={timeRemaining[1] || 0} color="RED" turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour Red!")} />
             <Panel 
               variant="name" 
               title="Adversaire"
@@ -282,7 +282,7 @@ return (
                 width: "120px",
                 height: "120px",
               }} />
-            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} onExpire={() => setError("Temps écoulé pour Blue!")} />
+            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour Blue!")} />
           </div>
         )}
         

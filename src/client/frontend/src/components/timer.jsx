@@ -2,27 +2,37 @@ import { useEffect, useState } from "react";
 import timerBlue from '../assets/images/timer-blue.png';
 import timerRed from '../assets/images/timer_red.png';
 
-export default function Timer({ timeLeft = 0, color = "BLUE", onExpire , turn}){
-  const [display, setDisplay] = useState(timeLeft);
+export default function Timer({ timeLeft = 0, color = "BLUE", onExpire, turn, isPaused }) {
+  const [display, setDisplay] = useState(Math.floor(timeLeft));
 
+  // Sync serveur : seulement si écart >3s
   useEffect(() => {
-    setDisplay(Math.floor(timeLeft));  // Sync avec la valeur serveur dès qu'elle change
-    if (color != turn) return;
+    const serverTime = Math.floor(timeLeft);
+    setDisplay(prev => {
+      if (Math.abs(prev - serverTime) > 3) return serverTime;
+      return prev;
+    });
+  }, [timeLeft]);
 
-    // Décompte local pour pallier la latence réseau
+  // Décompte local  
+  useEffect(() => {
+    if (color != turn || isPaused) return;
+
     const id = setInterval(() => {
       setDisplay(prev => {
-        if (prev <= 1) {
-           clearInterval(id);
-           onExpire?.();  // Callback à l'expiration
-           return 0; }
+        if (prev <= 0) return 0;
+        if (prev === 1) {
+          onExpire?.();
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(id);
-  }, [timeLeft, turn]);
 
-  const isEnding = display > 0 && display <= 30;
+    return () => clearInterval(id);
+  }, [turn, isPaused, color]);
+
+  const isEnding = display > 0 && display <= 30 && !isPaused;
   const minutes = Math.floor(display / 60);
   const seconds = `${display % 60}`.padStart(2, '0');
 
