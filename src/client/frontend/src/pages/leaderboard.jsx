@@ -87,8 +87,8 @@ export default function LeaderBoard() {
                     <tr key={index} className="border-t border-yellow-700/40 text-gray-100">
                       <td className="py-3 px-4">{index + 1}</td>
                       <td className="py-3 px-4">{player.username || "Joueur"}</td>
-                      <td className="py-3 px-4">{player.wins || 0}</td>
-                      <td className="py-3 px-4">{player.losses || 0}</td>
+                      <td className="py-3 px-4">{player.games_won || 0}</td>
+                      <td className="py-3 px-4">{player.games_lost || 0}</td>
                       <td className="py-3 px-4">{player.score || 0}</td>
                     </tr>
                   ))
