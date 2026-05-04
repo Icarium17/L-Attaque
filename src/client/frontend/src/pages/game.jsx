@@ -53,7 +53,7 @@ export default function Game() {
 
   //  Ordre et couleurs des joueurs
   const [playerOrder, setPlayerOrder] = useState(null);
-  const [playerColor, opponentColor] = playerOrder === 1 ? ["RED", "BLUE"] : ["BLUE", "RED"];
+  const [playerColor, opponentColor] = playerOrder == 1 ? ["RED", "BLUE"] : ["BLUE", "RED"];
 
   // Etats cimetières
   const [capturedPieces, setCapturedPieces] = useState({});
@@ -273,7 +273,7 @@ return (
               }} 
             />
 
-            <TurnIndicator turn={turn} />
+            <TurnIndicator turn={turn} playerName={session.username} opponentName="Adversaire"/>
             <Panel variant="score" title="SCORE" message={scoreBlue.toString()}
               className="absolute bottom-[15%] left-[15%] "
               style={{

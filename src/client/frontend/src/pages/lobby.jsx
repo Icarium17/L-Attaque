@@ -7,6 +7,7 @@ import Notification from "../components/notification.jsx";
 import backgroundLobby from '../assets/images/background-lobby.png';
 import logo from '../assets/images/logo.png';
 import buttonBg from '../assets/images/button-bg.png';
+import buttonAdminBg from '../assets/images/button-admin-bg.png';
 
 
 export default function Lobby() {
@@ -144,6 +145,16 @@ export default function Lobby() {
                 </Button>                     
           </div>
           {error && <div className="mt-4"><Notification message={error} /></div>}
+          <div className="absolute top-[89%] left-[81%] w-[14%] flex flex-col gap-[3%] z-10">
+                <Button 
+                variant="ghost"
+                onClick={() => navigate("/admin")}
+                className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,22px)]"
+                style={{ background: `url(${buttonAdminBg}) center/100% 100% no-repeat` ,minHeight: '140px' , color:'grey' }}          
+                >
+                ADMINISTRATION
+                </Button>                     
+          </div>    
             
       </MainLayout>
   );
