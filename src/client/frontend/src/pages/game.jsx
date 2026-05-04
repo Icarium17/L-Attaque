@@ -340,15 +340,15 @@ return (
             variant="ghost" 
             text="Capituler"
             onClick={surrenderGame} 
-            className="absolute bottom-[6%] left-[74%] w-!"
+            className="absolute bottom-[4%] left-[78%] w-!"
           style={{ 
             width: "120px",
             height: "120px",
             background: `url(${surrender}) center/cover no-repeat`, 
-            color: "#bf213b",
+            color: "#ffffff",
             textShadow: "0 0 8px rgba(0,0,0,0.8)",
             fontSize: "12px",
-            paddingTop: "50px",  
+            paddingTop: "70px",  
         }}
         />
 
@@ -357,7 +357,7 @@ return (
             variant="ghost" 
             text={isPaused ? "Reprendre" : "Pause"} 
             onClick={togglePause} 
-            className="absolute bottom-[6%] left-[79%] w-30!"  
+            className="absolute bottom-[4%] left-[83%] w-30!"  
           style={{ 
             width: "120px",
             height: "120px",
@@ -371,16 +371,16 @@ return (
         {/* Save Button */}
         <Button 
             variant="ghost" 
-            text="Sauvegarder"
+            text="Sauver"
             onClick={surrenderGame} 
-            className="absolute bottom-[5%] left-[84%] w-!"
+            className="absolute bottom-[3.5%] left-[88%] w-!"
           style={{ 
-            width: "155px",
-            height: "155px",
+            width: "130px",
+            height: "130px",
             background: `url(${save}) center/cover no-repeat`, 
-            color: "#bf213b",
+            color: "#ffffff",
             textShadow: "0 0 8px rgba(0,0,0,0.8)",
-            fontSize: "8px",
+            fontSize: "11px",
             paddingTop: "90px",  
         }}
         />

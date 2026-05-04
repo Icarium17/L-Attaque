@@ -61,7 +61,7 @@ const STEPS = [
   {
     title: "Gagner la partie",
     type: "image",
-    image: victory, // Ajout de la référence à l'image ici
+    image: victory,  
     texts: [
       "L'objectif est de trouver et capturer le Drapeau adverse.",
       "La victoire est immédiate dès que vous attaquez le Drapeau ennemi.",
@@ -120,7 +120,7 @@ export default function Tutorial() {
 
         {/* Le Contenu : Galerie, Vidéo ou Image */}
         <div className="w-full flex justify-center">
-          <div className="w-[85%] aspect-video relative">           
+          <div className="w-[76%] aspect-video relative">           
             {currentStep.type == "gallery" ? (
               <div className="absolute inset-0 bg-black/80 rounded-xl rounded-t-none border-4 border-yellow-700 overflow-y-auto">
                 <PieceGallery playerColor="RED" />
@@ -149,19 +149,21 @@ export default function Tutorial() {
 
       {/* ZONE DE TEXTE*/}
       <div
-        className="absolute bottom-[18%] left-1/2 -translate-x-1/2 w-[60%] px-10 py-5 overflow-hidden border-4 border-yellow-700 rounded-3xl"
+        className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[54%] px-10 py-5 overflow-hidden border-4 border-yellow-700 rounded-3xl"
         style={{
           backgroundImage: `url(${texture})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div key={activeStep} className="relative h-30 flex items-center justify-center text-shadow-gray-400 text-2xl sm:text-3xl leading-relaxed text-center font-bold bg-black/40 text-white p-4 rounded-lg">
+        <div key={activeStep} className="relative h-32 flex items-center justify-center sm:text-3xl text-center font-bold bg-black/40 text-white rounded-lg">
           <div>
             {currentStep.texts.map((text, index) => (
-              <p key={index} className={`pop delay-${index}`}>
+              <div className="flex flex-col justify-center h-full">
+              <p key={index} className={`pop delay-${index} m+10`}>
                 {text}
               </p>
+              </div>
             ))}
           </div>
         </div>
