@@ -66,7 +66,7 @@ export default function LeaderBoard() {
           {error && <div className="text-red-500 text-center mb-4">{error}</div>}
 
           <div className="overflow-hidden rounded border border-yellow-700/40">
-            <table className="w-full text-left text-lg">
+            <table className="w-full text-center text-lg">
               <tbody>
                 <tr className="bg-gray-900/80 text-yellow-300">
                   <th className="py-3 px-4">#</th>
@@ -105,6 +105,7 @@ export default function LeaderBoard() {
           </div>
         </div>
       </div>
+
       <div className="absolute top-[90%] left-[45%] w-[22%] flex flex-col gap-[3%] z-10">
         <Button
           variant="danger"
