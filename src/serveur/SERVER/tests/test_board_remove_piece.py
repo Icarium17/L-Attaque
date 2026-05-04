@@ -5,6 +5,10 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from GAME.board import Board
+from GAME.gameRules import GameRules
+from GAME.piece import Piece, PieceType
+from USERS.player import Player
+from USERS.user import User
 
 class DummyPiece:
     def __init__(self, piece_id, position, owner=0):
@@ -15,6 +19,10 @@ class DummyPiece:
 class DummyPlayer:
     def __init__(self):
         self.pieces = {}
+
+
+def make_player(account_id, order, username):
+    return Player(User(account_id, f"KEY{account_id}", username, 0), order)
 
 class TestBoardRemovePiece(unittest.TestCase):
     def setUp(self):
@@ -33,6 +41,38 @@ class TestBoardRemovePiece(unittest.TestCase):
         self.board.remove_piece(self.piece, self.player)
         self.assertIsNone(self.board.tiles[3][2].piece, "Piece should be removed from the board tile")
         self.assertNotIn(self.piece.id, self.player.pieces, "Piece should be removed from player's pieces dict")
+
+    def test_remove_owned_piece_updates_player_flag_cache(self):
+        player = make_player(1, 0, "Blue")
+        flag = Piece(100, PieceType.Drapeau, (2, 3), 0)
+        self.board.tiles[3][2].piece = flag
+        player.pieces[flag.id] = flag
+        player.rebuild_piece_counts()
+
+        player.remove_piece(flag)
+
+        self.assertNotIn(flag.id, player.pieces)
+        self.assertEqual(player.pieces_left[PieceType.Drapeau], 0)
+        self.assertIsNone(player.flag_position)
+
+    def test_check_player_end_state_detects_removed_flag_after_player_removal(self):
+        rules = GameRules("original")
+        player = make_player(1, 0, "Blue")
+        opponent = make_player(2, 1, "Red")
+        flag = Piece(101, PieceType.Drapeau, (2, 3), 0)
+        self.board.tiles[3][2].piece = flag
+        player.pieces[flag.id] = flag
+        player.rebuild_piece_counts()
+
+        player.remove_piece(flag)
+        self.board.remove_piece(flag)
+
+        ended, result = rules.check_player_end_state(player, [player, opponent], self.board)
+
+        self.assertTrue(ended)
+        self.assertIs(result[0], opponent)
+        self.assertIs(result[1], player)
+        self.assertEqual(result[2], "Blue's flag was captured")
 
     def test_remove_piece_not_in_player(self):
         # Remove from board, but not in player's pieces

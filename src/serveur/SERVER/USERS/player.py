@@ -126,10 +126,8 @@ class Player(User):
             None
         """
         piece = self.pieces.pop(piece_id, None)
-        if piece is not None and piece.type is not None and self.pieces_left[piece.type] > 0:
-            self.pieces_left[piece.type] -= 1
-            if piece.type == PieceType.Drapeau:
-                self.flag_position = None
+        if piece is not None:
+            self.rebuild_piece_counts()
 
     def add_belief_pieces(self, pieces):
         """

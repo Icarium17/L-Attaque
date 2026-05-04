@@ -363,7 +363,8 @@ class GameRules():
             bool: True if no flag remains, otherwise False.
         """
         piece_counts = self.get_piece_counts(pieces, piece_counts)
-        return piece_counts[PieceType.Drapeau] == 0
+        flag_captured = piece_counts[PieceType.Drapeau] == 0
+        return flag_captured
 
     def has_remaining_moves(self, player_order, pieces, board):
         """

@@ -21,6 +21,8 @@ class GameManager():
         self.status = status if status else ("WAITING" if len(players) == 1 else "PLAYING")
         self.battle = None
         self.timers = None
+        self.wait_timer_handle = None
+        self.turn_change_timer = None
         self.set_player_boards()
         if len(players) == 2:
             self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired)
@@ -30,11 +32,17 @@ class GameManager():
     def wait_timer(self):
         self.wait_timer_duration = 100
         self.wait_timer_start = time.time()
-        self.wait_timer = threading.Timer(self.wait_timer_duration, self.remove_game)
-        self.wait_timer.start()
+        self.wait_timer_handle = threading.Timer(self.wait_timer_duration, self.remove_game)
+        self.wait_timer_handle.start()
+
+    def cancel_wait_timer(self):
+        if self.wait_timer_handle is not None:
+            self.wait_timer_handle.cancel()
+            self.wait_timer_handle = None
 
 
     def add_second_player(self, player):
+        self.cancel_wait_timer()
         self.players.append(player)
         self.set_player_boards()
         self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired) 
@@ -149,7 +157,7 @@ class GameManager():
             if player.order == -1:
                 return (0, "INVALID_KEY")
             
-            if player.order == 1:
+            if player.order == 1 and not isinstance(player, AIPlayer):
                 move.invert()
                 
             valid_move = self.game_rules.validate_move(player.order, move, self.board)
@@ -165,8 +173,8 @@ class GameManager():
                 self.combat(pieceFrom, tileTo.piece, tileTo)
                 self.status = "BATTLE"
                 self.timers.stop(6)
-                # Use a non-blocking timer to delay turn change
-                threading.Timer(10, self.change_turn).start()
+                self.turn_change_timer = threading.Timer(10, self.change_turn)
+                self.turn_change_timer.start()
             else:
                 distance = tileFrom.get_distance(tileTo)
                 self.board.move(move)
@@ -181,12 +189,15 @@ class GameManager():
     
     def change_turn(self):
         self.status = "PLAYING"
-        ##if not self.check_end_state(): ##TODO : add afterwards
-        self.player_to_move = (self.player_to_move + 1) % len(self.players)
-        self.timers.switch_player(self.player_to_move)
-        player = self.players[self.player_to_move]
-        if isinstance(player, AIPlayer):
-            threading.Thread(target=self.ai_move_thread, args=(player,), daemon=True).start()
+        if not self.check_end_state(): 
+            self.player_to_move = (self.player_to_move + 1) % len(self.players)
+            self.timers.switch_player(self.player_to_move)
+            player = self.players[self.player_to_move]
+            if isinstance(player, AIPlayer):
+                threading.Thread(target=self.ai_move_thread, args=(player,), daemon=True).start()
+
+        else:
+            print("GAME OVER")
 
     def ai_move_thread(self, ai_player):
         ai_player.player_to_move = self.player_to_move
@@ -255,7 +266,7 @@ class GameManager():
                 piece.position = (x, 9 - y)
         return pieces
     
-    def invert_piece_dicts_y(list_pieces):
+    def invert_piece_dicts_y(self, list_pieces):
         for piece in list_pieces:
             x, y = piece['position']
             piece['position'] = (x, 9 - y)
@@ -324,6 +335,26 @@ class GameManager():
             player.user.score += self.game_rules.calc_score(player)
         threading.Timer(10, self.lobbyManager.end_game, args=(self.winner, self.loser, self.end_reason)).start()
 
+    def cleanup(self):
+        self.cancel_wait_timer()
+
+        if self.turn_change_timer is not None:
+            self.turn_change_timer.cancel()
+            self.turn_change_timer = None
+
+        if self.timers is not None:
+            self.timers.shutdown()
+            self.timers = None
+
+        self.players_ready.clear()
+        self.players = []
+        self.board = None
+        self.game_rules = None
+        self.battle = None
+        self.winner = None
+        self.loser = None
+        self.end_reason = None
+
     def timer_expired(self, player):
         self.declare_winner(self.players[(player + 1) % len(self.players)], self.players[player], f"{self.players[player].username}'s timer expired")
 
@@ -344,6 +375,7 @@ class PlayerTimer:
         self.current_player = 0
         self.delay = 1
         self.running = False
+        self.closed = False
         self.lock = threading.Lock()
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.timer_expired_callback = timer_expired_callback
@@ -351,6 +383,8 @@ class PlayerTimer:
 
     def start(self, player):
         with self.lock:
+            if self.closed:
+                return
             self.current_player = player
             self.running = True
             self.last_switch_time = time.time()
@@ -359,6 +393,8 @@ class PlayerTimer:
 
     def switch_player(self, next_player):
         with self.lock:
+            if self.closed:
+                return
             now = time.time()
             if self.running and self.last_switch_time is not None:
                 elapsed = now - self.last_switch_time
@@ -372,6 +408,8 @@ class PlayerTimer:
             self.start(player_idx)
 
         with self.lock:
+            if self.closed:
+                return
             if self.running and self.last_switch_time is not None:
                 elapsed = time.time() - self.last_switch_time
                 self.times[self.current_player] -= elapsed
@@ -381,10 +419,21 @@ class PlayerTimer:
             if duration is not None:
                 threading.Thread(target=resume_after_delay, args=(self.current_player, duration), daemon=True).start()
 
+    def shutdown(self):
+        with self.lock:
+            self.closed = True
+            self.running = False
+            self.last_switch_time = None
+            self.players = []
+            self.times = []
+            self.timer_expired_callback = None
+
     def _run(self):
         while True:
             time.sleep(self.delay)
             with self.lock:
+                if self.closed:
+                    return
                 if self.running and self.last_switch_time is not None:
                     self.players[self.current_player].time_remaining -= self.delay
                     if self.players[self.current_player].time_remaining <= 0:
@@ -395,6 +444,8 @@ class PlayerTimer:
 
     def get_times(self):
         with self.lock:
+            if self.closed:
+                return []
             times_copy = self.times[:]
             if self.running and self.last_switch_time is not None:
                 elapsed = time.time() - self.last_switch_time

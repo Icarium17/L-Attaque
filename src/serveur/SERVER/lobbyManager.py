@@ -235,21 +235,32 @@ class LobbyManager:
         print("get_status called")
         (my_key,) = args
         if my_key not in self.games:
-            return {"status": "IDLE"}
+            user = self.active_users.get(my_key)
+            return {"status": user.status if user is not None else "IDLE"}
         game = self.games[my_key]
         return game.get_status(my_key)
 
 
-    ##Return to Player
-    def end_game(self, winner, loser, reason):
+    def end_game(self, winner, loser, reason): ##TODO : do something with reason
+        game = None
+        for player in (winner, loser):
+            if not isinstance(player, AIPlayer) and player.key in self.games:
+                game = self.games[player.key]
+                break
+
+        if game is not None:
+            game.cleanup()
+
         if not isinstance(winner, AIPlayer):
-            winner.user.status = "IDLE"
-            del self.games[winner.key]
+            winner.user.status = "LAST_GAME_WON"
+            self._cleanup(winner.user)
         if not isinstance(loser, AIPlayer):
-            loser.user.status = "IDLE"
-            del self.games[loser.key]
-        ##TODO : Implement self.DAOUsers.update_score(winner.id, winner.user.score)  # Increment winner's score
-        ##self.DAOUsers.update_score(loser.id, loser.user.score)   # Decrement loser's score
-        ##TODO : Send end game message to both players with reason and updated scores
+            loser.user.status = "LAST_GAME_LOST"
+            self._cleanup(loser.user)
+
+    def _cleanup(self, user):
+        self.games.pop(user.key, None)
+        self.DAOUsers.update_score(user.account_id, user.score)
+
 
     

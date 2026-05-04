@@ -27,11 +27,22 @@ class TestDAOUsersHighScores(unittest.TestCase):
                     if params[1] == uid:
                         scores[name] += params[0]
                 return mock_cursor
-            elif sql.startswith("SELECT username, score FROM users"):
-                # Return the scores sorted as the real query would
-                sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-                return MagicMock(fetchall=MagicMock(return_value=[{'username': name, 'score': score} for name, score in sorted_scores]))
             return mock_cursor
+
+        def fetch_side_effect(sql, params=None):
+            if sql.startswith("SELECT username, score, games_won, games_lost FROM users"):
+                sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+                limited_scores = sorted_scores[:params[0]]
+                return [
+                    {
+                        'username': name,
+                        'score': score,
+                        'games_won': 0,
+                        'games_lost': 0,
+                    }
+                    for name, score in limited_scores
+                ]
+            return []
 
         # Initial scores
         scores = {
@@ -43,6 +54,7 @@ class TestDAOUsersHighScores(unittest.TestCase):
             'user2': 0,
         }
         mock_db.execute.side_effect = execute_side_effect
+        mock_db.fetch.side_effect = fetch_side_effect
         mock_connection.return_value.__enter__.return_value = mock_db
 
         dao = DAOUsers()
@@ -54,16 +66,13 @@ class TestDAOUsersHighScores(unittest.TestCase):
 
         # Now check high scores
         high_scores = dao.get_high_scores(limit=6)
-        self.assertEqual(high_scores[0]['username'], 'ericlabonte')
-        self.assertEqual(high_scores[0]['score'], 105)
-        self.assertEqual(high_scores[1]['username'], 'eddy')
-        self.assertEqual(high_scores[1]['score'], 75)
-        self.assertEqual(high_scores[2]['username'], 'po')
-        self.assertEqual(high_scores[2]['score'], 70)
-        self.assertEqual(high_scores[3]['username'], 'Charleee')
-        self.assertEqual(high_scores[3]['score'], 60)
-        self.assertEqual(high_scores[4]['score'], 0)
-        self.assertEqual(high_scores[5]['score'], 0)
+        self.assertEqual(list(high_scores), ['ericlabonte', 'eddy', 'po', 'Charleee', 'user1', 'user2'])
+        self.assertEqual(high_scores['ericlabonte']['score'], 105)
+        self.assertEqual(high_scores['eddy']['score'], 75)
+        self.assertEqual(high_scores['po']['score'], 70)
+        self.assertEqual(high_scores['Charleee']['score'], 60)
+        self.assertEqual(high_scores['user1']['score'], 0)
+        self.assertEqual(high_scores['user2']['score'], 0)
             
     @patch('DAO.DAOUsers.Connection')
     def test_get_high_scores(self, mock_connection):
@@ -71,29 +80,27 @@ class TestDAOUsersHighScores(unittest.TestCase):
         mock_db = MagicMock()
         mock_cursor = MagicMock()
         # The order should be: ericlabonte (100), eddy (50), po (30), Charleee (10), then others with 0
-        mock_cursor.fetchall.return_value = [
-            {'username': 'ericlabonte', 'score': 100},
-            {'username': 'eddy', 'score': 50},
-            {'username': 'po', 'score': 30},
-            {'username': 'Charleee', 'score': 10},
-            {'username': 'user1', 'score': 0},
-            {'username': 'user2', 'score': 0},
+        mock_db.fetch.return_value = [
+            {'username': 'ericlabonte', 'score': 100, 'games_won': 5, 'games_lost': 1},
+            {'username': 'eddy', 'score': 50, 'games_won': 2, 'games_lost': 3},
+            {'username': 'po', 'score': 30, 'games_won': 1, 'games_lost': 4},
+            {'username': 'Charleee', 'score': 10, 'games_won': 0, 'games_lost': 2},
+            {'username': 'user1', 'score': 0, 'games_won': 0, 'games_lost': 0},
+            {'username': 'user2', 'score': 0, 'games_won': 0, 'games_lost': 0},
         ]
-        mock_db.execute.return_value = mock_cursor
         mock_connection.return_value.__enter__.return_value = mock_db
 
         dao = DAOUsers()
         scores = dao.get_high_scores(limit=6)
-        self.assertEqual(scores[0]['username'], 'ericlabonte')
-        self.assertEqual(scores[0]['score'], 100)
-        self.assertEqual(scores[1]['username'], 'eddy')
-        self.assertEqual(scores[1]['score'], 50)
-        self.assertEqual(scores[2]['username'], 'po')
-        self.assertEqual(scores[2]['score'], 30)
-        self.assertEqual(scores[3]['username'], 'Charleee')
-        self.assertEqual(scores[3]['score'], 10)
-        self.assertEqual(scores[4]['score'], 0)
-        self.assertEqual(scores[5]['score'], 0)
+        self.assertEqual(list(scores), ['ericlabonte', 'eddy', 'po', 'Charleee', 'user1', 'user2'])
+        self.assertEqual(scores['ericlabonte']['score'], 100)
+        self.assertEqual(scores['eddy']['score'], 50)
+        self.assertEqual(scores['po']['score'], 30)
+        self.assertEqual(scores['Charleee']['score'], 10)
+        self.assertEqual(scores['user1']['score'], 0)
+        self.assertEqual(scores['user2']['score'], 0)
+        self.assertEqual(scores['ericlabonte']['games_won'], 5)
+        self.assertEqual(scores['ericlabonte']['games_lost'], 1)
 
 if __name__ == '__main__':
     unittest.main()

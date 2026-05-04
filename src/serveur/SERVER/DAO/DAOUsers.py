@@ -52,11 +52,11 @@ class DAOUsers():
         
     def update_score(self, user_id, new_score):
         with Connection() as db:
-            return db.execute("UPDATE users SET score = score + %s WHERE _id = %s", (new_score, user_id))
+            return db.execute("UPDATE users SET score = %s WHERE _id = %s", (new_score, user_id))
         
     def get_high_scores(self, limit = 10):
         with Connection() as db:
-            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users ORDER BY score DESC LIMIT %s", (limit,))
+            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users WHERE username != 'MCTS_AI' ORDER BY score DESC LIMIT %s", (limit,))
             return {
                 row["username"]: {
                     "username" : row["username"],

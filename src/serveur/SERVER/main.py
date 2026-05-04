@@ -41,7 +41,31 @@ Routes (endpoint -> HTTP method):
 
 - POST /get_status
     - Payload: {"key": session_key}
-    - Response: {"status": "playing", "board": [...], "turn": "blue"}
+    - Response when in a game: {"status": game_status, "board": [...], "turn": "blue" | "red", "order": 0 | 1, "scores": [...], "time_remaining": [...], "battle": ...}
+    - Response when not in a game: {"status": user_status}
+
+    - `status` meanings:
+        - `IDLE`: the user is connected but not currently attached to a game.
+        - `WAITING_FOR_OPPONENT`: the user created a multiplayer game and is waiting for a second player.
+        - `SETTING_UP`: the game exists and players are placing their starting pieces.
+        - `PLAYING`: the game is active and waiting for the next move.
+        - `BATTLE`: the previous move triggered a combat resolution.
+        - `PAUSED`: the current game is paused.
+        - `SURRENDER`: the game ended because a player surrendered.
+        - `LAST_GAME_WON`: the user is no longer in an active game and their last completed game was a win.
+        - `LAST_GAME_LOST`: the user is no longer in an active game and their last completed game was a loss.
+
+- POST /get_high_scores
+    - Payload: none
+    - Response: {username: {"username": username, "score": int, "games_won": int, "games_lost": int}, ...}
+
+- POST /surrender
+    - Payload: {"key": session_key}
+    - Response: "GAME_SURRENDERED"
+
+- POST /pause
+    - Payload: {"key": session_key}
+    - Response: result returned by `LobbyManager.pause`
  
 
 Notes:
@@ -155,24 +179,20 @@ def handle_valid_move():
         "status": result[1]
     })
 
-##Pour avoir le statut du joueur
 @app.route('/get_status', methods=['POST'])
 def handle_get_status():
     data = request.get_json()
     key = data.get('key')
-
-    # result : {"status": "playing", "board": [list of piece, type, position], "turn": "blue"} int 0 to blue
     # TODO : ajouter scores des joueurs
     result = lobby.execute_action("getStatus", (key,))
+    
     return jsonify(result)
 
-##Retourne dictionnaire de dictionnaire, contenant {username, score, games_won, games_lost}
 @app.route('/get_high_scores', methods=['POST'])
 def handle_get_high_scores():
     result = lobby.execute_action('leaderboard')
 
     return jsonify(result)
-
 
 @app.route('/surrender', methods=['POST'])
 def surrender():
@@ -181,7 +201,6 @@ def surrender():
     result = lobby.execute_action('surrender', (my_key,))
 
     return jsonify(result)
-
 
 @app.route('/pause', methods=['POST'])
 def pause():

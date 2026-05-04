@@ -15,7 +15,7 @@ class DummyPiece:
 class TestCombat(unittest.TestCase):
     def setUp(self):
         self.board = Board()
-        self.rules = GameRules(self.board, "original")
+        self.rules = GameRules("original")
 
     def test_equal_power(self):
         p1 = DummyPiece(PieceType.Lieutenant)
