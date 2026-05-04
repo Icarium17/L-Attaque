@@ -437,12 +437,9 @@ class GameRules():
 
         return False
     
-    def get_remaining_moves(self, pieces, player_order, board, reason = 0): 
+    def get_remaining_moves(self, pieces, player_order, board, reason = 0):
         """
-        Enumerate legal moves for a position.
-
-        This is the full move-generation path used when callers need the actual
-        move list, with a legacy early-exit mode preserved for existing callers.
+        Enumerate legal moves for a position, returning only valid moves.
 
         Args:
             pieces (dict): Mapping of piece ids to piece objects.
@@ -451,11 +448,11 @@ class GameRules():
             reason (int): Optional mode flag used by existing callers.
 
         Returns:
-            list or bool: A list of legal moves, or True in early-exit mode once a move exists.
+            list: A list of legal moves.
         """
-        ## TODO : add a check for _check_last_moves to avoid returning moves that would be rejected for being repetitions of the last moves
         possible_moves = []
         DIRECTIONS = [(0,1), (1,0), (0,-1), (-1,0)]
+        rows, cols = board.rows, board.cols
 
         for piece in pieces.values():
             if piece.type in (PieceType.Drapeau, PieceType.Bombe):
@@ -464,35 +461,35 @@ class GameRules():
             if piece.type != PieceType.Eclaireur:
                 for dx, dy in DIRECTIONS:
                     new_x, new_y = x + dx, y + dy
-                    if not (0 <= new_x < board.rows and 0 <= new_y < board.cols):
+                    # Pre-filter: out of bounds
+                    if not (0 <= new_x < cols and 0 <= new_y < rows):
                         continue
-
                     target = board.tiles[new_y][new_x]
-
-                    if target is not None and target.piece is not None and target.piece.owner == piece.owner:
+                    # Pre-filter: impassable tile or own piece
+                    if target.state == 1 or (target.piece is not None and target.piece.owner == piece.owner):
                         continue
-
                     move = Move((x, y), (new_x, new_y))
-                    possible_moves.append(move)
+                    # Call validate_move for final check
+                    valid, _ = self.validate_move(player_order, move, board, update_history=False)
+                    if valid:
+                        possible_moves.append(move)
             else:
                 for dx, dy in DIRECTIONS:
                     new_x, new_y = x + dx, y + dy
-
-                    while 0 <= new_x < board.rows and 0 <= new_y < board.cols:
+                    while 0 <= new_x < cols and 0 <= new_y < rows:
                         target = board.tiles[new_y][new_x]
-
-                        move = Move((x, y), (new_x, new_y))
-
-                        if target is None:
-                            possible_moves.append(move)
-                        else:
-                            if target.piece is not None and target.piece.owner != piece.owner:
-                                possible_moves.append(move)
+                        # Pre-filter: impassable tile or own piece
+                        if target.state == 1 or (target.piece is not None and target.piece.owner == piece.owner):
                             break
-
+                        move = Move((x, y), (new_x, new_y))
+                        valid, _ = self.validate_move(player_order, move, board, update_history=False)
+                        if valid:
+                            possible_moves.append(move)
+                        # Stop if there's a piece (can't go further)
+                        if target.piece is not None:
+                            break
                         new_x += dx
                         new_y += dy
-
         return possible_moves
     
     def check_remaining_moves(self, player_order, pieces, board = None, reason = 0):

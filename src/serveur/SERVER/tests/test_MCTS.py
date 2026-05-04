@@ -21,7 +21,7 @@ class TestMCTS(unittest.TestCase):
         self.players = [ai1, ai2]
 
         # Create game and rules
-        self.lobby = LobbyManager()
+        self.lobby = LobbyManager() 
         self.game = GameManager(self.lobby, self.players, "original")
         
         for i in range(0, 2):

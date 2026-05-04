@@ -32,7 +32,7 @@ class AIPlayer(Player):
 
         self.rows = {
             0: (6, 10), 
-            1: (0, 4) 
+            1: (0, 3) 
         }
 
         self.move_timers = { ## TODO : tinker with the times, this doesnt look right
@@ -86,6 +86,7 @@ class AIPlayer(Player):
             print("choosing")
 
         move = mcts.get_best_move()
+        print(move)
         return move
 
 

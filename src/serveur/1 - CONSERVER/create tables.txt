@@ -70,4 +70,12 @@ create table banned_words(
 	_id int auto_increment primary key,
 	word varchar(127)
 );
+
+ create table saved_games (
+    	_id int auto_increment primary key,
+    	ai_difficulty int not null,
+    	board json,
+    	player_to_move int not null,
+    	end_time timestamp),
+	user_id int not null;
 	

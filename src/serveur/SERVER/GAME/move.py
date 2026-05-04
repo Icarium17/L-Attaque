@@ -16,4 +16,10 @@ class Move():
     def __hash__(self):
         return hash((self.moveFrom, self.moveTo))
     
+    def invert(self):
+        x0, y0 = self.moveFrom
+        x1, y1 = self.moveTo
+        self.moveFrom = (x0, 9 - y0)
+        self.moveTo = (x1, 9 - y1)
+    
   

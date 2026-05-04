@@ -19,7 +19,7 @@ class Player(User):
         """
         self.__dict__ = user_instance.__dict__.copy()
         self.user = user_instance
-        self.order = order
+        self.order = int(order)
         self.known_board = None
         self.time_remaining = time_remaining
         

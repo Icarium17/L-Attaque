@@ -70,7 +70,9 @@ class GameManager():
         if player_order == -1:
             return ("Le joueur n'est pas valide")
         
+        pieces = self.invert_positions_if_needed(player_order, pieces)
         positions = self.game_rules.validate_placement(player_order, pieces)
+
         if positions[0] == 0:
             return positions
         
@@ -78,20 +80,13 @@ class GameManager():
         player_pieces = self.clone_pieces(pieces)
         self.players[player_order].position_pieces(player_pieces)
         self.players[player_order].sync_owned_pieces()
-        self.set_unknowns_pieces(player_id, pieces) 
         self.players_ready.add(player_id)
-
-        ##setup pieces AI. TODO : change once it works
         for player in self.players:
             if isinstance(player, AIPlayer):
                 self.setup_ai_player(player.order)
-
         if len(self.players) == 2 and all(p.key in self.players_ready for p in self.players):
-            if self.timers:
-                self.timers.start(0)
-            for p in self.players:
-                if hasattr(p, "user"):
-                    p.user.status = "PLAYING"
+            print("setup")
+            self.finish_set_up()
         else:
             self.players[player_order].user.status = "WAITING_FOR_OPPONENT"
         return ("SETUP_SUCCESS")
@@ -102,17 +97,30 @@ class GameManager():
         self.board.set_pieces(ai_pieces) ##ok
         ai_player.position_pieces(self.clone_pieces(ai_pieces))
         ai_player.sync_owned_pieces()
-        self.set_unknowns_pieces(ai_player.key, ai_pieces) ##ok
         self.players_ready.add(ai_player.key)
         ai_player.game_rules = self.game_rules
         ai_player.players = self.players
 
-    def set_unknowns_pieces(self, player_id, pieces):
-        player_order = self.get_order(player_id)
+    def finish_set_up(self):
+        print("setup_called")
+        for order, p in enumerate(self.players):
+                print("order:", order)
+                p_pieces = p.known_board.get_pieces(order)
+                self.set_unknowns_pieces(int(order), p_pieces)
+        for p in self.players:
+            if hasattr(p, "user"):
+                p.user.status = "PLAYING"
 
+        self.status = "PLAYING"
+
+        if self.timers:
+            self.timers.start(0)
+
+
+    def set_unknowns_pieces(self, player_order, pieces):
         for opponent in self.players[:player_order] + self.players[player_order + 1:]:
             belief_pieces = []
-            for piece in pieces:
+            for piece in pieces.values():
                 belief = BeliefPiece(piece.id, piece.position, player_order)
                 belief_pieces.append(belief)
 
@@ -140,7 +148,10 @@ class GameManager():
             player = self.players[self.get_order(player_id)]
             if player.order == -1:
                 return (0, "INVALID_KEY")
-
+            
+            if player.order == 1:
+                move.invert()
+                
             valid_move = self.game_rules.validate_move(player.order, move, self.board)
             if valid_move[0] == 0:
                 return valid_move
@@ -232,14 +243,33 @@ class GameManager():
             self.timers.start(player.order)
             return (1, "GAME_RESTARTED") 
         
+    def invert_positions_if_needed(self, player_order, pieces):
+        """
+        Invert the y position of all pieces if player_order is 1 (second player),
+        so that (x, 6) becomes (x, 3), (x, 7) -> (x, 2), (x, 8) -> (x, 1), (x, 9) -> (x, 0)
+        Assumes a 10x10 board.
+        """
+        if player_order == 1:
+            for piece in pieces:
+                x, y = piece.position
+                piece.position = (x, 9 - y)
+        return pieces
+    
+    def invert_piece_dicts_y(list_pieces):
+        for piece in list_pieces:
+            x, y = piece['position']
+            piece['position'] = (x, 9 - y)
+        return list_pieces
         
-
     def get_status(self, player_id):
         player = self.players[self.get_order(player_id)]
         if player.order == -1:
             return {"status": "INVALID_KEY"} ##TODO : change for the player only
         
-        list_pieces = self.board.return_pieces()
+        list_pieces = player.known_board.return_pieces()
+
+        if player.order == 1:
+            list_pieces = self.invert_piece_dicts_y(list_pieces)
 
         status = {
                 "status": self.status, 
