@@ -70,6 +70,13 @@ class InfoSet:
         for piece in revealed_opponent_pieces:
             self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece.clone()
 
+    def return_pieces(self, move):
+        x_0, y_0, x_1, y_1 = move.get_params()
+        my_piece = self.board_state.tiles[y_0][x_0].piece
+        their_piece = self.board_state.tiles[y_1][x_1].piece
+
+        return my_piece, their_piece
+
     def actualize_belief_pieces(self, hidden_belief_pieces, pieces_left):
         belief_piece_ids = {piece.id for piece in hidden_belief_pieces}
         belief_pieces = []
@@ -93,13 +100,13 @@ class InfoSet:
 
         possible_setup = self.assign_types_backtracking(belief_pieces, pieces_left)
 
-        if possible_setup is None:
+        if possible_setup == []:
             self.actualize_stats["used_random_fallback"] = True
             possible_setup = self.assign_types_random(belief_pieces, pieces_left)
 
         if possible_setup is not None:
             for belief_piece, type in zip(belief_pieces, possible_setup):
-                piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner)
+                piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner, False)
                 self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece
 
     def assign_types_backtracking(self, belief_pieces, pieces_left, timeout=0.5):

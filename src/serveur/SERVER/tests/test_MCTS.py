@@ -15,15 +15,15 @@ class TestMCTS(unittest.TestCase):
     def setUp(self):
         # Create users and AI players
         user1 = User(0, "aaa", "AI_1", 0)
-        ai1 = AIPlayer(user1, 0, 0)
+        ai1 = AIPlayer(user1, 0, 1)
         user2 = User(1, "bbb", "AI_2", 0)
-        ai2 = AIPlayer(user2, 1, 0)
+        ai2 = AIPlayer(user2, 1, 1)
         self.players = [ai1, ai2]
 
         # Create game and rules
-        self.lobby = LobbyManager() 
+        self.lobby = LobbyManager()
         self.game = GameManager(self.lobby, self.players, "original")
-        
+
         for i in range(0, 2):
             self.game.setup_ai_player(i)
 

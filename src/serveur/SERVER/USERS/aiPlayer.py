@@ -48,6 +48,7 @@ class AIPlayer(Player):
         self.exclude_types = set()
         self.setup_library = AISetupLibrary(self)
         self.setup = self.setup_library.full_builders
+        self.last_move = None
 
     def initialize_game(self):
         print("AIPlayer.initialize_game called")

@@ -30,11 +30,12 @@ class PieceType(Enum):
 
 
 class Piece():
-    def __init__(self, id, type, position, owner):
+    def __init__(self, id, type, position, owner, revealed = True):
         self.id = id
         self.type = type
         self.position = position
         self.owner = owner ## int avec l'ordre du joueur
+        self.revealed = revealed
 
     def clone(self):
         return Piece(self.id, self.type, self.position, self.owner)
@@ -51,7 +52,7 @@ class Piece():
     
 class BeliefPiece(Piece):
     def __init__(self, id, position, owner):
-        super().__init__(id, None, position, owner)
+        super().__init__(id, None, position, owner, False)
         self.evidence_weights = {}
         self.probabilities = {}
         self.set_probabilities() 

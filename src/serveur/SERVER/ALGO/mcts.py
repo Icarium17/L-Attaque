@@ -4,6 +4,8 @@ from ALGO.node import Node
 import copy
 import time
 
+from GAME.piece import PieceType
+
 class MCTS:
     """
     Monte Carlo Tree Search (MCTS) implementation for game AI.
@@ -35,7 +37,7 @@ class MCTS:
     def _setup(self, ai):
         self.root_node = Node(None, None)
         self.current_node = self.root_node
-        self.previous_move = None
+        self.previous_move = self.ai.last_move
 
         self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
         self.algo_infoSet = None
@@ -130,7 +132,8 @@ class MCTS:
         game_over = 0
         s = 0
         while not game_over and s < 25:
-            self.simulation_by_level[self.difficulty]()
+            if not self.simulation_by_level[self.difficulty]():
+                return game_over
 
             game_over = self.game_over() ## TODO : find a way to make it lighter so its not such a bottleneck
            
@@ -156,24 +159,43 @@ class MCTS:
         Perform a random move for easy difficulty.
         """
         possible_moves = self.algo_infoSet.get_all_possible_moves()
+        print(possible_moves)
         if len(possible_moves) == 0:
-            raise ValueError("MCTS : possible_moves is empty")
+            return 0
 
         move = random.choice(possible_moves)
+        self.algo_infoSet.update_infoSet(move)
+
+        return 1
+
+    def simulation_medium(self):
+        possible_moves = self.algo_infoSet.get_all_possible_moves()
+        print(possible_moves)
+        if len(possible_moves) == 0:
+           return 0
+        
+        move_priors = []
+        for move in possible_moves:
+            prior = self.prior_evaluate_medium_move(move)
+            move_priors.append((move, prior))
+
+       
+        if random.random() < 0.5:
+            move = random.choice(possible_moves)
+        else:
+            max_prior = max(move_priors, key=lambda x: x[1])[1]
+            best_moves = [m for m, p in move_priors if p == max_prior]
+            move = random.choice(best_moves)
 
         self.algo_infoSet.update_infoSet(move)
 
-    def simulation_medium(self):
-        """
-        Placeholder for a better heuristic for medium difficulty. Currently random.
-        """
-        self.simulation_easy()
+        return 1
 
     def simulation_hard(self):
         """
         Placeholder for a perfect heuristic for hard difficulty. Currently random.
         """
-        self.simulation_easy()
+        return self.simulation_easy()
 
     def heuristic_evaluation_easy(self, move):
         if self.previous_move is not None:
@@ -182,14 +204,45 @@ class MCTS:
             
         return 1
 
-    def heuristic_evaluatin_medium(self, moves):
+    def heuristic_evaluation_medium(self, moves):
         pass
 
     def heuristic_evaluation_hard(self, moves):
         pass
 
-    def prior_evaluation(self, move):
-        pass
+    def prior_evaluate_medium_move(self, move):
+        """
+        Evaluate a move based on tactical, mobility, information, and strategy priors.
+        Returns a score (float/int) representing the move's desirability.
+        """
+        score = 0
+        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
+
+        if their_piece and their_piece.type == PieceType.Drapeau:
+            score += 1000000  
+        elif their_piece:
+            if their_piece.type.value > my_piece.type.value:
+                score += 100  
+            elif their_piece.type.value < my_piece.type.value:
+                score -= 100  
+            if their_piece.type.value >= 8:
+                score += 50  
+            if my_piece.type.value < their_piece.type.value:
+                score -= 200  
+            else:
+                score += 20 
+        
+        if their_piece and not their_piece.revealed:
+            score += 30  
+        if my_piece.type == PieceType.Eclaireur and their_piece:
+            score += 10  
+
+        if self.previous_move is not None and move == self.previous_move:
+            score -= 50  
+
+        print(score)
+
+        return score
 
     def game_over(self):
         """
@@ -213,6 +266,8 @@ class MCTS:
             best_child = max(self.root_node.children, key=lambda x: x.win_score)
         else:
             best_child = self.root_node.get_random_child()
+
+        self.ai.last_move = best_child.move
         return best_child.move
     
 
