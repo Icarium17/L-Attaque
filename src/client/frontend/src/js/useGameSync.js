@@ -50,16 +50,16 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
           if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
           if (gameData?.time_remaining)
             setTimeRemaining(gameData.time_remaining.map(val => Number(val)));
+        
+          const currentOrder = gameData?.order != undefined ? gameData.order : playerOrder;
+          const currentPlayerColor = currentOrder == 1 ? "RED" : "BLUE";
+          const currentOpponentColor = currentOrder == 1 ? "BLUE" : "RED";
 
           // Scores
           if (gameData?.scores?.length == 2) {   
               setScoreBlue(gameData.scores[0]);
               setScoreRed(gameData.scores[1]);
           }
-
-          const currentOrder = gameData?.order != undefined ? gameData.order : playerOrder;
-          const currentPlayerColor = currentOrder == 1 ? "RED" : "BLUE";
-          const currentOpponentColor = currentOrder == 1 ? "BLUE" : "RED";
 
           const boardData = result.result?.apiBoard || gameData?.board;
           if (boardData) setBoard(makeBoard(boardData, currentOrder, currentPlayerColor, currentOpponentColor));
@@ -92,13 +92,13 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
             console.log("board après battle:", gameData.board);
 
             if(!attackerSurvived){
-              if (attackerPlayer == "RED") setCapturedPieces(prev => addToCounts(prev, attacker.type));
-                else if ( attackerPlayer == "BLUE") setLostPieces(prev => addToCounts(prev, attacker.type));
-              }
-              if (!defenderSurvived){
-                if (defenderPlayer == "RED")  setCapturedPieces(prev => addToCounts(prev, defender.type));
-                  else if (defenderPlayer =="BLUE") setLostPieces(prev => addToCounts(prev, defender.type));
-              }
+            if (attackerPlayer == currentOpponentColor) setCapturedPieces(prev => addToCounts(prev, attacker.type));
+                else if (attackerPlayer == currentPlayerColor) setLostPieces(prev => addToCounts(prev, attacker.type));
+            }
+            if (!defenderSurvived){
+              if (defenderPlayer == currentOpponentColor) setCapturedPieces(prev => addToCounts(prev, defender.type));
+                else if (defenderPlayer == currentPlayerColor) setLostPieces(prev => addToCounts(prev, defender.type));
+            }
 
             setBattleData({
               attacker: { type: attacker.type, rank: TYPE_TO_RANK[attacker.type], player: attackerPlayer },
@@ -109,7 +109,16 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
             return;
           }
 
-          if (status == "WIN" || status == "LOSE") { setGameResult(status); setPhase(status); return; }
+          if (status == "WIN" || status == "LAST_GAME_WON") { 
+          setGameResult("WIN"); 
+          setPhase("WIN"); 
+          return; 
+          }
+          if (status == "LOSE" || status == "LAST_GAME_LOST") { 
+            setGameResult("LOSE"); 
+            setPhase("LOSE"); 
+            return; 
+          }
 
           if (status == "PLAYING") setPhase("PLAYING");
           timerId = setTimeout(pull, 2000);

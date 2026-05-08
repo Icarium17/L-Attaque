@@ -3,11 +3,18 @@ import hood from '../assets/images/hood.png';
 
 export default function TurnIndicator({
   turn,
+  playerColor = "BLUE",
   playerName = "BLUE",
   opponentName = "Adversaire"
 }) {
 
-  const isBlue = turn == "BLUE";
+  const isMyTurn = turn == playerColor;
+  const iAmBlue = playerColor == "BLUE";
+  const myColor = iAmBlue ? '#ffffff' : '#f87171';
+  const myBg = iAmBlue ? 'rgba(96,165,250,0.35)' : 'rgba(220,38,38,0.35)';
+  const oppColor = iAmBlue ? '#f87171' : '#ffffff';
+  const oppBg = iAmBlue ? 'rgba(220,38,38,0.35)' : 'rgba(96,165,250,0.35)';
+ 
 
   return (
     <div className="fixed left-0 top-1/2 -translate-y-1/2 select-none z-50">      
@@ -24,14 +31,12 @@ export default function TurnIndicator({
             drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]
           "
           style={{
-            color: isBlue ? '#ffffff' : '#f87171',
-            backgroundColor: isBlue
-              ? 'rgba(96,165,250,0.35)'
-              : 'rgba(220,38,38,0.35)',
+            color: isMyTurn ? myColor : oppColor,
+            backgroundColor: isMyTurn ? myBg : oppBg,
             transition: 'color 0.5s, background-color 0.5s',
           }}
         >
-          {(isBlue ? playerName : opponentName).toUpperCase()}
+           {(isMyTurn ? playerName : opponentName).toUpperCase()}
         </span>
 
         {/* Point fixe de rotation*/}
@@ -54,7 +59,7 @@ export default function TurnIndicator({
             className="relative w-40 h-60 object-contain z-55"
             style={{
               transformOrigin: '40% 75%',
-              transform: isBlue ? 'scaleY(-1)' : 'scaleY(1)',
+              transform: isMyTurn ? 'scaleY(-1)' : 'scaleY(1)',
               transition: 'transform 0.5s',
             }}
           />

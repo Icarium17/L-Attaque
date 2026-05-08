@@ -228,13 +228,13 @@ return (
         {/* Timers */}
         {phase != "PLACEMENT" && phase != "WAITING" && (
             <div className={`flex flex-col justify-between h-[80vh] py-4 ${phase != "PLAYING" ? "invisible" : ""}`}>
-            <Timer timeLeft={timeRemaining[1] || 0} color="RED" turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour Red!")} />
+            <Timer timeLeft={timeRemaining[1] || 0} color={opponentColor} turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour " + opponentColor + "!")} />
             <Panel 
               variant="name" 
               title="Adversaire"
               className="absolute top-[32%] left-[18%]"
               style={{
-                backgroundImage: `url(${redName})`,
+                backgroundImage: `url(${opponentColor == "RED" ? redName : blueName})`,
                 backgroundSize: "contain",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
@@ -246,7 +246,7 @@ return (
                 justifyContent: "center",
               }} 
             />
-            <Panel variant="score" title="SCORE" message={scoreRed.toString()}
+            <Panel variant="score" title="SCORE" message={(opponentColor == "RED" ? scoreRed : scoreBlue).toString()}
               className="absolute top-[15%] left-[15%] "
               style={{
                 backgroundImage: `url(${backgroundScore})`,
@@ -260,7 +260,7 @@ return (
               title={session.username}
               className="absolute top-[60%] left-[18%]"
               style={{
-                backgroundImage: `url(${blueName})`,
+                backgroundImage: `url(${playerColor == "RED" ? redName : blueName})`,
                 backgroundSize: "contain",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
@@ -273,8 +273,8 @@ return (
               }} 
             />
 
-            <TurnIndicator turn={turn} playerName={session.username} opponentName="Adversaire"/>
-            <Panel variant="score" title="SCORE" message={scoreBlue.toString()}
+            <TurnIndicator turn={turn} playerColor={playerColor} playerName={session.username} opponentName="Adversaire"/>
+            <Panel variant="score" title="SCORE" message={(playerColor == "RED" ? scoreRed : scoreBlue).toString()}
               className="absolute bottom-[15%] left-[15%] "
               style={{
                 backgroundImage: `url(${backgroundScore})`,
@@ -283,7 +283,7 @@ return (
                 width: "120px",
                 height: "120px",
               }} />
-            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour Blue!")} />
+            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour " + playerColor + "!")} />
           </div>
         )}
         
