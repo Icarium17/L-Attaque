@@ -44,7 +44,7 @@ class DAOUsers():
         
     def get_all_users(self):
         with Connection() as db:
-            return db.fetch("SELECT _id, username FROM users")
+            return db.fetch("SELECT _id, username, rights FROM users")
 
     def delete_user(self, user_id):
         with Connection() as db:

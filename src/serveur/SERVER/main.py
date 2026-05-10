@@ -85,8 +85,9 @@ def handle_signup():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+    rights = data.get('rights', 'User')
 
-    status, key, message = lobby.execute_action("signup", (username, password))
+    status, key, message = lobby.execute_action("signup", (username, password, rights))
 
     return jsonify({
         "status": status,

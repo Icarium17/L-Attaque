@@ -47,9 +47,11 @@ class LobbyManager:
     def create_profile(self, args) -> str:
         print("create_profile called")
 
-        username, password = args ## TODO : modifier pour que ça prenne en compte les autres paramètres (langue, etc)
+        username, password, *rest = args ## TODO : modifier pour que ça prenne en compte les autres paramètres (langue, etc)
+        rights = rest[0] if rest else 'User'
+        
         user_created, user_id, session_key, status = self.DAOUsers.create_user(
-            username, password, 'French', 0, 'User', True, True
+            username, password, 'French', 0, rights, True, True
         )
 
         if user_created:

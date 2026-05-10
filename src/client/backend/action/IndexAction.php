@@ -1,4 +1,3 @@
-
 <?php
 require_once("action/CommonAction.php");
 
@@ -35,10 +34,10 @@ class IndexAction extends CommonAction {
                     return ["result" => compact("success", "message"), "response_svr" => $apiResult];
                 } 
 
-            if ($apiResult->status == "INVALID_KEY") {                 
-                $error = "Clef invalide";
-                return ["result" => compact("error"), "response_svr" => $apiResult];
-                 }
+                if ($apiResult->status == "INVALID_KEY") {                 
+                    $error = "Clef invalide";
+                    return ["result" => compact("error"), "response_svr" => $apiResult];
+                }
 
                 $error = "Erreur serveur : " . $apiResult->status;
                 return ["result" => compact("error"), "response_svr" => $apiResult];
@@ -80,7 +79,7 @@ class IndexAction extends CommonAction {
                 return ["result" => compact("error"), "response_svr" => $apiResult];
             }
 
-            // Inscription /connexion réussie
+            // Inscription / connexion réussie
             $_SESSION["visibility"] = self::$VISIBILITY_MEMBER;
             $_SESSION["username"] = $nom;
             $_SESSION["key"] = $apiResult->key;
@@ -94,38 +93,52 @@ class IndexAction extends CommonAction {
 
         // SIGNIN (CONNEXION)
         else {
-                $nom = isset($_POST["nom"]) ? trim($_POST["nom"]) : "";
-                $motDePasse = isset($_POST["motDePasse"]) ? trim($_POST["motDePasse"]) : "";
+            $nom = isset($_POST["nom"]) ? trim($_POST["nom"]) : "";
+            $motDePasse = isset($_POST["motDePasse"]) ? trim($_POST["motDePasse"]) : "";
 
-                if (empty($nom) || empty($motDePasse)) {
-                    $error = "Veuillez saisir les informations";
-                    return ["result" => compact("error")];
-                }
+            if (empty($nom) || empty($motDePasse)) {
+                $error = "Veuillez saisir les informations";
+                return ["result" => compact("error")];
+            }
 
-                $data = [
+            $data = [
                 "username" => $nom, 
                 "password" => $motDePasse
-                ];
-                $apiResult = parent::callPython("signin", $data);
+            ];
+            $apiResult = parent::callPython("signin", $data);
 
-                if ($apiResult == null) {
-                    $error = "Serveur injoignable";
-                    return ["result" => compact("error")];
-                }
-
-                if ($apiResult->status == "USER_CONNECTED") {
-                    $_SESSION["visibility"] = self::$VISIBILITY_MEMBER;
-                    $_SESSION["username"] = $nom;
-                    $_SESSION["key"] = $apiResult->key;
-
-                    $success  = true;
-                    $key      = $apiResult->key;
-                    $username = $nom;
-                    return ["result" => compact("success", "key", "username"), "response_svr" => $apiResult];
-                }
-
-                $error = "Erreur Login ou mot de passe ";
-                return ["result" => compact("error"), "response_svr" => $apiResult];
+            if ($apiResult == null) {
+                $error = "Serveur injoignable";
+                return ["result" => compact("error")];
             }
+
+            if ($apiResult->status == "USER_CONNECTED") {
+                // Détecter si le user est admin
+                $usersResult = parent::callPython("get_all_users", ["key" => $apiResult->key]);
+                $isAdmin = false;
+                if ($usersResult && isset($usersResult->users)) {
+                    foreach ($usersResult->users as $u) {
+                        if ($u->username === $nom && ($u->rights ?? "User") === "Admin") {
+                            $isAdmin = true;
+                            break;
+                        }
+                    }
+                }
+
+                $_SESSION["visibility"] = $isAdmin
+                    ? self::$VISIBILITY_ADMINISTRATOR
+                    : self::$VISIBILITY_MEMBER;
+                $_SESSION["username"] = $nom;
+                $_SESSION["key"] = $apiResult->key;
+
+                $success  = true;
+                $key      = $apiResult->key;
+                $username = $nom;
+                return ["result" => compact("success", "key", "username", "isAdmin"), "response_svr" => $apiResult];
+            }
+
+            $error = "Erreur Login ou mot de passe ";
+            return ["result" => compact("error"), "response_svr" => $apiResult];
         }
     }
+}
