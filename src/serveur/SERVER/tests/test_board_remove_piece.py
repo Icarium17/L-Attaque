@@ -3,12 +3,17 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
 from GAME.piece import Piece, PieceType
 from USERS.player import Player
 from USERS.user import User
+
+from gameManager import GameManager
+from GAME.move import Move
+from unittest.mock import MagicMock
 
 class DummyPiece:
     def __init__(self, piece_id, position, owner=0):
@@ -25,6 +30,7 @@ def make_player(account_id, order, username):
     return Player(User(account_id, f"KEY{account_id}", username, 0), order)
 
 class TestBoardRemovePiece(unittest.TestCase):
+        
     def setUp(self):
         self.board = Board()
         self.player = DummyPlayer()
@@ -160,6 +166,93 @@ class TestBoardRemovePiece(unittest.TestCase):
         self.board.remove_piece(piece2, other_player)
         all_pieces = self.board.return_pieces()
         self.assertTrue(all(p['id'] not in (piece1.id, piece2.id) for p in all_pieces))
+
+    def test_attacker_win_piece_only_on_new_pos_on_loser_board(self):
+        """
+        After attacker wins a combat, ensure the attacker's piece is only present at the new position on the loser's board.
+        """
+        # Setup two boards: attacker's and loser's
+        attacker_board = Board()
+        loser_board = Board()
+        # Place attacker at (1, 1), defender at (1, 2)
+        attacker = Piece(100, PieceType.Marechal, (1, 1), 0)
+        defender = Piece(200, PieceType.Lieutenant, (1, 2), 1)
+        attacker_board.set_pieces([attacker, defender])
+        loser_board.set_pieces([attacker, defender])
+
+        # Simulate combat: attacker wins
+        rules = GameRules("original")
+        winner = rules.combat(attacker, defender)
+        self.assertIs(winner, attacker)
+
+        # Remove defender from loser's board, move attacker to defender's position
+        loser_board.remove_piece(defender)
+        loser_board.move_post_combat(attacker, 2, 1, (1, 1))
+
+        # Check attacker's piece is only at (1,2) (i.e., [2][1]) on loser's board
+        for y in range(loser_board.rows):
+            for x in range(loser_board.cols):
+                piece = loser_board.tiles[y][x].piece
+                if (x, y) == (1, 2):
+                    self.assertIs(piece, attacker, "Attacker should be at new position on loser's board")
+                else:
+                    if piece is not None:
+                        self.assertFalse(piece is attacker, f"Attacker should not be at {(x, y)} on loser's board")
+
+
+    def test_make_move_attacker_win_updates_loser_board(self):
+            """
+            Use GameManager and make_move to check that after attacker wins, the loser's board only has the attacker's piece at the new position.
+            """
+
+            # Setup dummy lobbyManager
+            class DummyLobbyManager:
+                def too_long_wait(self, key): pass
+                def end_game(self, winner, loser, reason): pass
+
+            # Create two players
+            player0 = make_player(1, 0, "Blue")
+            player1 = make_player(2, 1, "Red")
+            player0.known_board = Board()
+            player1.known_board = Board()
+            player0.time_remaining = 1000
+            player1.time_remaining = 1000
+
+            # Create GameManager
+            gm = GameManager(DummyLobbyManager(), [player0, player1], status="PLAYING")
+            gm.timers = MagicMock()  # Disable timers
+
+            # Place attacker and defender
+            from GAME.piece import Piece, PieceType
+            attacker = Piece(100, PieceType.Marechal, (1, 1), 0)
+            defender = Piece(200, PieceType.Lieutenant, (1, 2), 1)
+            gm.board.set_pieces([attacker, defender])
+            player0.known_board.set_pieces([attacker.clone(), defender.clone()])
+            player1.known_board.set_pieces([attacker.clone(), defender.clone()])
+            player0.pieces[attacker.id] = attacker
+            player1.pieces[defender.id] = defender
+
+            # Both players are ready
+            gm.status = "PLAYING"
+            gm.player_to_move = 0
+
+            # Make the move: attacker moves from (1,1) to (1,2)
+            move = Move((1, 1), (1, 2))
+            result = gm.make_move(player0.key, move)
+
+            # After combat, check loser's board (player1)
+            # The attacker's piece should only be at (1,2) on player1's known_board
+            found = 0
+            for y in range(player1.known_board.rows):
+                for x in range(player1.known_board.cols):
+                    piece = player1.known_board.tiles[y][x].piece
+                    if (x, y) == (1, 2):
+                        if piece is not None and piece.id == attacker.id:
+                            found += 1
+                    elif piece is not None and piece.id == attacker.id:
+                        self.fail(f"Attacker should not be at {(x, y)} on loser's board")
+            self.assertEqual(found, 1, "Attacker should be at new position on loser's board exactly once")
+                        
 
 if __name__ == "__main__":
     unittest.main()

@@ -50,9 +50,17 @@ class DAOUsers():
         with Connection() as db:
             return db.execute("DELETE FROM users WHERE _id = %s", (user_id,))
         
-    def update_score(self, user_id, new_score):
+    def update_score(self, user_id, new_score, win):
         with Connection() as db:
-            return db.execute("UPDATE users SET score = %s WHERE _id = %s", (new_score, user_id))
+            return db.execute("""
+                UPDATE users
+                SET score = %s,
+                    games_won = games_won + CASE WHEN %s THEN 1 ELSE 0 END,
+                    games_lost = games_lost + CASE WHEN %s THEN 0 ELSE 1 END
+                WHERE _id = %s
+            """, (new_score, win, win, user_id))
+        
+
         
     def get_high_scores(self, limit = 10):
         with Connection() as db:
