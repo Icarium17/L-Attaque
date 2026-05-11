@@ -39,7 +39,7 @@ export default function Graveyard({ title , counts ={}}) {
         className="w-full flex-1 bg-contain bg-no-repeat bg-top flex flex-col items-center pt-[45%] px-5"
         style={{ backgroundImage: `url(${graveyardBg})` }}
       >
-        <div className="flex flex-col items-center gap-y-0.5 overflow-y-auto w-full flex-1 scrollbar-hide">
+        <div className="mt-18 flex flex-col items-center gap-y-1 overflow-y-auto w-full flex-1 scrollbar-hide">
           {PIECE_TYPES.map(({ type, total }) => {
             const count = counts[type] ?? 0;
             return(

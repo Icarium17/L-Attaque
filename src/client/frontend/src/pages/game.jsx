@@ -23,6 +23,8 @@ import End from "../pages/end.jsx";
 import YourTurn from "../components/yourTurn.jsx";
 import Graveyard from "../components/graveyard.jsx";
 import Panel from "../components/panel.jsx";
+import ConnectionStatus from "../components/connectionStatus.jsx";
+
 // Assets
 import backgroundGame from '../assets/images/background-game.png';
 import backgroundScore from '../assets/images/background-score.png';  
@@ -72,6 +74,8 @@ export default function Game() {
   // PopUp YourTurn
   const [showYourTurn, setShowYourTurn] = useState(false);
 
+  const [pingMs, setPingMs] = useState(null);
+
   // Affiche la popup "Your Turn" quand le tour passe à BLUE après RED
   const setTurnWithPop = (newTurn) => {
   setTurn(prev => {
@@ -100,7 +104,8 @@ export default function Game() {
   }, [navigate]);
 
   // Hook custom : Sync serveur (polling) : board, turn, timers, scores, battle, fin de partie
-  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces , setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor});
+  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor });
+ 
   
   // Destructuration de usePlacement : retourne le pool de pièces à placer,l'index sélectionné, et les fonctions de placement (clic, drag & drop, auto, reset, envoi au serveur)
   // { propriétés extraites } = usePlacement(params)  | handleDragStart/handleBoardDrop renommés pour éviter conflit avec useCellClick
@@ -114,7 +119,7 @@ export default function Game() {
   // { propriétés extraites } = useCellClick(params)
   const { 
     handleCellClick,handleDragStart: handlePlayingDragStart,handleBoardDrop: handlePlayingBoardDrop,} = 
-    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, handlePlacementCellClick, isLake, playerColor});
+    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, handlePlacementCellClick, isLake, playerColor, playerOrder, opponentColor, setPingMs});
 
   // Sélectionne le bon handler drag/drop selon la phase (PLACEMENT ou PLAYING)
   const activeDragStart = phase == "PLACEMENT" ? handlePlacementDragStart : phase == "PLAYING"   ? handlePlayingDragStart: undefined;
@@ -165,6 +170,10 @@ export default function Game() {
             }
         });
 };
+
+const battleCells = battleData
+  ? [{ row: battleData.defender.row, col: battleData.defender.col }]
+  : [];
  
 return (
   <MainLayout
@@ -312,6 +321,7 @@ return (
                 onClick={handleCellClick}
                 onDragStart={activeDragStart}
                 onDrop={activeBoardDrop}
+                isBattle={battleCells.some(c => c.row == rowIndex && c.col == colIndex)}
               />
             ))
           )}
@@ -383,7 +393,7 @@ return (
             fontSize: "11px",
             paddingTop: "90px",  
         }}
-        />
+        /> 
         </div>
         )} 
 
@@ -393,7 +403,12 @@ return (
           <Graveyard title="Pièces Capturées" counts={capturedPieces} />
           <Graveyard title="Pièces Perdues" counts={lostPieces} />
         </div>
-      )}
+      )}   
+      {phase == "PLAYING" && (
+        <div className="absolute bottom-10 right-24">
+          <ConnectionStatus pingMs={pingMs} />
+        </div>
+      )}      
 
       {/* Erreurs*/}
       {error && (
@@ -406,7 +421,7 @@ return (
           />
         </div>
       )}
-    </div>
+    </div> 
   </MainLayout>
 );
 }

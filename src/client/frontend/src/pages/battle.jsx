@@ -75,11 +75,13 @@ export default function Battle({ attacker, defender, result, onClose }) {
         )}
 
         {/* Égalité */}
+        <div className="h-10 flex items-center justify-center">
         {showResult && isDraw && (
-          <span className="mt-4 text-xl font-black tracking-widest uppercase text-yellow-300">
+          <span className="text-xl font-black tracking-widest uppercase text-yellow-300">
             Égalité !
           </span>
         )}
+      </div>
       </div>
     </div>
   );

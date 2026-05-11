@@ -3,17 +3,15 @@ import { useNavigate } from "react-router";
 import { getGameStatus } from "./gameService.js";
 import { makeBoard } from "./boardUtils.js";
 import { PIECES_CONFIG } from "./gameConfig.js";
-
 // Crée un objet { type: rang } à partir de PIECES_CONFIG
 // ex: { Marechal: 10, General: 9 ... }
 const TYPE_TO_RANK = Object.fromEntries(PIECES_CONFIG.map(p => [p.type, p.rank]));
-
 // Fonction ajoute à un compteur par type
-function addToCounts(prev,type){
-  return { ...prev, [type]: (prev[type] ?? 0) +1};
+function addToCounts(prev, type) {
+  return { ...prev, [type]: (prev[type] ?? 0) + 1 };
 }
 
-export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult ,setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed,  playerOrder, setPlayerOrder,playerColor, opponentColor }) {
+export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor }) {
   const navigate = useNavigate();
   const lastBattleRef = useRef(null);
 
@@ -29,7 +27,7 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
           if (cancelled) return;
 
           if (!result || !result.response_svr) {
-            timerId = setTimeout(pull, 2000);
+            timerId = setTimeout(pull, 500);
             return;
           }
 
@@ -38,86 +36,81 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
           if (result.result?.error == "Session inactive" || gameData?.status == "INVALID_KEY") {
             return navigate("/");
           }
-
           // Ordre du joueur
           if (gameData?.order != undefined && playerOrder == null) {
-            setPlayerOrder(gameData.order);            
+            setPlayerOrder(gameData.order);
           }
 
           const status = gameData?.status?.toUpperCase();
-
           // Times
           if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
           if (gameData?.time_remaining)
             setTimeRemaining(gameData.time_remaining.map(val => Number(val)));
-        
+
           const currentOrder = gameData?.order != undefined ? gameData.order : playerOrder;
           const currentPlayerColor = currentOrder == 1 ? "RED" : "BLUE";
           const currentOpponentColor = currentOrder == 1 ? "BLUE" : "RED";
-
           // Scores
-          if (gameData?.scores?.length == 2) {   
-              setScoreBlue(gameData.scores[0]);
-              setScoreRed(gameData.scores[1]);
+          if (gameData?.scores?.length == 2) {
+            setScoreBlue(gameData.scores[0]);
+            setScoreRed(gameData.scores[1]);
           }
 
           const boardData = result.result?.apiBoard || gameData?.board;
-          if (boardData) setBoard(makeBoard(boardData, currentOrder, currentPlayerColor, currentOpponentColor));
 
           // PHASE BATTLE
-          if (status == "BATTLE" && gameData.battle?.length == 2) { // verif si on a bien des data battle
+          if (status == "BATTLE" && gameData.battle?.length == 2) {
             const [attacker, defender] = gameData.battle;
-            const battleKey = attacker.id + "-" + defender.id; // id de la battle
+            const battleKey = attacker.id + "-" + defender.id;
             if (lastBattleRef.current == battleKey) {
               timerId = setTimeout(pull, 2000);
               return;
-             }
+            }
             lastBattleRef.current = battleKey;
-            
-            // Cherche si la pièce est encore sur le board après la bataille a partir de data server
+             // Cherche si la pièce est encore sur le board après la bataille a partir de data server
             const attackerSurvived = !!gameData.board.find(p => p.id == attacker.id && p.owner == attacker.owner);
             const defenderSurvived = !!gameData.board.find(p => p.id == defender.id && p.owner == defender.owner);
 
             let battleResult;
-            if (attackerSurvived && !defenderSurvived)      battleResult = "ATTACKER_WIN";
-              else if (!attackerSurvived && defenderSurvived) battleResult = "DEFENDER_WIN";
-                else battleResult = "BOTH_LOSE";
-
+            if (attackerSurvived && !defenderSurvived)       battleResult = "ATTACKER_WIN";
+            else if (!attackerSurvived && defenderSurvived)  battleResult = "DEFENDER_WIN";
+            else                                              battleResult = "BOTH_LOSE";
             // Logique update cimetiere : mort + RED = capturée , mort + BLUE = perdue
-
-            const attackerPlayer = attacker.owner ==  1 ? "RED" : "BLUE";
+            const attackerPlayer = attacker.owner == 1 ? "RED" : "BLUE";
             const defenderPlayer = defender.owner == 1 ? "RED" : "BLUE";
- 
             // Etat du board après combat
             console.log("board après battle:", gameData.board);
 
-            if(!attackerSurvived){
-            if (attackerPlayer == currentOpponentColor) setCapturedPieces(prev => addToCounts(prev, attacker.type));
-                else if (attackerPlayer == currentPlayerColor) setLostPieces(prev => addToCounts(prev, attacker.type));
+            if (!attackerSurvived) {
+              if (attackerPlayer == currentOpponentColor) setCapturedPieces(prev => addToCounts(prev, attacker.type));
+              else if (attackerPlayer == currentPlayerColor) setLostPieces(prev => addToCounts(prev, attacker.type));
             }
-            if (!defenderSurvived){
+            if (!defenderSurvived) {
               if (defenderPlayer == currentOpponentColor) setCapturedPieces(prev => addToCounts(prev, defender.type));
-                else if (defenderPlayer == currentPlayerColor) setLostPieces(prev => addToCounts(prev, defender.type));
+              else if (defenderPlayer == currentPlayerColor) setLostPieces(prev => addToCounts(prev, defender.type));
             }
 
             setBattleData({
-              attacker: { type: attacker.type, rank: TYPE_TO_RANK[attacker.type], player: attackerPlayer },
-              defender: { type: defender.type, rank: TYPE_TO_RANK[defender.type], player: defenderPlayer },
+              attacker: { type: attacker.type, rank: TYPE_TO_RANK[attacker.type], player: attackerPlayer, col: attacker.position[0], row: attacker.position[1] },
+              defender: { type: defender.type, rank: TYPE_TO_RANK[defender.type], player: defenderPlayer, col: defender.position[0], row: defender.position[1] },
               result: battleResult,
             });
             setPhase("BATTLE");
-            return;
+            return; 
           }
 
-          if (status == "WIN" || status == "LAST_GAME_WON") { 
-          setGameResult("WIN"); 
-          setPhase("WIN"); 
-          return; 
+          // setBoard seulement si pas battle
+          if (boardData) setBoard(makeBoard(boardData, currentOrder, currentPlayerColor, currentOpponentColor));
+
+          if (status == "WIN" || status == "LAST_GAME_WON") {
+            setGameResult("WIN");
+            setPhase("WIN");
+            return;
           }
-          if (status == "LOSE" || status == "LAST_GAME_LOST") { 
-            setGameResult("LOSE"); 
-            setPhase("LOSE"); 
-            return; 
+          if (status == "LOSE" || status == "LAST_GAME_LOST") {
+            setGameResult("LOSE");
+            setPhase("LOSE");
+            return;
           }
 
           if (status == "PLAYING") setPhase("PLAYING");
