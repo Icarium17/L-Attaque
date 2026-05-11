@@ -2,25 +2,26 @@ import { useEffect, useState } from "react";
 import PieceCard             from "../components/pieceCard.jsx";
 import battleBackground   from "../assets/images/battle-background.png";
 
-const PHASE_REVEAL = 3000
-const PHASE_CLOSE  = 4000;
+const DELAY_APPEAR = 1000; 
+const PHASE_REVEAL = 3000 + DELAY_APPEAR;  
+const PHASE_CLOSE  = 4000 + DELAY_APPEAR;  
 
 
 export default function Battle({ attacker, defender, result, onClose }) {
   const [visible,    setVisible]    = useState(false);
   const [showResult, setShowResult] = useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 50);
+useEffect(() => {
+    const t = setTimeout(() => setVisible(true), DELAY_APPEAR);
     return () => clearTimeout(t);
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     const t = setTimeout(() => setShowResult(true), PHASE_REVEAL);
     return () => clearTimeout(t);
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     const t = setTimeout(() => {
       setVisible(false);
       setTimeout(() => onClose?.(), 350);
