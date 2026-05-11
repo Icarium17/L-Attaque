@@ -173,7 +173,7 @@ class GameManager():
                 self.combat(pieceFrom, tileTo.piece, tileTo)
                 self.status = "BATTLE"
                 self.timers.stop(6)
-                self.turn_change_timer = threading.Timer(10, self.change_turn)
+                self.turn_change_timer = threading.Timer(4, self.change_turn)
                 self.turn_change_timer.start()
             else:
                 distance = tileFrom.get_distance(tileTo)
@@ -229,6 +229,9 @@ class GameManager():
 
         if winner is not None and winner.type != PieceType.Bombe:
             for player in self.players:
+                player.known_board.remove_piece(winner)
+            self.board.remove_piece(winner)
+            for player in self.players:
                 player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x, attacker_origin)
             self.board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
 
@@ -258,7 +261,6 @@ class GameManager():
         """
         Invert the y position of all pieces if player_order is 1 (second player),
         so that (x, 6) becomes (x, 3), (x, 7) -> (x, 2), (x, 8) -> (x, 1), (x, 9) -> (x, 0)
-        Assumes a 10x10 board.
         """
         if player_order == 1:
             for piece in pieces:
@@ -282,8 +284,14 @@ class GameManager():
         if player.order == 1:
             list_pieces = self.invert_piece_dicts_y(list_pieces)
 
+        opponent = self.players[self.get_order(1 - player.order)].user.username
+
+        if opponent is None:
+            opponent = ""
+
         status = {
                 "status": self.status, 
+                "opponent" : opponent,
                 "board": list_pieces,
                 "turn": "blue" if self.player_to_move == 0 else "red",
                 "order" : player.order}

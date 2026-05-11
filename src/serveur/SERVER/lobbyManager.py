@@ -192,27 +192,23 @@ class LobbyManager:
     
     def convert_pieces(self, pieces_data, owner):
         pieces = []
-
         for i, piece_dict in enumerate(pieces_data):
             try:
                 type_str = piece_dict["type"].replace("é", "e").replace("É", "E")
-
                 ptype = PieceType[type_str]
-
+                # Use the id from the input data if present, else fallback to index
+                piece_id = piece_dict.get("id", i)
                 piece = Piece(
-                    id=i,
+                    id=piece_id,
                     type=ptype,
                     position=tuple(piece_dict["position"]),
                     owner=owner.order
                 )
-
                 pieces.append(piece)
-
             except KeyError as e:
                 raise ValueError(f"Invalid piece data: missing {e} in {piece_dict}")
             except Exception as e:
                 raise ValueError(f"Error processing piece {piece_dict}: {e}")
-
         return pieces
 
     def move(self, args):
@@ -255,14 +251,14 @@ class LobbyManager:
 
         if not isinstance(winner, AIPlayer):
             winner.user.status = "LAST_GAME_WON"
-            self._cleanup(winner.user)
+            self._cleanup(winner.user, 1)
         if not isinstance(loser, AIPlayer):
             loser.user.status = "LAST_GAME_LOST"
-            self._cleanup(loser.user)
+            self._cleanup(loser.user, 0)
 
-    def _cleanup(self, user):
+    def _cleanup(self, user, win):
         self.games.pop(user.key, None)
-        self.DAOUsers.update_score(user.account_id, user.score)
+        self.DAOUsers.update_score(user.account_id, user.score, win)
 
 
     
