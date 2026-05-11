@@ -16,7 +16,7 @@ createRoot(document.getElementById('root')).render(
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/lobby" element={<Lobby />} />
-      <Route path="/game" element={<Game />} />
+      <Route path="/game" element={<Game key={location.key} />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/leaderboard" element={<LeaderBoard />} />
       <Route path="/tutorial" element={<Tutorial />} />
