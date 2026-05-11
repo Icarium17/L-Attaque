@@ -51,7 +51,8 @@ export default function Game() {
   const [error, setError] = useState("");
 
   // Ecran battle {  attacker: { rank: 10, type: "Marechal",  player: "RED"  },  defender: { rank: 2,  type: "Eclaireur", player: "BLUE" },  result:   "ATTACKER_WIN",}
-  const [battleData, setBattleData] = useState(null); 
+  const [battleData, setBattleData] = useState(null);
+  const [battleCell, setBattleCell] = useState(null);  
 
   //  Ordre et couleurs des joueurs
   const [playerOrder, setPlayerOrder] = useState(null);
@@ -119,7 +120,7 @@ export default function Game() {
   // { propriétés extraites } = useCellClick(params)
   const { 
     handleCellClick,handleDragStart: handlePlayingDragStart,handleBoardDrop: handlePlayingBoardDrop,} = 
-    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, handlePlacementCellClick, isLake, playerColor, playerOrder, opponentColor, setPingMs});
+    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, handlePlacementCellClick, isLake, playerColor, playerOrder, opponentColor, setPingMs, setBattleCell});
 
   // Sélectionne le bon handler drag/drop selon la phase (PLACEMENT ou PLAYING)
   const activeDragStart = phase == "PLACEMENT" ? handlePlacementDragStart : phase == "PLAYING"   ? handlePlayingDragStart: undefined;
@@ -167,13 +168,14 @@ export default function Game() {
             setLoading(false);
             if (data.result.success && data.result.status == "GAME_SURRENDERED") {
                 setGameResult("LOSE");
+                setPhase("LOSE");
             }
         });
 };
 
-const battleCells = battleData
-  ? [{ row: battleData.defender.row, col: battleData.defender.col }]
-  : [];
+  const battleCells = battleCell
+    ? [battleCell]
+    : [];
  
 return (
   <MainLayout
@@ -191,7 +193,7 @@ return (
           <Button variant="primary" onClick={handleAutoPlacement} disabled={pool.length == 0} fullWidth text="Placement Auto" />
           <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
 
-          {/* POOL */}
+        {/* POOL */}
           <div className="grid grid-cols-4 place-items-center gap-3 overflow-y-auto w-full mb-2 p-2.5 bg-black/40 backdrop-blur-md rounded border border-white/10"
             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
             onDrop={(e) => { e.preventDefault(); handlePoolDrop(); }}>
@@ -330,11 +332,24 @@ return (
               attacker={battleData.attacker}
               defender={battleData.defender}
               result={battleData.result}
-              onClose={() => { setBattleData(null); setPhase("PLAYING"); }}
+              onClose={() => { setBattleData(null); setBattleCell(null); setPhase("PLAYING"); }}
             />
           )}
           {gameResult && (
-            <End result={gameResult} onClose={() => navigate("/lobby")} />
+            <End result={gameResult} onClose={() => {
+            setBoard(createEmptyBoard());
+            setPhase("PLACEMENT");
+            setBattleData(null);
+            setBattleCell(null);
+            setGameResult(null);
+            setCapturedPieces({});
+            setLostPieces({});
+            setScoreBlue(0);
+            setScoreRed(0);
+            setPlayerOrder(null);
+            setTurn("BLUE");
+            navigate("/lobby");
+          }} />
           )}
           {/* YOUR TURN */}
           <YourTurn show={showYourTurn} />
