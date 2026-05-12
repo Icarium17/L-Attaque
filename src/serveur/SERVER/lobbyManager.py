@@ -39,13 +39,27 @@ class LobbyManager:
         self.DAOUsers = DAOUsers()
 
     def execute_action(self, player_action, *args):
+        """
+        Execute a lobby action by name with provided arguments.
+        Args:
+            player_action: The action name as a string.
+            *args: Arguments to pass to the action function.
+        Returns:
+            The result of the action function, or None if not found.
+        """
         action = self.actions.get(player_action)
         if action:
             return action(*args)
 
     ## Authentication
     def create_profile(self, args) -> str:
-        print("create_profile called")
+        """
+        Create a new user profile and add to active users.
+        Args:
+            args: Tuple containing username, password, and optionally rights.
+        Returns:
+            Tuple of (status, session_key, status_message)
+        """
 
         username, password, *rest = args ## TODO : modifier pour que ça prenne en compte les autres paramètres (langue, etc)
         rights = rest[0] if rest else 'User'
@@ -61,7 +75,13 @@ class LobbyManager:
         return "ERROR", -1, "ERROR"
 
     def login(self, args):
-        print("login called")
+        """
+        Log in a user and add to active users.
+        Args:
+            args: Tuple containing username and password.
+        Returns:
+            Tuple of (status, session_key) or error message.
+        """
         username, password = args
         user_connected, user_id, session_key, score = self.DAOUsers.connect(
             username, password
@@ -75,7 +95,13 @@ class LobbyManager:
         return "INVALID_USERNAME_PASSWORD", -1
 
     def logout(self, args):
-        print("logout called")
+        """
+        Log out a user and remove from active users.
+        Args:
+            args: Tuple containing session_id.
+        Returns:
+            Status message.
+        """
         (session_id,) = args
         if session_id in self.active_users:
             del self.active_users[session_id]
@@ -84,18 +110,32 @@ class LobbyManager:
         
 
     def delete_profile(self, args):
-        print("delete_profile called")
+        """
+        Delete a user profile.
+        Args:
+            args: Tuple containing session_id.
+        Returns:
+            Result of DAOUsers.delete_user.
+        """
         (my_key,) = args
 
         return self.DAOUsers.delete_user(my_key)
     
     def modify_profile(self):
-        print("modify_profile called")
+        """
+        Modify a user profile. (Not implemented)
+        """
 
 
     ## Start/End Game
-    def start_game(self, args): 
-        print("start_game called")
+    def start_game(self, args):
+        """
+        Start a new game (AI or multiplayer).
+        Args:
+            args: Tuple containing session_key and mode.
+        Returns:
+            Tuple of (status, opponent_username or message).
+        """
         (my_key, mode) = args
 
         if mode == "ai":
@@ -106,7 +146,14 @@ class LobbyManager:
         
         return "ERROR", ""
 
-    def _start_pvp_game(self, my_key): 
+    def _start_pvp_game(self, my_key):
+        """
+        Start a player-vs-player game or add player to wait list.
+        Args:
+            my_key: The session key of the player starting the game.
+        Returns:
+            Tuple of (status, opponent_username or message).
+        """
         if self.wait_list:
             player1_key = self.wait_list.pop(0)
             player1 = Player(self.active_users[player1_key], 0)
@@ -128,6 +175,13 @@ class LobbyManager:
             return "WAITING_FOR_OPPONENT", ""
 
     def _start_ai_game(self, my_key):
+        """
+        Start a game against an AI opponent.
+        Args:
+            my_key: The session key of the player starting the game.
+        Returns:
+            Tuple of (status, ai_username).
+        """
         player = Player(self.active_users[my_key], 0)
         ai_user = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
         ai_player = AIPlayer(ai_user, 1, 0)
@@ -137,7 +191,13 @@ class LobbyManager:
         return "GAME_STARTED", ai_player.username
 
     def get_active_players(self, args):
-        print("get_active_players called")
+        """
+        Get all users and mark which are currently active.
+        Args:
+            args: Not used.
+        Returns:
+            List of user dicts with 'connected' status.
+        """
         users = self.DAOUsers.get_all_users()
         active_usernames = [user.username for user in self.active_users.values()]
 
@@ -148,7 +208,13 @@ class LobbyManager:
 
 
     def surrender(self, args):
-        print("surrender called")
+        """
+        Surrender the current game for a user.
+        Args:
+            args: Tuple containing session_key.
+        Returns:
+            Status message.
+        """
         (my_key,) = args
         game = self.games[my_key] 
         game.surrender(my_key)
@@ -156,7 +222,13 @@ class LobbyManager:
         return ("GAME_SURRENDERED")
 
     def pause(self, args):
-        print("pause called")
+        """
+        Pause the current game for a user.
+        Args:
+            args: Tuple containing session_key.
+        Returns:
+            Result of game.pause.
+        """
         (my_key,) = args
         game = self.games[my_key]
 
@@ -166,7 +238,13 @@ class LobbyManager:
 
 
     def save(self, args):
-        print("save called")
+        """
+        Save the current game state for a user.
+        Args:
+            args: Tuple containing session_key.
+        Returns:
+            Result of DAOUsers.save.
+        """
 
         (my_key,) = args
         game = self.games[my_key]
@@ -178,7 +256,13 @@ class LobbyManager:
         return result
 
     def load(self, args):
-        print("save called")
+        """
+        Load a saved game for a user.
+        Args:
+            args: Tuple containing session_key.
+        Returns:
+            None. Updates self.games.
+        """
         (my_key,) = args
 
         user = self.active_users[my_key]
@@ -215,13 +299,23 @@ class LobbyManager:
     
 
     def too_long_wait(self, player_key): #TODO : rework
-        print("Its been too long")
+        """
+        Handle case where a player has waited too long. (Not implemented)
+        Args:
+            player_key: The session key of the waiting player.
+        """
         self.games[player_key] 
 
 
     ## Play Game
     def set_pieces(self, args):
-        print("set_pieces called")
+        """
+        Set up the pieces for a player at the start of a game.
+        Args:
+            args: Tuple containing session_key and pieces_received.
+        Returns:
+            Tuple of (status, user_status).
+        """
         my_key, pieces_recieved = args
         pieces_set = []
         
@@ -256,7 +350,13 @@ class LobbyManager:
         return pieces
 
     def move(self, args):
-        print("move called")
+        """
+        Make a move in the current game for a user.
+        Args:
+            args: Tuple containing session_key and move coordinates.
+        Returns:
+            Tuple of (status, message).
+        """
         my_key, x_0, y_0, x_1, y_1 = args
 
         move = Move((x_0, y_0), (x_1, y_1))
@@ -264,17 +364,28 @@ class LobbyManager:
         status, message = game.make_move(my_key, move)
         return status, message
         
-
     ## Other
     def chat(self):
-        print("chat called")
+        """
+        Handle chat messages. (Not implemented)
+        """
 
     def leaderboard(self):
-        print("leaderboard called")
+        """
+        Get the leaderboard (high scores).
+        Returns:
+            List of high scores from DAOUsers.
+        """
         return self.DAOUsers.get_high_scores()
 
     def get_status(self, args):
-        print("get_status called")
+        """
+        Get the current status of a user or their game.
+        Args:
+            args: Tuple containing session_key.
+        Returns:
+            Status dict or result of game.get_status.
+        """
         (my_key,) = args
         if my_key not in self.games:
             user = self.active_users.get(my_key)
@@ -283,7 +394,14 @@ class LobbyManager:
         return game.get_status(my_key)
 
 
-    def end_game(self, winner, loser, reason): ##TODO : do something with reason
+    def end_game(self, winner, loser, reason):
+        """
+        End a game, clean up resources, and update player statuses.
+        Args:
+            winner: The Player or AIPlayer who won.
+            loser: The Player or AIPlayer who lost.
+            reason: Reason for game end (unused).
+        """
         game = None
         for player in (winner, loser):
             if not isinstance(player, AIPlayer) and player.key in self.games:
@@ -293,14 +411,21 @@ class LobbyManager:
         if game is not None:
             game.cleanup()
 
+        # Set statuses immediately
         if not isinstance(winner, AIPlayer):
             winner.user.status = "LAST_GAME_WON"
-            self._cleanup(winner.user, 1)
+            threading.Timer(10, self._cleanup, args=(winner.user, 1)).start()
         if not isinstance(loser, AIPlayer):
             loser.user.status = "LAST_GAME_LOST"
-            self._cleanup(loser.user, 0)
+            threading.Timer(10, self._cleanup, args=(loser.user, 0)).start()
 
     def _cleanup(self, user, win):
+        """
+        Remove a user's game and update their score after a delay.
+        Args:
+            user: The User object to clean up.
+            win: 1 if the user won, 0 if lost.
+        """
         self.games.pop(user.key, None)
         self.DAOUsers.update_score(user.account_id, user.score, win)
 

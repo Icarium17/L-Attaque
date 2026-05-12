@@ -358,7 +358,7 @@ class GameManager():
         print(f"Game ended! Winner: {self.winner.username}, Loser: {self.loser.username}, Reason: {self.end_reason}")
         for player in self.players:
             player.user.score += self.game_rules.calc_score(player)
-        threading.Timer(10, self.lobbyManager.end_game, args=(self.winner, self.loser, self.end_reason)).start()
+        self.lobbyManager.end_game(self.winner, self.loser, self.end_reason)
 
     def cleanup(self):
         self.cancel_wait_timer()

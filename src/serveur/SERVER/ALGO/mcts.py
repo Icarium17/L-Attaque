@@ -30,6 +30,13 @@ class MCTS:
             1: self.simulation_medium,
             2: self.simulation_hard
         }
+
+        self.heuristic_by_level = {
+            0: self.heuristic_evaluation_easy,
+            1: self.heuristic_evaluation_medium,
+            2: self.heuristic_evaluation_hard
+        }
+
         self.difficulty = self.ai.difficulty
 
         self._setup(ai)
@@ -90,7 +97,6 @@ class MCTS:
 
         
 
-    
     def selection(self):
         """
         Traverse the tree from the root, selecting child nodes until a leaf is reached.
@@ -129,9 +135,9 @@ class MCTS:
         Simulate a random playout from the current node to a terminal state or step limit.
         Returns the result of the simulation (game outcome).
         """
-        game_over = 0
+        game_over = -1
         s = 0
-        while not game_over and s < 25:
+        while game_over == -1 and s < 25:
             if not self.simulation_by_level[self.difficulty]():
                 return game_over
 
@@ -159,7 +165,6 @@ class MCTS:
         Perform a random move for easy difficulty.
         """
         possible_moves = self.algo_infoSet.get_all_possible_moves()
-        print(possible_moves)
         if len(possible_moves) == 0:
             return 0
 
@@ -168,18 +173,19 @@ class MCTS:
 
         return 1
 
-    def simulation_medium(self):
+    def _simulation_with_priors(self, prior_func):
         possible_moves = self.algo_infoSet.get_all_possible_moves()
-        print(possible_moves)
         if len(possible_moves) == 0:
-           return 0
-        
+            return 0
+
         move_priors = []
         for move in possible_moves:
-            prior = self.prior_evaluate_medium_move(move)
-            move_priors.append((move, prior))
+            if self.algo_infoSet.player_turn == self.ai.order:
+                prior = prior_func(move)
+                move_priors.append((move, prior))
+            else:
+                move_priors.append((move, 1))
 
-       
         if random.random() < 0.5:
             move = random.choice(possible_moves)
         else:
@@ -188,59 +194,117 @@ class MCTS:
             move = random.choice(best_moves)
 
         self.algo_infoSet.update_infoSet(move)
-
         return 1
 
-    def simulation_hard(self):
-        """
-        Placeholder for a perfect heuristic for hard difficulty. Currently random.
-        """
-        return self.simulation_easy()
+    def simulation_medium(self): ##TODO
+        return self._simulation_with_priors(self.prior_evaluate_medium_move)
 
-    def heuristic_evaluation_easy(self, move):
-        if self.previous_move is not None:
-            if move == self.previous_move:
-                return 0
-            
-        return 1
+    def simulation_hard(self): ##TODO
+        return self._simulation_with_priors(self.prior_evaluate_difficult_move)
 
-    def heuristic_evaluation_medium(self, moves):
-        pass
+    def heuristic_evaluation_easy(self, winner):            
+        return winner
 
-    def heuristic_evaluation_hard(self, moves):
-        pass
+    def heuristic_evaluation_medium(self, winner): ##TODO
+        return self.heuristic_evaluation_easy(winner)
+
+    def heuristic_evaluation_hard(self, winner): ##TODO
+        return self.heuristic_evaluation_easy(winner)
 
     def prior_evaluate_medium_move(self, move):
         """
         Evaluate a move based on tactical, mobility, information, and strategy priors.
         Returns a score (float/int) representing the move's desirability.
         """
-        score = 0
+        score = 0.0
+
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
 
-        if their_piece and their_piece.type == PieceType.Drapeau:
-            score += 1000000  
-        elif their_piece:
-            if their_piece.type.value > my_piece.type.value:
-                score += 100  
-            elif their_piece.type.value < my_piece.type.value:
-                score -= 100  
-            if their_piece.type.value >= 8:
-                score += 50  
-            if my_piece.type.value < their_piece.type.value:
-                score -= 200  
+        if not their_piece:
+            return 0.0
+
+        confidence = 1.0 if their_piece.revealed else 0.5
+
+        if their_piece.type == PieceType.Drapeau:
+            score += 1.0
+
+        elif their_piece.type == PieceType.Bombe and my_piece.type == PieceType.Demineur:
+            score += 0.5
+
+        elif my_piece.type.value > their_piece.type.value:
+            score += 0.6
+
+        elif my_piece.type.value < their_piece.type.value:
+            score -= 0.5
+
+        if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
+            score += 0.7
+
+        if my_piece.type == PieceType.Eclaireur:
+            score += 0.1
+
+        score *= confidence
+
+        if not their_piece.revealed:
+            score += 0.05
+
+        if self.previous_move and move == self.previous_move:
+            score -= 1.0
+
+        return score
+    
+    def prior_evaluate_difficult_move(self, move):
+        score = 0.0
+
+        start_row = self.ai.rows[self.ai.order][0]
+        direction = -1 if start_row > 4 else 1
+
+        score += 0.05 * direction * (move.to_pos[1] - move.from_pos[1])
+
+        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
+
+        if not their_piece:
+            return 0.0
+
+        confidence = 1.0 if their_piece.revealed else 0.45
+
+        my_val = my_piece.type.value
+        their_val = their_piece.type.value
+
+        if their_piece.type == PieceType.Drapeau:
+            return 1.5 * confidence
+
+        if their_piece.type == PieceType.Bombe:
+            if my_piece.type == PieceType.Demineur:
+                score += 0.7
             else:
-                score += 20 
-        
-        if their_piece and not their_piece.revealed:
-            score += 30  
-        if my_piece.type == PieceType.Eclaireur and their_piece:
-            score += 10  
+                score -= 0.6
 
-        if self.previous_move is not None and move == self.previous_move:
-            score -= 50  
+        diff = my_val - their_val
 
-        print(score)
+        if diff > 0:
+            score += 0.6 * (diff / 10)
+        elif diff < 0:
+            score -= 0.5 * (-diff / 10)
+
+        if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
+            score += 0.9
+
+        if my_piece.type == PieceType.Eclaireur:
+            score += 0.15
+
+        if not their_piece.revealed:
+            score += 0.1
+
+            if my_val >= 7:
+                score -= 0.25
+
+        score += 0.05 * getattr(move, "toward_enemy_side", 0)
+
+        if self.previous_move and move == self.previous_move:
+            score -= 1.0
+
+        score *= confidence
 
         return score
 
@@ -255,8 +319,9 @@ class MCTS:
 
             ended, _ = self.game_rules.check_player_end_state(player, self.players, self.algo_infoSet.board_state, my_pieces, opponent_pieces, 1)
             if ended:
-                return 1
-        return 0
+                ai_won = player.order != self.ai.order ## 1 if it wins, 0 if it doesnt
+                return self.heuristic_by_level[self.difficulty](ai_won) 
+        return -1
 
     def get_best_move(self):
         """
