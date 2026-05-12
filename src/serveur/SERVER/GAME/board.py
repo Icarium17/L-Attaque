@@ -1,3 +1,6 @@
+from GAME.piece import BeliefPiece
+
+
 class Board():
     """
     Represents the game board as a 2D grid of tiles.
@@ -96,6 +99,18 @@ class Board():
             for tile in row:
                 if tile.piece is not None:
                     list_pieces.append(tile.piece.send())
+
+        return list_pieces
+    
+    def save_board(self):
+        list_pieces = []
+        for row in self.tiles:
+            for tile in row:
+                if tile.piece is not None:
+                    if isinstance(tile.piece, BeliefPiece):
+                        list_pieces.append(tile.piece.save())
+                    else:
+                        list_pieces.append(tile.piece.send())
 
         return list_pieces
 

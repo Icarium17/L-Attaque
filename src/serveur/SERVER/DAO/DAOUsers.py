@@ -74,3 +74,17 @@ class DAOUsers():
                 }
                 for row in rows
             }
+        
+
+    def save(self, ai_difficulty, board, player_to_move, user_id):
+        with Connection() as db:
+            db.execute("DELETE FROM saved_games WHERE user_id = %s", (user_id,))
+
+            try :
+                db.execute("INSERT INTO saved_games (ai_difficulty, board, player_to_move, user_id)", (ai_difficulty, board, player_to_move))
+                return (1, "SAVE_COMPLETE")
+                
+            except Exception as e:
+                return (0, "ERROR")
+                
+                

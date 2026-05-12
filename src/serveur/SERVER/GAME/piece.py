@@ -41,7 +41,6 @@ class Piece():
         return Piece(self.id, self.type, self.position, self.owner)
 
     def send(self):
-        
         piece = {
             "id": self.id,
             "type": self.type.name if self.type else None,
@@ -110,3 +109,10 @@ class BeliefPiece(Piece):
             return self.upgrade(possible_types[0])
 
         return None
+    
+    def save(self):
+        save = self.send()
+        save["evidence_weights"] = self.evidence_weights
+        save["probabilities"] = self.probabilities
+
+        return save

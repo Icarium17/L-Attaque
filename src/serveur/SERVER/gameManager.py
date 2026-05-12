@@ -1,5 +1,6 @@
 import time
 import threading
+import json
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
@@ -375,6 +376,36 @@ class GameManager():
         print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
         winner.score += self.game_rules.calc_score_surrender()
         threading.Timer(10, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
+
+    def save(self, my_key):
+        player = self.get_player(my_key)
+        my_order = player.order
+
+        opponent = self.players[1-my_order]
+        
+        if not isinstance(opponent, AIPlayer):
+            return (0, "CANNOT_PAUSE_VS_PLAYER")
+        
+        self.status = "SAVING"
+        self.timers.stop()
+        
+        user_id = player.user.id
+        ai_difficulty = opponent.difficulty
+        player_to_move = self.player_to_move
+
+        # Gather all game state into a single dict
+        game_state = {
+            "player_boards": [player.known_board.save_board() for player in self.players],
+            "board": self.board.return_pieces(),
+            "scores": [player.score for player in self.players],
+            "times": [player.time_remaining for player in self.players],
+            "last_moves": [player.last_moves for player in self.players]
+        }
+        # Serialize to a single JSON string
+        game_state_json = json.dumps(game_state)
+        return user_id, ai_difficulty, player_to_move, game_state_json
+        
+
     
 
 class PlayerTimer:

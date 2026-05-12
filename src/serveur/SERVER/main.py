@@ -211,5 +211,21 @@ def pause():
 
     return jsonify(result)
 
+@app.route('/save', methods=['POST'])
+def save():
+    data = request.get_json()
+    my_key = data.get('key')
+    result = lobby.execute_action('save', (my_key,))
+
+    return jsonify(result)
+
+@app.route('/load', methods=['POST'])
+def load():
+    data = request.get_json()
+    my_key = data.get('key')
+    result = lobby.execute_action('load', (my_key,))
+
+    return jsonify(result)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

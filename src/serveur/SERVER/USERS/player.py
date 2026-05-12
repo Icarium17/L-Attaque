@@ -35,6 +35,7 @@ class Player(User):
         self.initialize_piece_left()
 
         self.score = 0
+        self.last_move = None
 
     @property
     def pieces_left(self):

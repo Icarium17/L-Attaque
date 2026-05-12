@@ -29,6 +29,7 @@ class LobbyManager:
             "restartGame" : self.restart_game,
             "surrender" : self.surrender,
             "save" : self.save,
+            "load" : self.load,
             "move" : self.move,
             "chat" : self.chat,
             "leaderboard" : self.leaderboard,
@@ -167,8 +168,23 @@ class LobbyManager:
         return result
 
 
-    def save(self):
+    def save(self, args):
         print("save called")
+
+        (my_key,) = args
+        game = self.games[my_key]
+
+        ai_difficulty, game_state_json, player_to_move, user_id = game.save()
+        
+        result = self.DAOUsers.save(ai_difficulty, game_state_json, player_to_move, user_id)
+
+        return result
+
+    def load(self, args):
+        print("save called")
+        
+
+    
 
     def too_long_wait(self, player_key): #TODO : rework
         print("Its been too long")
