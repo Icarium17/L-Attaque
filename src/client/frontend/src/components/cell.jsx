@@ -1,4 +1,3 @@
-import React from 'react';
 import cellTexture from '../assets/images/cell-default.png';
 import cellLake from '../assets/images/cell-lake.png';
 import cellSelected from '../assets/images/cell-selected.png';
