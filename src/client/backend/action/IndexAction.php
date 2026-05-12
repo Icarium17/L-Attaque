@@ -107,6 +107,9 @@ class IndexAction extends CommonAction {
             ];
             $apiResult = parent::callPython("signin", $data);
 
+            if ( $apiResult == "INVALID_USERNAME_PASSWORD"){
+                return ["result" =>compact()];}
+
             if ($apiResult == null) {
                 $error = "Serveur injoignable";
                 return ["result" => compact("error")];
