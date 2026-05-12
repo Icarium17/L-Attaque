@@ -31,7 +31,7 @@ class GameManager():
             self.wait_timer()
 
     @classmethod
-    def load(cls, lobbyManager, players):
+    def load(cls, lobbyManager, players, player_to_move, board):
         
         game = cls(
             lobbyManager,
@@ -39,6 +39,9 @@ class GameManager():
             status="PLAYING",
             game_type="original"
         )
+
+        game.board.set_pieces(board)
+        game.player_to_move = player_to_move
 
         
 
