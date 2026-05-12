@@ -32,7 +32,7 @@ class AIPlayer(Player):
 
         self.rows = {
             0: (6, 10), 
-            1: (0, 3) 
+            1: (0, 4) 
         }
 
         self.move_timers = { ## TODO : tinker with the times, this doesnt look right
@@ -48,7 +48,6 @@ class AIPlayer(Player):
         self.exclude_types = set()
         self.setup_library = AISetupLibrary(self)
         self.setup = self.setup_library.full_builders
-        self.last_move = None
 
     def initialize_game(self):
         print("AIPlayer.initialize_game called")

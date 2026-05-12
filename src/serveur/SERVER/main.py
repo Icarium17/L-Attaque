@@ -66,7 +66,14 @@ Routes (endpoint -> HTTP method):
 - POST /pause
     - Payload: {"key": session_key}
     - Response: result returned by `LobbyManager.pause`
- 
+
+- POST /save
+    - Payload: {"key": session_key}
+    - Response: {"status": ..., "game_state": big JSON string}
+
+- POST /load
+    - Payload: {"key": session_key, "game_state": big JSON string}
+    - Response: {"status": ..., "restored": boolean} 
 
 Notes:
  - All endpoints expect JSON payloads unless noted otherwise.
@@ -208,6 +215,22 @@ def pause():
     data = request.get_json()
     my_key = data.get('key')
     result = lobby.execute_action('pause', (my_key,))
+
+    return jsonify(result)
+
+@app.route('/save', methods=['POST'])
+def save():
+    data = request.get_json()
+    my_key = data.get('key')
+    result = lobby.execute_action('save', (my_key,))
+
+    return jsonify(result)
+
+@app.route('/load', methods=['POST'])
+def load():
+    data = request.get_json()
+    my_key = data.get('key')
+    result = lobby.execute_action('load', (my_key,))
 
     return jsonify(result)
 

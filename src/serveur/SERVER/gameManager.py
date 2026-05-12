@@ -1,5 +1,6 @@
 import time
 import threading
+import json
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
@@ -28,6 +29,21 @@ class GameManager():
             self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired)
         else:
             self.wait_timer()
+
+    @classmethod
+    def load(cls, lobbyManager, players, player_to_move, board):
+        
+        game = cls(
+            lobbyManager,
+            players,
+            status="PLAYING",
+            game_type="original"
+        )
+
+        game.board.set_pieces(board)
+        game.player_to_move = player_to_move
+
+        
 
     def wait_timer(self):
         self.wait_timer_duration = 100
@@ -205,7 +221,6 @@ class GameManager():
         self.make_move(self.player_to_move, move)
 
     def combat(self, attacker, defender, defender_tile):
-        attacker_origin = attacker.position
         winner = self.game_rules.combat(attacker, defender)
         if winner is None:
             # Draw: both lose
@@ -218,12 +233,12 @@ class GameManager():
         if winner is not None:
             self.players[winner.owner].score += losers[0].type.score
 
-        self.set_boards_post_combat(winner, losers, defender_tile, attacker_origin)
+        self.set_boards_post_combat(winner, losers, defender_tile)
 
-    def set_boards_post_combat(self, winner, losers, tileTo, attacker_origin=None):
+    def set_boards_post_combat(self, winner, losers, tileTo):
         for loser in losers:
             for player in self.players:
-                player.remove_piece(loser)
+                player.remove_piece_everywhere(loser)
                 player.known_board.remove_piece(loser)
             self.board.remove_piece(loser)
 
@@ -231,9 +246,11 @@ class GameManager():
             for player in self.players:
                 player.known_board.remove_piece(winner)
             self.board.remove_piece(winner)
+            
             for player in self.players:
-                player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x, attacker_origin)
-            self.board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
+                print("winner new position", tileTo.x, tileTo.y)
+                player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x)
+            self.board.move_post_combat(winner, tileTo.y, tileTo.x)
 
         for player in self.players:
             if winner is not None and winner.type != PieceType.Bombe:
@@ -374,6 +391,36 @@ class GameManager():
         print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
         winner.score += self.game_rules.calc_score_surrender()
         threading.Timer(10, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
+
+    def save(self, my_key):
+        player = self.get_player(my_key)
+        my_order = player.order
+
+        opponent = self.players[1-my_order]
+        
+        if not isinstance(opponent, AIPlayer):
+            return (0, "CANNOT_PAUSE_VS_PLAYER")
+        
+        self.status = "SAVING"
+        self.timers.stop()
+        
+        user_id = player.user.id
+        ai_difficulty = opponent.difficulty
+        player_to_move = self.player_to_move
+
+        # Gather all game state into a single dict
+        game_state = {
+            "player_boards": [player.known_board.save_board() for player in self.players],
+            "board": self.board.return_pieces(),
+            "scores": [player.score for player in self.players],
+            "times": [player.time_remaining for player in self.players],
+            "last_moves": [player.last_moves for player in self.players]
+        }
+        # Serialize to a single JSON string
+        game_state_json = json.dumps(game_state)
+        return user_id, ai_difficulty, player_to_move, game_state_json
+        
+
     
 
 class PlayerTimer:

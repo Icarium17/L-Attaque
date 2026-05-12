@@ -1,3 +1,6 @@
+from GAME.piece import BeliefPiece
+
+
 class Board():
     """
     Represents the game board as a 2D grid of tiles.
@@ -98,6 +101,18 @@ class Board():
                     list_pieces.append(tile.piece.send())
 
         return list_pieces
+    
+    def save_board(self):
+        list_pieces = []
+        for row in self.tiles:
+            for tile in row:
+                if tile.piece is not None:
+                    if isinstance(tile.piece, BeliefPiece):
+                        list_pieces.append(tile.piece.save())
+                    else:
+                        list_pieces.append(tile.piece.send())
+
+        return list_pieces
 
     def _find_piece_tile(self, piece, position=None):
         if position is not None:
@@ -130,21 +145,28 @@ class Board():
             player: (optional) The player object whose pieces dict should be updated.
         """
         tile = self._find_piece_tile(piece, piece.position)
+        if tile:
+            print(piece.type, tile.x, tile.y)
+        else:
+            print("no tile found")
+
         if tile is not None:
             tile.piece = None
 
-        if player is not None and piece.id in player.pieces:
-            del player.pieces[piece.id]
-
     def move_post_combat(self, piece, y, x, source_position=None):
-        source_tile = self._find_piece_tile(piece, source_position)
-        if source_tile is not None:
-            source_tile.piece = None
+        # Remove any existing instance of this piece from the board
+        for row in self.tiles:
+            for tile in row:
+                if tile.piece and tile.piece.id == piece.id and tile.piece.owner == piece.owner:
+                    tile.piece = None
+
+        print("move_post_combat", x, y)
+        print("piece", piece)
 
         destination_tile = self.tiles[y][x]
         destination_tile.piece = piece
-        piece.position = (x, y)
 
+        piece.position = (x, y)
 
 class Tile():
     """
