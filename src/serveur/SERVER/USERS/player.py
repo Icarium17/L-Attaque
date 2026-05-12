@@ -257,6 +257,26 @@ class Player(User):
         """
         if piece and piece.id in self.pieces:
             self.remove_owned_piece(piece.id)
+
+    def remove_piece_everywhere(self, piece, piece_type=None):
+            """
+            Remove a piece from all possible collections: own pieces, belief pieces, and revealed opponent pieces.
+            Args:
+                piece: The piece object to remove.
+                piece_type: The type of the piece (required for belief piece removal, if not provided will use piece.type if available).
+            Returns:
+                None
+            """
+            # Remove from own pieces
+            self.remove_piece(piece)
+            # Remove from belief pieces
+            if piece_type is None and hasattr(piece, 'type'):
+                piece_type = piece.type
+            if piece.id in self.belief_pieces:
+                self.remove_belief_piece(piece.id, piece_type)
+            # Remove from revealed opponent pieces
+            if piece.id in self.opponent_pieces:
+                self.remove_revealed_opponent_piece(piece.id)
     
     def change_belief_piece_to_piece(self, old_piece, piece_type, owner=None):
         """

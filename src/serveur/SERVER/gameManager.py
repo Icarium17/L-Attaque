@@ -223,7 +223,7 @@ class GameManager():
     def set_boards_post_combat(self, winner, losers, tileTo, attacker_origin=None):
         for loser in losers:
             for player in self.players:
-                player.remove_piece(loser)
+                player.remove_piece_everywhere(loser)
                 player.known_board.remove_piece(loser)
             self.board.remove_piece(loser)
 
@@ -231,6 +231,7 @@ class GameManager():
             for player in self.players:
                 player.known_board.remove_piece(winner)
             self.board.remove_piece(winner)
+            
             for player in self.players:
                 player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x, attacker_origin)
             self.board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)

@@ -130,21 +130,22 @@ class Board():
             player: (optional) The player object whose pieces dict should be updated.
         """
         tile = self._find_piece_tile(piece, piece.position)
+        if tile:
+            print(tile.x, tile.y)
+        else:
+            print("no tile found")
+            
         if tile is not None:
             tile.piece = None
 
-        if player is not None and piece.id in player.pieces:
-            del player.pieces[piece.id]
-
     def move_post_combat(self, piece, y, x, source_position=None):
         source_tile = self._find_piece_tile(piece, source_position)
+
         if source_tile is not None:
             source_tile.piece = None
 
         destination_tile = self.tiles[y][x]
         destination_tile.piece = piece
-        piece.position = (x, y)
-
 
 class Tile():
     """
