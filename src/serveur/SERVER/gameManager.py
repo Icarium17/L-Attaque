@@ -205,7 +205,6 @@ class GameManager():
         self.make_move(self.player_to_move, move)
 
     def combat(self, attacker, defender, defender_tile):
-        attacker_origin = attacker.position
         winner = self.game_rules.combat(attacker, defender)
         if winner is None:
             # Draw: both lose
@@ -218,9 +217,9 @@ class GameManager():
         if winner is not None:
             self.players[winner.owner].score += losers[0].type.score
 
-        self.set_boards_post_combat(winner, losers, defender_tile, attacker_origin)
+        self.set_boards_post_combat(winner, losers, defender_tile)
 
-    def set_boards_post_combat(self, winner, losers, tileTo, attacker_origin=None):
+    def set_boards_post_combat(self, winner, losers, tileTo):
         for loser in losers:
             for player in self.players:
                 player.remove_piece_everywhere(loser)
@@ -233,8 +232,9 @@ class GameManager():
             self.board.remove_piece(winner)
             
             for player in self.players:
-                player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x, attacker_origin)
-            self.board.move_post_combat(winner, tileTo.y, tileTo.x, attacker_origin)
+                print("winner new position", tileTo.x, tileTo.y)
+                player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x)
+            self.board.move_post_combat(winner, tileTo.y, tileTo.x)
 
         for player in self.players:
             if winner is not None and winner.type != PieceType.Bombe:

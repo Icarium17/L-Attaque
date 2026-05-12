@@ -131,21 +131,27 @@ class Board():
         """
         tile = self._find_piece_tile(piece, piece.position)
         if tile:
-            print(tile.x, tile.y)
+            print(piece.type, tile.x, tile.y)
         else:
             print("no tile found")
-            
+
         if tile is not None:
             tile.piece = None
 
     def move_post_combat(self, piece, y, x, source_position=None):
-        source_tile = self._find_piece_tile(piece, source_position)
+        # Remove any existing instance of this piece from the board
+        for row in self.tiles:
+            for tile in row:
+                if tile.piece and tile.piece.id == piece.id and tile.piece.owner == piece.owner:
+                    tile.piece = None
 
-        if source_tile is not None:
-            source_tile.piece = None
+        print("move_post_combat", x, y)
+        print("piece", piece)
 
         destination_tile = self.tiles[y][x]
         destination_tile.piece = piece
+
+        piece.position = (x, y)
 
 class Tile():
     """
