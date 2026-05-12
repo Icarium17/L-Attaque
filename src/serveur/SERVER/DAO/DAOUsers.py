@@ -1,6 +1,8 @@
-from DAO.DAOConnection import Connection
+import json
 import bcrypt
 import secrets
+
+from DAO.DAOConnection import Connection
 
 class DAOUsers():
     def create_user(self, username, password, preferred_language, id_avatar, rights, animation, contrast):
@@ -87,4 +89,18 @@ class DAOUsers():
             except Exception as e:
                 return (0, "ERROR")
                 
-                
+
+    def load_game(self, user_id):
+        with Connection() as db:
+            saved_game = db.fetch("SELECT ai_difficulty, board, player_to_move FROM saved_games WHERE user_id = %s ", (user_id,))
+            game_state = json.loads(saved_game["board"])
+
+            return {
+                "ai_difficulty": saved_game["ai_difficulty"],
+                "player_to_move": saved_game["player_to_move"],
+                "player_boards": game_state["player_boards"],
+                "board": game_state["board"],
+                "scores": game_state["scores"],
+                "times": game_state["times"],
+                "last_moves": game_state["last_moves"]
+            }

@@ -37,6 +37,43 @@ class Player(User):
         self.score = 0
         self.last_move = None
 
+    def load(self, known_pieces, time_remaining, last_move):
+        self.set_pieces(known_pieces)
+        self.time_remaining = time_remaining
+        self.last_move = last_move
+        self.populate_all_known_pieces(known_pieces)
+
+    
+    def populate_all_known_pieces(self, known_pieces):
+        """
+        Populate self.pieces, self.belief_pieces, and self.opponent_pieces from a list of all known pieces after a save.
+
+        Args:
+            known_pieces: Iterable of all known pieces (owned, opponent belief, revealed opponent pieces).
+
+        Returns:
+            None
+        """
+        self.pieces = {}
+        self.belief_pieces = {}
+        self.opponent_pieces = {}
+        self.opponent_belief_pieces_left = {piece_type: piece_type.count for piece_type in PieceType}
+
+        for piece in known_pieces:
+            # Owned pieces
+            if hasattr(piece, 'owner') and piece.owner == self.order:
+                self.pieces[piece.id] = piece
+            elif isinstance(piece, BeliefPiece):
+                self.belief_pieces[piece.id] = piece
+                if hasattr(piece, 'type') and piece.type is not None:
+                    self.opponent_belief_pieces_left[piece.type] -= 1
+            elif hasattr(piece, 'owner') and piece.owner != self.order:
+                self.opponent_pieces[piece.id] = piece
+
+        self.rebuild_piece_counts()
+        
+
+
     @property
     def pieces_left(self):
         """

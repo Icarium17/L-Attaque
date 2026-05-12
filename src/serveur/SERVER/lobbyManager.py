@@ -26,7 +26,6 @@ class LobbyManager:
             "modifyProfile" : self.modify_profile,
             "startGame" : self.start_game,
             "setPieces" : self.set_pieces,
-            "restartGame" : self.restart_game,
             "surrender" : self.surrender,
             "save" : self.save,
             "load" : self.load,
@@ -146,9 +145,7 @@ class LobbyManager:
             user["connected"] = user["username"] in active_usernames
         
         return users
-    
-    def restart_game(self):
-        print("restart_game called")
+
 
     def surrender(self, args):
         print("surrender called")
@@ -182,7 +179,38 @@ class LobbyManager:
 
     def load(self, args):
         print("save called")
-        
+        (my_key,) = args
+
+        user = self.active_users[my_key]
+
+        saved_game = self.DAOUsers.load_game(user.id)
+
+        ai_difficulty = saved_game.get("ai_difficulty")
+        player_to_move = saved_game.get("player_to_move")
+        player_boards = saved_game.get("player_boards")
+        board = saved_game.get("board")
+        scores = saved_game.get("scores")
+        times_remaining = saved_game.get("times")
+        last_moves = saved_game.get("last_moves")
+
+        player_score = scores[0] if scores else 0
+        ai_score = scores[1] if scores else 0
+
+
+        player = Player(user, player_score)
+        player.load(player_boards[0], times_remaining[0], last_moves[0])
+
+
+        ai_user = User(-1, "AI_KEY", "AI_Opponent", ai_score, "IDLE")
+        ai_player = AIPlayer(ai_user, 1, ai_difficulty)
+        ai_player.load(player_boards[1], times_remaining[1], last_moves[1])
+
+        players = [player, ai_player]
+
+        game = GameManager.load(self, players, player_to_move, board)
+
+        self.games[player.key] = game
+
 
     
 

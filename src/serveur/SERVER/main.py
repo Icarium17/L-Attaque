@@ -66,7 +66,14 @@ Routes (endpoint -> HTTP method):
 - POST /pause
     - Payload: {"key": session_key}
     - Response: result returned by `LobbyManager.pause`
- 
+
+- POST /save
+    - Payload: {"key": session_key}
+    - Response: {"status": ..., "game_state": big JSON string}
+
+- POST /load
+    - Payload: {"key": session_key, "game_state": big JSON string}
+    - Response: {"status": ..., "restored": boolean} 
 
 Notes:
  - All endpoints expect JSON payloads unless noted otherwise.

@@ -30,6 +30,18 @@ class GameManager():
         else:
             self.wait_timer()
 
+    @classmethod
+    def load(cls, lobbyManager, players):
+        
+        game = cls(
+            lobbyManager,
+            players,
+            status="PLAYING",
+            game_type="original"
+        )
+
+        
+
     def wait_timer(self):
         self.wait_timer_duration = 100
         self.wait_timer_start = time.time()
