@@ -35,7 +35,7 @@ export default function end({ result, onClose }) {
         />
         <Button
           variant={isWin ? "primary" : "danger"}
-          text={countdown > 0 ? `Continue (${countdown})` : "Continue"}
+          text={countdown > 0 ? `Continue ${countdown}` : "Continue"}
           onClick={countdown == 0 ? handleClose : undefined}
           disabled={countdown > 0}
           fullWidth
