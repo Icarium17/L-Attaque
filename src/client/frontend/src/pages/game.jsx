@@ -170,8 +170,32 @@ export default function Game() {
                 setGameResult("LOSE");
                 setPhase("LOSE");
             }
-        });
-};
+    });
+  };
+
+  // Fonction sauvegarder
+  const saveGame = () => {
+    setLoading(true);
+    const key = localStorage.getItem("sessionKey");
+    const formData = new FormData();
+    formData.append("action", "save");
+    formData.append("key", key);
+
+    fetch("/api/game.php", { method: "POST", body: formData })
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
+        if (!data.result.success) {
+          setError(data.result.error || "Erreur de sauvegarde.");
+        }
+      })
+      .catch(() => { setLoading(false); setError("Erreur serveur."); });
+  };
+
+
+
+
+
 
   const battleCells = battleCell
     ? [battleCell]
@@ -397,7 +421,7 @@ return (
         <Button 
             variant="ghost" 
             text="Sauver"
-            onClick={surrenderGame} 
+            onClick={saveGame}
             className="absolute bottom-[3.5%] left-[88%] w-!"
           style={{ 
             width: "130px",

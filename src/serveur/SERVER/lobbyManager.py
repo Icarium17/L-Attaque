@@ -83,16 +83,13 @@ class LobbyManager:
             Tuple of (status, session_key) or error message.
         """
         username, password = args
-        user_connected, user_id, session_key, score = self.DAOUsers.connect(
-            username, password
-        )
-        
-        if user_connected:
-            user = User(user_id, session_key, username, score, "IDLE")
-            self.active_users[user.key] = user
-            return "USER_CONNECTED", session_key
-
-        return "INVALID_USERNAME_PASSWORD", -1
+        result = self.DAOUsers.connect(username, password)
+        if not result[0]:
+            return "INVALID_USERNAME_PASSWORD", -1
+        _, user_id, session_key, score = result
+        user = User(user_id, session_key, username, score, "IDLE")
+        self.active_users[user.key] = user
+        return "USER_CONNECTED", session_key
 
     def logout(self, args):
         """

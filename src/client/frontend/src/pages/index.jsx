@@ -76,7 +76,7 @@ const auth = (action, data1 = "", data2 = "") => {
       // Erreurs
       else if (data.result.error) {
         setError(data.result.error);
-        setTimeout(() => setError(""), 2000);
+        setTimeout(() => setError(""), 3000);
         if (action == "signin") setLoginForm({ nom: "", motDePasse: "" });
       }
     })

@@ -8,129 +8,133 @@ class GameAction extends CommonAction {
     }
 
     protected function executeAction() {
-        $action = isset($_POST["action"]) ? $_POST["action"] : null;
+        $action = $_POST["action"] ?? null;
         $key = $_POST["key"] ?? $_SESSION["key"] ?? null;
 
         if (empty($key)) {
-            $error = "Session inactive";
-            return ["result" => compact("error")];
+            return ["result" => ["error" => "Session inactive"]];
         }
 
-        // Gestion déplacer pièce
-        if ($action == "make_move") {
-            $data = [
-                "user_key" => $key, 
-                "ligne" => (int)$_POST["ligne"],
-                "colonne" => (int)$_POST["colonne"],
-                "destination_ligne" => (int)$_POST["destination_ligne"],
-                "destination_colonne" => (int)$_POST["destination_colonne"]
-            ];
-            $apiResult = parent::callPython("make_move", $data);
-
-            if ($apiResult == null) {
-                $error = "Erreur Serveur";
-                return ["result" => compact("error")];
+        try {
+            switch ($action) {
+                case "make_move":
+                    return $this->handleMakeMove($key);
+                case "submit_placement":
+                    return $this->handleSubmitPlacement($key);
+                case "get_game_status":
+                    return $this->handleGetGameStatus($key);
+                case "surrender":
+                case "pause":
+                case "resume":
+                case "save":
+                case "load":
+                    return $this->handleSimpleAction($action, $key);
+                default:
+                    return ["result" => ["error" => "Action inconnue"]];
             }
-
-            if (isset($apiResult->status) && $apiResult->status == "INVALID_MOVE") {
-                $error = "Mouvement invalide";
-                return ["result" => compact("error"), "response_svr" => $apiResult];
-            }
-
-            if (isset($apiResult->status) && $apiResult->status == "NOT_YOUR_TURN") {
-                $error = "Pas ton tour";
-                return ["result" => compact("error"), "response_svr" => $apiResult];
-            }
-
-            if (isset($apiResult->status) && $apiResult->status == "INVALID_KEY") {
-                $error = "Clef invalide";
-                return ["result" => compact("error"), "response_svr" => $apiResult];
-            }
-             
-            $statusData = ["key" => $key];
-            $statusResult = parent::callPython("get_status", $statusData);
-
-            $success = true;
-            $message = "Move effectue";
-            $apiBoard = $statusResult->board; 
-            $turn = strtoupper($statusResult->turn?? '');
-            
-            return ["result" => compact("success", "message", "apiBoard", "turn"), "response_svr" => $statusResult];
+        } catch (Exception $e) {
+            return ["result" => ["error" => $e->getMessage()]];
         }
-
-        // Gestion envoi placement
-        if ($action == "submit_placement") {
-            $data = [
-                "key" => $key,
-                "pieces" => json_decode($_POST["pieces"], true)
-            ];
-            
-            $apiResult = parent::callPython("set_pieces", $data);
-
-            if ($apiResult == null) {
-                $error = "Erreur Serveur Python Set_pieces)";
-                return ["result" => compact("error")];
-            }
-            
-            $success = true;
-            $message = "Placement envoye";
-            return ["result" => compact("success", "message"), "response_svr" => $apiResult];
-        }
-
-        // Gestion du statut
-        if ($action == "get_game_status") {
-            $data = [
-                "key" => $key
-            ];
-            
-            $apiResult = parent::callPython("get_status", $data);
-
-            if ($apiResult == null) {
-                $error = "Erreur Serveur Status";
-                return ["result" => compact("error")];
-            }
-
-            $success = true;
-            $status = $apiResult -> status;
-            $turn = strtoupper($apiResult->turn ?? '');
-            $time_remaining = $apiResult->time_remaining ?? null;
-            $apiBoard = $apiResult->board ?? null;
-            return ["result" => compact("success","status","turn","time_remaining","apiBoard"), "response_svr" => $apiResult];
-        }
-
-        // Gestion capituler
-        if ($action == "surrender") {
-            $data = ["key" => $key];
-            $apiResult = parent::callPython("surrender", $data);
-
-            if ($apiResult == null) {
-                $error = "Erreur Serveur";
-                return ["result" => compact("error")];
-            }
-            $success = true;
-            $status = $apiResult;
-        return ["result" => compact("success","status")];
-        }
-
-        if ($action == "pause" || $action == "resume") {
-            $data = ["key" => $key];
-            $apiResult = parent::callPython("pause", $data);
-            
-            if ($apiResult == null ) {
-                $error = "Erreur Serveur";
-                return ["result" => compact("error")];
-            }
-
-            $success = true;
-            $pauseStatus = $apiResult;
-            return ["result" => compact("success", "pauseStatus")];
-        }
-
-        $error = "Action inconnue";
-        return ["result" => compact("error")];
     }
+
+    /**
+     * Gère l'appel à l'API Python 
+     */
+    private function callApi(string $endpoint, array $data) {
+        $apiResult = parent::callPython($endpoint, $data);
+        if ($apiResult == null) {
+            throw new Exception("Erreur du Serveur");
+        }
+        return $apiResult;
+    }
+
+    private function handleMakeMove(string $key): array {
+        $data = [
+            "user_key" => $key, 
+            "ligne" => (int)$_POST["ligne"],
+            "colonne" => (int)$_POST["colonne"],
+            "destination_ligne" => (int)$_POST["destination_ligne"],
+            "destination_colonne" => (int)$_POST["destination_colonne"]
+        ];
+        
+        $apiResult = $this->callApi("make_move", $data);
+
+        // Gestion des erreurs spécifiques au mouvement
+        $errorStatuses = [
+            "INVALID_MOVE" => "Mouvement invalide",
+            "NOT_YOUR_TURN" => "Pas ton tour",
+            "INVALID_KEY" => "Clef invalide"
+        ];
+
+        if (isset($apiResult->status) && isset($errorStatuses[$apiResult->status])) {
+            return [
+                "result" => ["error" => $errorStatuses[$apiResult->status]], 
+                "response_svr" => $apiResult
+            ];
+        }
+
+        // Si le mouvement est valide, on récupère le nouveau statut
+        $statusResult = $this->callApi("get_status", ["key" => $key]);
+
+        return [
+            "result" => [
+                "success" => true,
+                "message" => "Move effectue",
+                "apiBoard" => $statusResult->board,
+                "turn" => strtoupper($statusResult->turn ?? '')
+            ],
+            "response_svr" => $statusResult
+        ];
+    }
+
+    private function handleSubmitPlacement(string $key): array {
+        $data = [
+            "key" => $key,
+            "pieces" => json_decode($_POST["pieces"], true)
+        ];
+        
+        $apiResult = $this->callApi("set_pieces", $data);
+
+        return [
+            "result" => ["success" => true, "message" => "Placement envoye"], 
+            "response_svr" => $apiResult
+        ];
+    }
+
+    private function handleGetGameStatus(string $key): array {
+        $apiResult = $this->callApi("get_status", ["key" => $key]);
+
+        return [
+            "result" => [
+                "success" => true,
+                "status" => $apiResult->status,
+                "turn" => strtoupper($apiResult->turn ?? ''),
+                "time_remaining" => $apiResult->time_remaining ?? null,
+                "apiBoard" => $apiResult->board ?? null
+            ], 
+            "response_svr" => $apiResult
+        ];
+    }
+
+    /**
+     * Gère toutes les actions sans clef
+     */
+    private function handleSimpleAction(string $action, string $key): array {
+    $endpoint = ($action == "resume") ? "pause" : $action;
     
+    $apiResult = $this->callApi($endpoint, ["key" => $key]);
+    
+    $resultData = ["success" => true];
+
+    if ($action == "surrender") {
+        $resultData["status"] = $apiResult; 
+    } 
+    elseif ($action == "pause" || $action == "resume") {
+        $resultData["pauseStatus"] = $apiResult;
+    } 
+    elseif ($action == "save") {
+        $resultData["gameState"] = $apiResult;
+    } 
+    return ["result" => $resultData];
 }
-
-
- 
+}

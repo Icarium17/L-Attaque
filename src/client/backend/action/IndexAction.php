@@ -140,7 +140,7 @@ class IndexAction extends CommonAction {
                 return ["result" => compact("success", "key", "username", "isAdmin"), "response_svr" => $apiResult];
             }
 
-            $error = "Erreur Login ou mot de passe ";
+            $error = "Erreur de mot de passe ";
             return ["result" => compact("error"), "response_svr" => $apiResult];
         }
     }
