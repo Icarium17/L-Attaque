@@ -1,4 +1,3 @@
-import json
 import bcrypt
 import secrets
 
@@ -42,11 +41,6 @@ class DAOUsers():
                 return True, user_id, session_key, score
 
             return False, 0
-        
-        
-    def get_all_users(self):
-        with Connection() as db:
-            return db.fetch("SELECT _id, username, rights FROM users")
 
     def delete_user(self, user_id):
         with Connection() as db:
@@ -62,45 +56,3 @@ class DAOUsers():
                 WHERE _id = %s
             """, (new_score, win, win, user_id))
         
-
-        
-    def get_high_scores(self, limit = 10):
-        with Connection() as db:
-            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users WHERE username != 'MCTS_AI' ORDER BY score DESC LIMIT %s", (limit,))
-            return {
-                row["username"]: {
-                    "username" : row["username"],
-                    "score": row["score"],
-                    "games_won": row["games_won"],
-                    "games_lost": row["games_lost"],
-                }
-                for row in rows
-            }
-        
-
-    def save(self, ai_difficulty, board, player_to_move, user_id):
-        with Connection() as db:
-            db.execute("DELETE FROM saved_games WHERE user_id = %s", (user_id,))
-
-            try :
-                db.execute("INSERT INTO saved_games (ai_difficulty, board, player_to_move, user_id)", (ai_difficulty, board, player_to_move))
-                return (1, "SAVE_COMPLETE")
-                
-            except Exception as e:
-                return (0, "ERROR")
-                
-
-    def load_game(self, user_id):
-        with Connection() as db:
-            saved_game = db.fetch("SELECT ai_difficulty, board, player_to_move FROM saved_games WHERE user_id = %s ", (user_id,))
-            game_state = json.loads(saved_game["board"])
-
-            return {
-                "ai_difficulty": saved_game["ai_difficulty"],
-                "player_to_move": saved_game["player_to_move"],
-                "player_boards": game_state["player_boards"],
-                "board": game_state["board"],
-                "scores": game_state["scores"],
-                "times": game_state["times"],
-                "last_moves": game_state["last_moves"]
-            }

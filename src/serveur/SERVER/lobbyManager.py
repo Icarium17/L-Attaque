@@ -1,12 +1,14 @@
 import threading
 
 from DAO.DAOUsers import DAOUsers
+from DAO.DAOStats import DAOStats
+from DAO.DAOSave import DAOSave
 from USERS.player import Player
 from GAME.move import Move
 from gameManager import GameManager
 from USERS.aiPlayer import AIPlayer
 from USERS.user import User
-from GAME.piece import Piece, PieceType
+from GAME.piece import Piece, PieceType, BeliefPiece
 
 
 class LobbyManager:
@@ -37,6 +39,8 @@ class LobbyManager:
         }
 
         self.DAOUsers = DAOUsers()
+        self.DAOStats = DAOStats()
+        self.DAOSave = DAOSave()
 
     def execute_action(self, player_action, *args):
         """
@@ -195,7 +199,7 @@ class LobbyManager:
         Returns:
             List of user dicts with 'connected' status.
         """
-        users = self.DAOUsers.get_all_users()
+        users = self.DAOStats.get_all_users()
         active_usernames = [user.username for user in self.active_users.values()]
 
         for user in users:
@@ -240,15 +244,16 @@ class LobbyManager:
         Args:
             args: Tuple containing session_key.
         Returns:
-            Result of DAOUsers.save.
+            Result of DAOSave.save.
         """
 
         (my_key,) = args
         game = self.games[my_key]
 
-        ai_difficulty, game_state_json, player_to_move, user_id = game.save()
+        user_id, ai_difficulty, player_to_move, game_state_json = game.save(my_key)
         
-        result = self.DAOUsers.save(ai_difficulty, game_state_json, player_to_move, user_id)
+        result = self.DAOSave.save(ai_difficulty, game_state_json, player_to_move, user_id)
+        print(user_id)
 
         return result
 
@@ -258,13 +263,18 @@ class LobbyManager:
         Args:
             args: Tuple containing session_key.
         Returns:
-            None. Updates self.games.
+            Result of game.load
         """
         (my_key,) = args
 
         user = self.active_users[my_key]
 
-        saved_game = self.DAOUsers.load_game(user.id)
+        print(user.account_id)
+
+        saved_game = self.DAOSave.load_game(user.account_id)
+
+        if not saved_game:
+            return (0, "NO_SAVED_GAME")
 
         ai_difficulty = saved_game.get("ai_difficulty")
         player_to_move = saved_game.get("player_to_move")
@@ -277,20 +287,30 @@ class LobbyManager:
         player_score = scores[0] if scores else 0
         ai_score = scores[1] if scores else 0
 
+        boards = []
 
-        player = Player(user, player_score)
-        player.load(player_boards[0], times_remaining[0], last_moves[0])
+        for b in [board, player_boards[0], player_boards[1]]:
+            boards.append(self.convert_pieces(b))
+
+
+        player = Player(user, 0, player_score)
+        player.load(boards[1], times_remaining[0], last_moves[0])
 
 
         ai_user = User(-1, "AI_KEY", "AI_Opponent", ai_score, "IDLE")
         ai_player = AIPlayer(ai_user, 1, ai_difficulty)
-        ai_player.load(player_boards[1], times_remaining[1], last_moves[1])
+        ai_player.load(boards[2], times_remaining[1], last_moves[1])
 
         players = [player, ai_player]
 
-        game = GameManager.load(self, players, player_to_move, board)
+        game = GameManager.load(self, players, player_to_move, boards[0])
 
         self.games[player.key] = game
+
+        print(self.games)
+
+        print("done")
+        return (1, "RESTORED")
 
 
     
@@ -325,20 +345,36 @@ class LobbyManager:
             return valid, self.active_users[my_key].status
         return "INVALID_PIECE_SETUP", self.active_users[my_key].status
     
-    def convert_pieces(self, pieces_data, owner):
+    def convert_pieces(self, pieces_data, owner = None):
         pieces = []
         for i, piece_dict in enumerate(pieces_data):
             try:
-                type_str = piece_dict["type"].replace("é", "e").replace("É", "E")
-                ptype = PieceType[type_str]
-                # Use the id from the input data if present, else fallback to index
+                if owner is not None:
+                    piece_owner = owner.order
+                else:
+                    piece_owner = piece_dict["owner"]
                 piece_id = piece_dict.get("id", i)
-                piece = Piece(
-                    id=piece_id,
-                    type=ptype,
-                    position=tuple(piece_dict["position"]),
-                    owner=owner.order
-                )
+                if piece_dict["type"] is None:
+                    # Create a BeliefPiece
+                    piece = BeliefPiece(
+                        id=piece_id,
+                        position=tuple(piece_dict["position"]),
+                        owner=piece_owner
+                    )
+                    # Restore probabilities and evidence_weights if present
+                    if "probabilities" in piece_dict:
+                        piece.probabilities = BeliefPiece.restore_dict_with_enum_keys(piece_dict["probabilities"])
+                    if "evidence_weights" in piece_dict:
+                        piece.evidence_weights = BeliefPiece.restore_dict_with_enum_keys(piece_dict["evidence_weights"])
+                else:
+                    type_str = piece_dict["type"].replace("é", "e").replace("É", "E")
+                    ptype = PieceType[type_str]
+                    piece = Piece(
+                        id=piece_id,
+                        type=ptype,
+                        position=tuple(piece_dict["position"]),
+                        owner=piece_owner
+                    )
                 pieces.append(piece)
             except KeyError as e:
                 raise ValueError(f"Invalid piece data: missing {e} in {piece_dict}")
@@ -373,7 +409,7 @@ class LobbyManager:
         Returns:
             List of high scores from DAOUsers.
         """
-        return self.DAOUsers.get_high_scores()
+        return self.DAOStats.get_high_scores()
 
     def get_status(self, args):
         """

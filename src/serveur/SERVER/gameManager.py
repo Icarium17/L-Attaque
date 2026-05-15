@@ -9,6 +9,14 @@ from USERS.aiPlayer import AIPlayer
 
 class GameManager():
     def __init__(self, lobbyManager, players, status = None, game_type = "original"):
+        """
+        Initialize a new GameManager instance.
+        Args:
+            lobbyManager: The LobbyManager instance managing this game.
+            players: List of Player and/or AIPlayer objects.
+            status: Optional initial status string.
+            game_type: The type of game (default: "original").
+        """
         self.lobbyManager = lobbyManager
         self.game_type = game_type
         self.board = Board(self.game_type)
@@ -32,6 +40,16 @@ class GameManager():
 
     @classmethod
     def load(cls, lobbyManager, players, player_to_move, board):
+        """
+        Load a game from saved state.
+        Args:
+            lobbyManager: The LobbyManager instance.
+            players: List of Player and/or AIPlayer objects.
+            player_to_move: The index/order of the player whose turn it is.
+            board: List of Piece objects representing the board state.
+        Returns:
+            GameManager: The loaded game instance.
+        """
         
         game = cls(
             lobbyManager,
@@ -42,36 +60,59 @@ class GameManager():
 
         game.board.set_pieces(board)
         game.player_to_move = player_to_move
+        game.timers.start(player_to_move)
+
+        return game
 
         
 
     def wait_timer(self):
+        """
+        Start a timer for waiting for a second player to join.
+        """
         self.wait_timer_duration = 100
         self.wait_timer_start = time.time()
         self.wait_timer_handle = threading.Timer(self.wait_timer_duration, self.remove_game)
         self.wait_timer_handle.start()
 
     def cancel_wait_timer(self):
+        """
+        Cancel the wait timer if it is running.
+        """
         if self.wait_timer_handle is not None:
             self.wait_timer_handle.cancel()
             self.wait_timer_handle = None
 
 
     def add_second_player(self, player):
+        """
+        Add a second player to the game and start setup.
+        Args:
+            player: The Player object to add.
+        """
         self.cancel_wait_timer()
         self.players.append(player)
         self.set_player_boards()
         self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired) 
-        # Do NOT set status to PLAYING yet; wait until both players have set up their pieces
         self.status = "SETTING_UP"
         
 
     def remove_game(self):
+        """
+        Remove the game from the lobby if the wait timer expires.
+        """
         self.lobbyManager.too_long_wait(self.players[0].key)
 
     ###### Start and Setup ###### 
 
     def get_player(self, key):
+        """
+        Get a player by their session key.
+        Args:
+            key: The session key to search for.
+        Returns:
+            Player or AIPlayer object, or None if not found.
+        """
         for player in self.players:
             if hasattr(player, "key") and player.key == key:
                 return player
@@ -80,6 +121,9 @@ class GameManager():
         return None
     
     def set_player_boards(self):
+        """
+        Initialize known boards for all players if not already set.
+        """
         for player in self.players:
             if player.known_board is None:
                 player.known_board = Board(self.game_type)
@@ -87,9 +131,24 @@ class GameManager():
                     player.user.status = "SETTING_UP"
 
     def clone_pieces(self, pieces):
+        """
+        Clone a list of pieces.
+        Args:
+            pieces: List of Piece objects.
+        Returns:
+            List of cloned Piece objects.
+        """
         return [piece.clone() for piece in pieces]
 
     def check_valid_setup(self, player_id, pieces) -> str:
+        """
+        Check if a player's piece setup is valid and update the game state.
+        Args:
+            player_id: The session key of the player.
+            pieces: List of Piece objects to place.
+        Returns:
+            str: Status message or error.
+        """
         player_order = self.get_order(player_id)
         if player_order == -1:
             return ("Le joueur n'est pas valide")
@@ -116,6 +175,11 @@ class GameManager():
         return ("SETUP_SUCCESS")
 
     def setup_ai_player(self, order):
+        """
+        Set up the AI player's pieces and state.
+        Args:
+            order: The order/index of the AI player.
+        """
         ai_player = self.players[order]
         ai_pieces = ai_player.setup_pieces()
         self.board.set_pieces(ai_pieces) ##ok
@@ -126,6 +190,9 @@ class GameManager():
         ai_player.players = self.players
 
     def finish_set_up(self):
+        """
+        Finalize setup for all players and start the game.
+        """
         print("setup_called")
         for order, p in enumerate(self.players):
                 print("order:", order)
@@ -142,6 +209,12 @@ class GameManager():
 
 
     def set_unknowns_pieces(self, player_order, pieces):
+        """
+        Set belief pieces for opponents based on unknown pieces.
+        Args:
+            player_order: The order/index of the player.
+            pieces: Dict of Piece objects.
+        """
         for opponent in self.players[:player_order] + self.players[player_order + 1:]:
             belief_pieces = []
             for piece in pieces.values():
@@ -152,6 +225,9 @@ class GameManager():
             opponent.add_belief_pieces(belief_pieces)
         
     def check_board(self):
+        """
+        Print the current board state for debugging.
+        """
         for y in range(self.board.rows):
             for x in range(self.board.cols):
                 tile = self.board.tiles[y][x]
@@ -164,10 +240,25 @@ class GameManager():
     ###### Game Logic ######
     
     def get_order(self, player_id) -> int:
+        """
+        Get the order/index of a player by their session key.
+        Args:
+            player_id: The session key.
+        Returns:
+            int: The player's order, or -1 if not found.
+        """
         player_order = next((i for i, obj in enumerate(self.players) if obj.key == player_id), -1)
         return player_order
     
     def make_move(self, player_id, move):
+        """
+        Make a move for a player if the game is in PLAYING status.
+        Args:
+            player_id: The session key of the player.
+            move: The Move object representing the move.
+        Returns:
+            Tuple[int, str]: (status, message)
+        """
         if self.status == "PLAYING":
             player = self.players[self.get_order(player_id)]
             if player.order == -1:
@@ -204,6 +295,9 @@ class GameManager():
         return (0, "BATTLE_HAPPENING")
     
     def change_turn(self):
+        """
+        Change the turn to the next player, or end the game if finished.
+        """
         self.status = "PLAYING"
         if not self.check_end_state(): 
             self.player_to_move = (self.player_to_move + 1) % len(self.players)
@@ -216,11 +310,23 @@ class GameManager():
             print("GAME OVER")
 
     def ai_move_thread(self, ai_player):
+        """
+        Threaded function for AI player to make a move.
+        Args:
+            ai_player: The AIPlayer object.
+        """
         ai_player.player_to_move = self.player_to_move
         move = ai_player.choose_move()
         self.make_move(self.player_to_move, move)
 
     def combat(self, attacker, defender, defender_tile):
+        """
+        Resolve combat between two pieces and update the board.
+        Args:
+            attacker: The attacking Piece object.
+            defender: The defending Piece object.
+            defender_tile: The tile where the defender is located.
+        """
         winner = self.game_rules.combat(attacker, defender)
         if winner is None:
             # Draw: both lose
@@ -236,6 +342,13 @@ class GameManager():
         self.set_boards_post_combat(winner, losers, defender_tile)
 
     def set_boards_post_combat(self, winner, losers, tileTo):
+        """
+        Update boards after combat, removing defeated pieces and moving the winner.
+        Args:
+            winner: The winning Piece object, or None.
+            losers: List of defeated Piece objects.
+            tileTo: The destination tile.
+        """
         for loser in losers:
             for player in self.players:
                 player.remove_piece_everywhere(loser)
@@ -259,6 +372,13 @@ class GameManager():
                 player.update_belief_state_loser(loser)
 
     def pause(self, my_key):
+        """
+        Pause or resume the game for a player.
+        Args:
+            my_key: The session key of the player.
+        Returns:
+            Tuple[int, str]: (status, message)
+        """
         player = self.get_player(my_key)
         opponent = self.players[1 - player.order]
         if not isinstance(opponent, AIPlayer):
@@ -276,6 +396,14 @@ class GameManager():
         
     def invert_positions_if_needed(self, player_order, pieces):
         """
+        Invert the y positions of pieces for the second player.
+        Args:
+            player_order: The order/index of the player.
+            pieces: List of Piece objects.
+        Returns:
+            List of Piece objects with updated positions.
+        """
+        """
         Invert the y position of all pieces if player_order is 1 (second player),
         so that (x, 6) becomes (x, 3), (x, 7) -> (x, 2), (x, 8) -> (x, 1), (x, 9) -> (x, 0)
         """
@@ -286,12 +414,26 @@ class GameManager():
         return pieces
     
     def invert_piece_dicts_y(self, list_pieces):
+        """
+        Invert the y positions in a list of piece dicts for the second player.
+        Args:
+            list_pieces: List of piece dicts.
+        Returns:
+            List of piece dicts with updated positions.
+        """
         for piece in list_pieces:
             x, y = piece['position']
             piece['position'] = (x, 9 - y)
         return list_pieces
         
     def get_status(self, player_id):
+        """
+        Get the current status of a player and the game.
+        Args:
+            player_id: The session key of the player.
+        Returns:
+            dict: Status information for the player/game.
+        """
         player = self.players[self.get_order(player_id)]
         if player.order == -1:
             return {"status": "INVALID_KEY"} ##TODO : change for the player only
@@ -338,6 +480,11 @@ class GameManager():
 
     ## TODO : Check the end game conditions after each moves
     def check_end_state(self):
+        """
+        Check if the game has ended for any player.
+        Returns:
+            bool: True if the game ended, False otherwise.
+        """
         for player in self.players:
             ended, result = self.game_rules.check_player_end_state(player, self.players, self.board)
             if ended:
@@ -349,18 +496,31 @@ class GameManager():
             
 
     def declare_winner(self, winner, loser, reason):
+        """
+        Declare the winner and loser of the game and end it.
+        Args:
+            winner: The Player or AIPlayer who won.
+            loser: The Player or AIPlayer who lost.
+            reason: The reason for the game's end.
+        """
         self.winner = winner
         self.loser = loser
         self.end_reason = reason
         self.end_game()
 
     def end_game(self):
+        """
+        End the game, update scores, and notify the lobby manager.
+        """
         print(f"Game ended! Winner: {self.winner.username}, Loser: {self.loser.username}, Reason: {self.end_reason}")
         for player in self.players:
             player.user.score += self.game_rules.calc_score(player)
         self.lobbyManager.end_game(self.winner, self.loser, self.end_reason)
 
     def cleanup(self):
+        """
+        Clean up game resources and timers after the game ends.
+        """
         self.cancel_wait_timer()
 
         if self.turn_change_timer is not None:
@@ -381,9 +541,19 @@ class GameManager():
         self.end_reason = None
 
     def timer_expired(self, player):
+        """
+        Handle timer expiration for a player, declaring the other as winner.
+        Args:
+            player: The index of the player whose timer expired.
+        """
         self.declare_winner(self.players[(player + 1) % len(self.players)], self.players[player], f"{self.players[player].username}'s timer expired")
 
     def surrender(self, my_key):
+        """
+        Handle a player surrendering the game.
+        Args:
+            my_key: The session key of the surrendering player.
+        """
         self.status = "SURRENDER"
         self.timers.stop()
         surrenderer = self.get_player(my_key)
@@ -393,6 +563,13 @@ class GameManager():
         threading.Timer(10, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
 
     def save(self, my_key):
+        """
+        Save the current game state for a player.
+        Args:
+            my_key: The session key of the player.
+        Returns:
+            Tuple: (user_id, ai_difficulty, player_to_move, game_state_json)
+        """
         player = self.get_player(my_key)
         my_order = player.order
 
@@ -404,7 +581,7 @@ class GameManager():
         self.status = "SAVING"
         self.timers.stop()
         
-        user_id = player.user.id
+        user_id = player.user.account_id
         ai_difficulty = opponent.difficulty
         player_to_move = self.player_to_move
 
@@ -414,7 +591,7 @@ class GameManager():
             "board": self.board.return_pieces(),
             "scores": [player.score for player in self.players],
             "times": [player.time_remaining for player in self.players],
-            "last_moves": [player.last_moves for player in self.players]
+            "last_moves": [player.last_move for player in self.players]
         }
         # Serialize to a single JSON string
         game_state_json = json.dumps(game_state)
@@ -424,7 +601,22 @@ class GameManager():
     
 
 class PlayerTimer:
+    """
+    Manages individual timers for each player in a game.
+    Handles timing logic, switching between players, and triggers a callback when a player's timer expires.
+    Args:
+        players: List of Player or AIPlayer objects.
+        times: List of initial time values for each player (in seconds).
+        timer_expired_callback: Function to call when a player's timer expires.
+    """
     def __init__(self, players, times, timer_expired_callback):
+        """
+        Initialize a PlayerTimer instance.
+        Args:
+            players: List of Player or AIPlayer objects.
+            times: List of initial time values for each player (in seconds).
+            timer_expired_callback: Function to call when a player's timer expires.
+        """
         self.players = players
         self.times = times  
         self.current_player = 0
@@ -437,6 +629,11 @@ class PlayerTimer:
         self.last_switch_time = None
 
     def start(self, player):
+        """
+        Start the timer for the specified player.
+        Args:
+            player: The index of the player whose timer to start.
+        """
         with self.lock:
             if self.closed:
                 return
@@ -447,6 +644,11 @@ class PlayerTimer:
                 self.thread.start()
 
     def switch_player(self, next_player):
+        """
+        Switch the timer to the next player, updating time spent.
+        Args:
+            next_player: The index of the next player.
+        """
         with self.lock:
             if self.closed:
                 return
@@ -458,6 +660,11 @@ class PlayerTimer:
             self.last_switch_time = now
 
     def stop(self, duration = None):
+        """
+        Stop the timer for the current player. Optionally resume after a delay.
+        Args:
+            duration: Optional delay in seconds before resuming the timer.
+        """
         def resume_after_delay(player_idx, delay):
             time.sleep(delay)
             self.start(player_idx)
@@ -475,6 +682,9 @@ class PlayerTimer:
                 threading.Thread(target=resume_after_delay, args=(self.current_player, duration), daemon=True).start()
 
     def shutdown(self):
+        """
+        Shut down the timer and clean up resources.
+        """
         with self.lock:
             self.closed = True
             self.running = False
@@ -484,6 +694,9 @@ class PlayerTimer:
             self.timer_expired_callback = None
 
     def _run(self):
+        """
+        Internal thread loop to decrement player timers and trigger expiration callback.
+        """
         while True:
             time.sleep(self.delay)
             with self.lock:
@@ -498,6 +711,11 @@ class PlayerTimer:
                         self.last_switch_time = None
 
     def get_times(self):
+        """
+        Get a copy of the current times for all players.
+        Returns:
+            List of remaining times for each player.
+        """
         with self.lock:
             if self.closed:
                 return []

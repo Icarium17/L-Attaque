@@ -110,9 +110,33 @@ class BeliefPiece(Piece):
 
         return None
     
-    def save(self):
+    def save(self): ##TODO : change back to dict 
         save = self.send()
-        save["evidence_weights"] = self.evidence_weights
-        save["probabilities"] = self.probabilities
-
+        save["evidence_weights"] = {k.name if hasattr(k, 'name') else str(k): v for k, v in self.evidence_weights.items()}
+        save["probabilities"] = {k.name if hasattr(k, 'name') else str(k): v for k, v in self.probabilities.items()}
         return save
+    
+    @staticmethod
+    def restore_dict_with_enum_keys(d):
+        """
+        Convert a dict with string keys (PieceType names) back to PieceType enum keys.
+        """
+        if not isinstance(d, dict):
+            return d
+        restored = {}
+        for k, v in d.items():
+            try:
+                enum_key = PieceType[k]
+            except (KeyError, TypeError):
+                enum_key = k  # fallback if not a valid PieceType
+            restored[enum_key] = v
+        return restored
+
+    def restore_belief_data(self, save):
+        """
+        Restore evidence_weights and probabilities from string-keyed dicts to PieceType-keyed dicts.
+        """
+        if "evidence_weights" in save:
+            self.evidence_weights = self.restore_dict_with_enum_keys(save["evidence_weights"])
+        if "probabilities" in save:
+            self.probabilities = self.restore_dict_with_enum_keys(save["probabilities"])

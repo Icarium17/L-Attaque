@@ -232,7 +232,14 @@ def load():
     my_key = data.get('key')
     result = lobby.execute_action('load', (my_key,))
 
-    return jsonify(result)
+    if result[0]:
+        restored = True
+    else:
+        restored = False
+    return jsonify({
+        "success" : result[0],
+        "restored" : restored
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

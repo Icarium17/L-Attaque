@@ -1,5 +1,6 @@
 from USERS.user import User
 from GAME.piece import BeliefPiece, Piece, PieceType
+from GAME.board import Board
 
 class Player(User):
     """
@@ -8,7 +9,7 @@ class Player(User):
     This class tracks the player's own remaining pieces, cached flag position, and the imperfect
     information view of opponent pieces through hidden belief pieces and revealed opponent pieces.
     """
-    def __init__(self, user_instance, order, time_remaining = (60*20)):
+    def __init__(self, user_instance, order, score = 0, time_remaining = (60*20)):
         """
         Initialize a Player from an existing user instance.
 
@@ -34,14 +35,16 @@ class Player(User):
         self.opponent_pieces = {}
         self.initialize_piece_left()
 
-        self.score = 0
+        self.score = score
         self.last_move = None
 
     def load(self, known_pieces, time_remaining, last_move):
-        self.set_pieces(known_pieces)
+        self.known_board = Board()
+
+        self.populate_all_known_pieces(known_pieces)
+        self.known_board.set_pieces(known_pieces)
         self.time_remaining = time_remaining
         self.last_move = last_move
-        self.populate_all_known_pieces(known_pieces)
 
     
     def populate_all_known_pieces(self, known_pieces):

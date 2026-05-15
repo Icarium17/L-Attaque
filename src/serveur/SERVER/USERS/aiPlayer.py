@@ -15,7 +15,7 @@ class AIPlayer(Player):
     by difficulty and move choice during the game. Setup construction is delegated to helper
     setup classes so the game-facing AI logic stays separate from board-placement details.
     """
-    def __init__(self, user_instance, order, difficulty, time_remaining = (60*20)):
+    def __init__(self, user_instance, order, difficulty, score = 0, time_remaining = (60*20)):
         print("AIPlayer.__init__ called")
         """
         Initialize an AIPlayer.
@@ -26,7 +26,7 @@ class AIPlayer(Player):
             difficulty: The AI difficulty level.
             time_remaining: Remaining clock time for the player.
         """
-        super().__init__(user_instance, order, time_remaining)
+        super().__init__(user_instance, order, score, time_remaining)
         self.difficulty = difficulty
         self.player_to_move = 0
 
