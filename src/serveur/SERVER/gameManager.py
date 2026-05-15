@@ -270,6 +270,8 @@ class GameManager():
             valid_move = self.game_rules.validate_move(player.order, move, self.board)
             if valid_move[0] == 0:
                 return valid_move
+            
+            player.last_moves.append(move)
 
             tileFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]]
             pieceFrom = tileFrom.piece
@@ -356,14 +358,14 @@ class GameManager():
             self.board.remove_piece(loser)
 
         if winner is not None and winner.type != PieceType.Bombe:
+            winner_source_position = winner.position
             for player in self.players:
                 player.known_board.remove_piece(winner)
             self.board.remove_piece(winner)
             
             for player in self.players:
-                print("winner new position", tileTo.x, tileTo.y)
-                player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x)
-            self.board.move_post_combat(winner, tileTo.y, tileTo.x)
+                player.known_board.move_post_combat(winner.clone(), tileTo.y, tileTo.x, winner_source_position)
+            self.board.move_post_combat(winner, tileTo.y, tileTo.x, winner_source_position)
 
         for player in self.players:
             if winner is not None and winner.type != PieceType.Bombe:
@@ -410,7 +412,7 @@ class GameManager():
         if player_order == 1:
             for piece in pieces:
                 x, y = piece.position
-                piece.position = (x, 9 - y)
+                piece.position = (9 - x, 9 - y)
         return pieces
     
     def invert_piece_dicts_y(self, list_pieces):
@@ -423,7 +425,7 @@ class GameManager():
         """
         for piece in list_pieces:
             x, y = piece['position']
-            piece['position'] = (x, 9 - y)
+            piece['position'] = (9 - x, 9 - y)
         return list_pieces
         
     def get_status(self, player_id):
@@ -591,7 +593,7 @@ class GameManager():
             "board": self.board.return_pieces(),
             "scores": [player.score for player in self.players],
             "times": [player.time_remaining for player in self.players],
-            "last_moves": [player.last_move for player in self.players]
+            "last_moves": [player.last_moves for player in self.players]
         }
         # Serialize to a single JSON string
         game_state_json = json.dumps(game_state)

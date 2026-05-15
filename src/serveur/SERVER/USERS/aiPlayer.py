@@ -43,7 +43,6 @@ class AIPlayer(Player):
 
         self.game_rules = None
         self.players = None
-        self.last_moves = []
 
         self.exclude_types = set()
         self.setup_library = AISetupLibrary(self)

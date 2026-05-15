@@ -201,7 +201,7 @@ class GameRules():
             return None
         return attacker if ap > dp else defender
 
-    def _check_last_moves(self, player_order, move, update_history=True) -> bool:
+    def _check_last_moves(self, player_order, move, update_history=True) -> bool: ##TODO : check with the actual player's last move, not the list in rules
         """
         Check whether a move violates the repeated-move restriction.
 

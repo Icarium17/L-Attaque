@@ -1,4 +1,5 @@
 from USERS.user import User
+import collections
 from GAME.piece import BeliefPiece, Piece, PieceType
 from GAME.board import Board
 
@@ -36,15 +37,15 @@ class Player(User):
         self.initialize_piece_left()
 
         self.score = score
-        self.last_move = None
+        self.last_moves = collections.deque(maxlen=4)
 
-    def load(self, known_pieces, time_remaining, last_move):
+    def load(self, known_pieces, time_remaining, last_moves):
         self.known_board = Board()
 
         self.populate_all_known_pieces(known_pieces)
         self.known_board.set_pieces(known_pieces)
         self.time_remaining = time_remaining
-        self.last_move = last_move
+        self.last_moves = collections.deque(last_moves, maxlen=8) if last_moves is not None else collections.deque(maxlen=4)
 
     
     def populate_all_known_pieces(self, known_pieces):
@@ -459,6 +460,10 @@ class Player(User):
 
             if isinstance(old_piece, BeliefPiece):
                 old_piece = self.remove_belief_piece(winner.id, piece_to_remove_type)
+                if old_piece is not None:
+                    if self.known_board is not None:
+                        self.known_board.remove_piece(old_piece)
+                    old_piece.position = winner.position
                 new_piece = self.change_belief_piece_to_piece(old_piece, winner.type, winner.owner)
                 if new_piece:
                     self.add_revealed_opponent_piece(new_piece)

@@ -135,6 +135,33 @@ class TestPlayerBeliefCombatUpdates(unittest.TestCase):
             initial_count,
         )
 
+    def test_hidden_winner_after_post_combat_move_does_not_duplicate_old_square(self):
+        hidden_piece = BeliefPiece(16, (1, 3), owner=1)
+        self.player.position_pieces([hidden_piece])
+        self.player.add_belief_pieces([hidden_piece])
+
+        winner = Piece(16, PieceType.Sergent, (1, 4), owner=1)
+
+        self.player.known_board.move_post_combat(winner.clone(), 4, 1)
+        self.player.update_belief_state_winner(winner)
+
+        self.assertIsNone(self.player.known_board.tiles[3][1].piece)
+
+        destination_piece = self.player.known_board.tiles[4][1].piece
+        self.assertIsNotNone(destination_piece)
+        self.assertEqual(destination_piece.id, 16)
+        self.assertEqual(destination_piece.owner, 1)
+        self.assertEqual(destination_piece.type, PieceType.Sergent)
+
+        matching_positions = []
+        for y in range(self.player.known_board.rows):
+            for x in range(self.player.known_board.cols):
+                piece = self.player.known_board.tiles[y][x].piece
+                if piece is not None and piece.id == 16 and piece.owner == 1:
+                    matching_positions.append((x, y))
+
+        self.assertEqual(matching_positions, [(1, 4)])
+
     def test_hidden_piece_move_then_other_loss_keeps_belief_state_consistent(self):
         moving_piece = BeliefPiece(20, (1, 1), owner=1)
         other_hidden_piece = BeliefPiece(21, (2, 1), owner=1)

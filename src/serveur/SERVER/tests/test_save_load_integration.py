@@ -74,8 +74,8 @@ class TestGameSaveLoadIntegration(unittest.TestCase):
         self.lobby.games[self.user.key].player_to_move = 0
         self.player.time_remaining = 100
         self.ai_player.time_remaining = 100
-        self.player.last_move = None
-        self.ai_player.last_move = None
+        self.player.last_moves = None
+        self.ai_player.last_moves = None
         self.player.score = 10
         self.ai_player.score = 20
 

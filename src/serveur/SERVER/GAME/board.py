@@ -145,23 +145,21 @@ class Board():
             player: (optional) The player object whose pieces dict should be updated.
         """
         tile = self._find_piece_tile(piece, piece.position)
-        if tile:
-            print(piece.type, tile.x, tile.y)
-        else:
-            print("no tile found")
-
         if tile is not None:
             tile.piece = None
 
-    def move_post_combat(self, piece, y, x, source_position=None):
-        # Remove any existing instance of this piece from the board
-        for row in self.tiles:
-            for tile in row:
-                if tile.piece and tile.piece.id == piece.id and tile.piece.owner == piece.owner:
-                    tile.piece = None
+        if player is not None:
+            player.remove_piece(piece)
 
-        print("move_post_combat", x, y)
-        print("piece", piece)
+    def move_post_combat(self, piece, y, x, source_position=None):
+        source_tile = None
+        if source_position is not None:
+            source_tile = self._find_piece_tile(piece, source_position)
+        else:
+            source_tile = self._find_piece_tile(piece, piece.position)
+
+        if source_tile is not None:
+            source_tile.piece = None
 
         destination_tile = self.tiles[y][x]
         destination_tile.piece = piece

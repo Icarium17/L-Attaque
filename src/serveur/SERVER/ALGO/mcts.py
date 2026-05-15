@@ -44,7 +44,7 @@ class MCTS:
     def _setup(self, ai):
         self.root_node = Node(None, None)
         self.current_node = self.root_node
-        self.previous_move = self.ai.last_move
+        self.previous_move = self.ai.last_moves
 
         self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
         self.algo_infoSet = None
@@ -210,20 +210,11 @@ class MCTS:
 
     def heuristic_evaluation_hard(self, winner): ##TODO
         return self.heuristic_evaluation_easy(winner)
-
-    def prior_evaluate_medium_move(self, move):
-        """
-        Evaluate a move based on tactical, mobility, information, and strategy priors.
-        Returns a score (float/int) representing the move's desirability.
-        """
+    
+    def _common_priors(self, move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7):
         score = 0.0
-
-        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-
-        if not their_piece:
-            return 0.0
-
-        confidence = 1.0 if their_piece.revealed else 0.5
+        if their_piece.revealed and my_val < their_val:
+            score -= 5.0
 
         if their_piece.type == PieceType.Drapeau:
             score += 1.0
@@ -231,81 +222,82 @@ class MCTS:
         elif their_piece.type == PieceType.Bombe and my_piece.type == PieceType.Demineur:
             score += 0.5
 
-        elif my_piece.type.value > their_piece.type.value:
+        elif my_val > their_val:
             score += 0.6
 
-        elif my_piece.type.value < their_piece.type.value:
+        elif my_val < their_val:
             score -= 0.5
 
         if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
-            score += 0.7
+            score += espion_bonus
 
         if my_piece.type == PieceType.Eclaireur:
-            score += 0.1
+            score += eclaireur_bonus
+
+        x, y = move.moveTo
+        center_x, center_y = 4.5, 4.5
+        dist_to_center = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+        score -= 0.03 * dist_to_center
+
+        if x == 0 or x == 9 or y == 0 or y == 9:
+            score -= 0.2
+
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx <= 9 and 0 <= ny <= 9:
+                neighbor = self.algo_infoSet.board_state.tiles[ny][nx].piece
+                if neighbor and hasattr(neighbor, 'revealed') and neighbor.revealed and hasattr(neighbor, 'type') and my_val < neighbor.type.value:
+                    score -= 0.5
+
+        if self.previous_move and move in self.previous_move:
+            score -= 1.0
+
+        return score
+
+    def prior_evaluate_medium_move(self, move):
+        """
+        Evaluate a move based on tactical, mobility, information, and strategy priors.
+        Returns a score (float/int) representing the move's desirability.
+        """
+        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
+        my_val = my_piece.type.value
+        their_val = their_piece.type.value
+        confidence = 1.0 if their_piece.revealed else 0.5
+        score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7)
 
         score *= confidence
-
-        if not their_piece.revealed:
-            score += 0.05
-
-        if self.previous_move and move == self.previous_move:
-            score -= 1.0
 
         return score
     
     def prior_evaluate_difficult_move(self, move):
-        score = 0.0
-
         start_row = self.ai.rows[self.ai.order][0]
         direction = -1 if start_row > 4 else 1
-
-        score += 0.05 * direction * (move.to_pos[1] - move.from_pos[1])
-
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-
-        if not their_piece:
-            return 0.0
-
         confidence = 1.0 if their_piece.revealed else 0.45
-
         my_val = my_piece.type.value
         their_val = their_piece.type.value
+        score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.15, espion_bonus=0.9)
 
+        score *= confidence
+        
+        diff = my_val - their_val
         if their_piece.type == PieceType.Drapeau:
             return 1.5 * confidence
-
         if their_piece.type == PieceType.Bombe:
             if my_piece.type == PieceType.Demineur:
                 score += 0.7
             else:
                 score -= 0.6
-
-        diff = my_val - their_val
-
         if diff > 0:
             score += 0.6 * (diff / 10)
         elif diff < 0:
             score -= 0.5 * (-diff / 10)
-
-        if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
-            score += 0.9
-
-        if my_piece.type == PieceType.Eclaireur:
-            score += 0.15
-
         if not their_piece.revealed:
             score += 0.1
-
             if my_val >= 7:
                 score -= 0.25
-
-        score += 0.05 * getattr(move, "toward_enemy_side", 0)
-
-        if self.previous_move and move == self.previous_move:
-            score -= 1.0
-
+        score += 0.05 * direction * (move.to_pos[1] - move.from_pos[1])
         score *= confidence
-
         return score
 
     def game_over(self):
@@ -332,7 +324,7 @@ class MCTS:
         else:
             best_child = self.root_node.get_random_child()
 
-        self.ai.last_move = best_child.move
+        self.ai.last_moves.append(best_child.move)
         return best_child.move
     
 
