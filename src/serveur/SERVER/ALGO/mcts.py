@@ -1,6 +1,7 @@
 import random
 from ALGO.infoSet import InfoSet
 from ALGO.node import Node
+import collections
 import copy
 import time
 
@@ -44,18 +45,23 @@ class MCTS:
     def _setup(self, ai):
         self.root_node = Node(None, None)
         self.current_node = self.root_node
-        self.previous_move = self.ai.last_moves
+        self.previous_move = collections.deque(self.ai.last_moves, maxlen=self.ai.last_moves.maxlen)
 
         self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
         self.algo_infoSet = None
         self.revealed_opponent_pieces = self.ai.get_revealed_opponent_pieces()
         self.infoSet_main = InfoSet(copy.deepcopy(ai.known_board), ai.order, self.game_rules)
         self.infoSet_main.sync_opponent_knowledge(self.hidden_belief_pieces, self.revealed_opponent_pieces)
+        self.initial_possible_moves = len(self.infoSet_main.get_all_possible_moves())
 
         self.rollout_index = 0
+        self.closest_dist = self.infoSet_main.closest_piece_to_flag()
         
     def _reset_rollout_state(self):
         self.current_node = self.root_node
+        self.previous_move = collections.deque(self.ai.last_moves, maxlen=self.ai.last_moves.maxlen)
+        self.revealed_opponent_pieces = 0
+        self.lost_combats = 0
 
         if self.rollout_index % 5 == 0:
             actualize_start_ns = time.perf_counter_ns()
@@ -77,6 +83,7 @@ class MCTS:
                 "actualize_ns": 0,
                 "actualize_stats": {},
             }
+        
 
 
     def algo(self):
@@ -113,6 +120,16 @@ class MCTS:
                 self.current_node = next_node
             else:
                 return None
+            
+    def update_infoSet(self, move):
+        result = self.algo_infoSet.update_infoSet(move)
+
+        if result is None:
+            return
+
+        self.revealed_opponent_pieces += result["encounter_score"]
+        self.lost_combats += int(result["encounter_score"] < 0)
+        self.previous_move.append(move)
 
 
     def expansion(self, filtered_untried_moves):
@@ -121,9 +138,10 @@ class MCTS:
         Updates self.current_node and self.infoSet if expansion occurs.
         """
         next_move = random.choice(filtered_untried_moves)
-        self.algo_infoSet.update_infoSet(next_move)
-        self.current_node.tried_moves.add(next_move)
+        
+        self.update_infoSet(next_move)
 
+        self.current_node.tried_moves.add(next_move)
 
         next_node = Node(self.current_node, next_move)
         self.current_node.children.append(next_node)
@@ -169,7 +187,7 @@ class MCTS:
             return 0
 
         move = random.choice(possible_moves)
-        self.algo_infoSet.update_infoSet(move)
+        self.update_infoSet(move)
 
         return 1
 
@@ -193,43 +211,70 @@ class MCTS:
             best_moves = [m for m, p in move_priors if p == max_prior]
             move = random.choice(best_moves)
 
-        self.algo_infoSet.update_infoSet(move)
+        self.update_infoSet(move)
         return 1
 
-    def simulation_medium(self): ##TODO
+    def simulation_medium(self): 
         return self._simulation_with_priors(self.prior_evaluate_medium_move)
 
-    def simulation_hard(self): ##TODO
+    def simulation_hard(self): 
         return self._simulation_with_priors(self.prior_evaluate_difficult_move)
 
-    def heuristic_evaluation_easy(self, winner):            
-        return winner
+    def heuristic_evaluation_easy(self, winner):
+        my_pieces = self.algo_infoSet.board_state.get_pieces(self.ai.order)
+        opponent_pieces = self.algo_infoSet.board_state.get_pieces(1 - self.ai.order)
+
+        my_score = sum(piece.type.score for piece in my_pieces.values())
+        opp_score = sum(piece.type.score for piece in opponent_pieces.values())
+
+        score = my_score - opp_score + (100 if winner else -100)
+
+        return score
 
     def heuristic_evaluation_medium(self, winner): ##TODO
-        return self.heuristic_evaluation_easy(winner)
+        score = self.heuristic_evaluation_easy(winner)
+
+        my_moves = len(self.algo_infoSet.get_all_possible_moves(1))
+        their_moves = len(self.algo_infoSet.get_all_possible_moves(0))
+
+        diff_oppo_moves = my_moves - their_moves
+        diff_my_moves = my_moves - self.initial_possible_moves()
+
+        closest_piece_flag = self.algo_infoSet.closest_piece_to_flag()
+
+        score += diff_oppo_moves + diff_my_moves + self.revealed_opponent_pieces + self.lost_combats + closest_piece_flag
+
+        return score
 
     def heuristic_evaluation_hard(self, winner): ##TODO
         return self.heuristic_evaluation_easy(winner)
+
+    def _piece_power(self, piece):
+        if piece is None or piece.type is None or piece.type.power is None:
+            return -1
+
+        return piece.type.power
     
     def _common_priors(self, move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7):
         score = 0.0
-        if their_piece.revealed and my_val < their_val:
-            score -= 5.0
+        if their_piece is not None:
+            if their_piece.revealed and my_val < their_val:
+                score -= 5.0
 
-        if their_piece.type == PieceType.Drapeau:
-            score += 1.0
+            if their_piece.type == PieceType.Drapeau:
+                score += 1.0
 
-        elif their_piece.type == PieceType.Bombe and my_piece.type == PieceType.Demineur:
-            score += 0.5
+            elif their_piece.type == PieceType.Bombe and my_piece.type == PieceType.Demineur:
+                score += 0.5
 
-        elif my_val > their_val:
-            score += 0.6
+            elif my_val > their_val:
+                score += 0.6
 
-        elif my_val < their_val:
-            score -= 0.5
+            elif my_val < their_val:
+                score -= 0.5
 
-        if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
-            score += espion_bonus
+            if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
+                score += espion_bonus
 
         if my_piece.type == PieceType.Eclaireur:
             score += eclaireur_bonus
@@ -246,7 +291,7 @@ class MCTS:
             nx, ny = x + dx, y + dy
             if 0 <= nx <= 9 and 0 <= ny <= 9:
                 neighbor = self.algo_infoSet.board_state.tiles[ny][nx].piece
-                if neighbor and hasattr(neighbor, 'revealed') and neighbor.revealed and hasattr(neighbor, 'type') and my_val < neighbor.type.value:
+                if neighbor and hasattr(neighbor, 'revealed') and neighbor.revealed and hasattr(neighbor, 'type') and my_val < self._piece_power(neighbor):
                     score -= 0.5
 
         if self.previous_move and move in self.previous_move:
@@ -260,9 +305,9 @@ class MCTS:
         Returns a score (float/int) representing the move's desirability.
         """
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-        my_val = my_piece.type.value
-        their_val = their_piece.type.value
-        confidence = 1.0 if their_piece.revealed else 0.5
+        my_val = self._piece_power(my_piece)
+        their_val = self._piece_power(their_piece)
+        confidence = 1.0 if their_piece is not None and their_piece.revealed else 0.5
         score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7)
 
         score *= confidence
@@ -273,17 +318,17 @@ class MCTS:
         start_row = self.ai.rows[self.ai.order][0]
         direction = -1 if start_row > 4 else 1
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-        confidence = 1.0 if their_piece.revealed else 0.45
-        my_val = my_piece.type.value
-        their_val = their_piece.type.value
+        confidence = 1.0 if their_piece is not None and their_piece.revealed else 0.45
+        my_val = self._piece_power(my_piece)
+        their_val = self._piece_power(their_piece)
         score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.15, espion_bonus=0.9)
 
         score *= confidence
         
         diff = my_val - their_val
-        if their_piece.type == PieceType.Drapeau:
+        if their_piece is not None and their_piece.type == PieceType.Drapeau:
             return 1.5 * confidence
-        if their_piece.type == PieceType.Bombe:
+        if their_piece is not None and their_piece.type == PieceType.Bombe:
             if my_piece.type == PieceType.Demineur:
                 score += 0.7
             else:
@@ -292,11 +337,11 @@ class MCTS:
             score += 0.6 * (diff / 10)
         elif diff < 0:
             score -= 0.5 * (-diff / 10)
-        if not their_piece.revealed:
+        if their_piece is None or not their_piece.revealed:
             score += 0.1
             if my_val >= 7:
                 score -= 0.25
-        score += 0.05 * direction * (move.to_pos[1] - move.from_pos[1])
+        score += 0.05 * direction * (move.moveTo[1] - move.moveFrom[1])
         score *= confidence
         return score
 

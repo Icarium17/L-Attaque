@@ -1,7 +1,7 @@
 import copy
 import random
 import time
-from GAME.piece import BeliefPiece, Piece
+from GAME.piece import BeliefPiece, Piece, PieceType
 
 
 ## Should only store observable states. the sampled board should be in the algo, not in the nodes.
@@ -23,15 +23,17 @@ class InfoSet:
         self.game_rules = game_rules
         self.actualize_stats = None
 
-    def get_all_possible_moves(self):
+    def get_all_possible_moves(self, player_turn = None):
         """
         Get all possible moves for the current player.
         
         Returns:
             list: List of possible moves for the current player.
         """
-        pieces = self.board_state.get_pieces(self.player_turn)
-        possible_moves = self.game_rules.get_remaining_moves(pieces, self.player_turn, self.board_state)
+        if player_turn is None:
+            player_turn = self.player_turn
+        pieces = self.board_state.get_pieces(player_turn)
+        possible_moves = self.game_rules.get_remaining_moves(pieces, player_turn, self.board_state)
         return possible_moves
 
     def validate_move(self, move):
@@ -60,8 +62,79 @@ class InfoSet:
         valid = self.validate_move(move)
         if not valid:
             return None
-        self.board_state.move(move)
+
+        encounter_score = 0
+
+        x_0, y_0, x_1, y_1 = move.get_params()
+        tile_from = self.board_state.tiles[y_0][x_0]
+        tile_to = self.board_state.tiles[y_1][x_1]
+
+        attacker = tile_from.piece
+        defender = tile_to.piece
+
+        if defender is None:
+            self.board_state.move(move)
+        else:
+            encounter_score = self.encounter_score(attacker, defender)
+
+            winner = self.game_rules.combat(attacker, defender)
+            tile_from.piece = None
+
+            if winner is None:
+                tile_to.piece = None
+            elif winner is attacker:
+                tile_to.piece = attacker
+                attacker.position = move.moveTo
+
         self.player_turn = 1 - self.player_turn
+        return {
+            "encounter_score": encounter_score,
+            "had_combat": defender is not None
+        }
+
+    def encounter_score(self, my_piece, their_piece):
+        if their_piece is None:
+            return 0
+
+        their_value = their_piece.type.score
+        winner = self.game_rules.combat(my_piece, their_piece)
+
+        if winner is my_piece:
+            return 2 * their_value
+        elif winner is None:
+            return 0
+        else:
+            return -my_piece.type.score
+        
+    def closest_piece_to_flag(self):
+        player_1_pieces = self.board_state.get_pieces(1)
+        flag_piece = next(
+            (piece for piece in player_1_pieces.values() if piece.type == PieceType.Drapeau),
+            None,
+        )
+
+        flag_position = flag_piece.position if flag_piece is not None else None
+
+        if flag_position is None:
+            return 0
+
+        opp_pieces = self.board_state.get_pieces(0)
+
+        if not opp_pieces:
+            return 0
+
+        closest_piece = min(
+            opp_pieces.values(),
+            key=lambda piece: abs(piece.position[0] - flag_position[0]) + abs(piece.position[1] - flag_position[1]),
+            default=None,
+        )
+
+        if closest_piece is None:
+            return 0
+
+        closest_dist = ((flag_position[0] - closest_piece.position[0]) ** 2 + (flag_position[1] - closest_piece.position[1]) ** 2) ** (1/2)
+
+        return closest_dist
 
     def sync_opponent_knowledge(self, hidden_belief_pieces, revealed_opponent_pieces):
         for piece in hidden_belief_pieces:

@@ -92,6 +92,10 @@ class LobbyManager:
             return "INVALID_USERNAME_PASSWORD", -1
         _, user_id, session_key, score = result
         user = User(user_id, session_key, username, score, "IDLE")
+
+        if any(active_user.account_id == user.account_id for active_user in self.active_users.values()):
+            return "USER_ALREADY_CONNECTED", -1
+
         self.active_users[user.key] = user
         return "USER_CONNECTED", session_key
 
@@ -309,11 +313,7 @@ class LobbyManager:
 
         print(self.games)
 
-        print("done")
         return (1, "RESTORED")
-
-
-    
 
     def too_long_wait(self, player_key): #TODO : rework
         """

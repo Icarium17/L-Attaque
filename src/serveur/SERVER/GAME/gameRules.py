@@ -532,6 +532,7 @@ class GameRules():
             
         return score
     
+    ##TODO : Do an actual score for surrender
     def calc_score_surrender(self):
         return PieceType.Drapeau.score
         
