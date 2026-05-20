@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock
 
 import sys
 import os
@@ -8,8 +9,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from GAME.piece import Piece, PieceType
 from GAME.board import Board
 from gameManager import GameManager
+from GAME.move import Move
 from USERS.user import User
 from USERS.player import Player
+
+
+class DummyLobbyManager:
+    def end_game(self, winner, loser, reason):
+        return None
+
+    def too_long_wait(self, key):
+        return None
 
 class TestPVPBoardUpdate(unittest.TestCase):
     def setUp(self):
@@ -18,7 +28,7 @@ class TestPVPBoardUpdate(unittest.TestCase):
         player1 = Player(user1, 0)
         player2 = Player(user2, 1)
         self.players = [player1, player2]
-        self.gm = GameManager(None, self.players)
+        self.gm = GameManager(DummyLobbyManager(), self.players)
         # Place one piece for each player in adjacent positions
         self.p0_piece = Piece(id=10, type=PieceType.Marechal, position=(5, 5), owner=0)
         self.p1_piece = Piece(id=20, type=PieceType.General, position=(5, 6), owner=1)
@@ -102,6 +112,40 @@ class TestPVPBoardUpdate(unittest.TestCase):
         self.assertIsNotNone(tile_p1.piece)
         self.assertEqual(tile_p1.piece.owner, 1)
         self.assertEqual(tile_p1.piece.position, (5, 6))
+
+    def test_post_combat_sync_prevents_false_no_move_loss(self):
+        user1 = User(1, "key1", "Alice", 0, "IDLE")
+        user2 = User(2, "key2", "Bob", 0, "IDLE")
+        player1 = Player(user1, 0)
+        player2 = Player(user2, 1)
+        gm = GameManager(DummyLobbyManager(), [player1, player2], status="PLAYING")
+        gm.timers = MagicMock()
+        gm.change_turn = MagicMock()
+
+        attacker = Piece(id=10, type=PieceType.Marechal, position=(1, 1), owner=0)
+        defender = Piece(id=20, type=PieceType.Lieutenant, position=(1, 2), owner=1)
+        blocker_left = Piece(id=11, type=PieceType.Capitaine, position=(0, 1), owner=0)
+        blocker_right = Piece(id=12, type=PieceType.Capitaine, position=(2, 1), owner=0)
+        blocker_up = Piece(id=13, type=PieceType.Capitaine, position=(1, 0), owner=0)
+
+        pieces = [attacker, defender, blocker_left, blocker_right, blocker_up]
+        gm.board.set_pieces(pieces)
+        gm.players[0].known_board.set_pieces([piece.clone() for piece in pieces])
+        gm.players[1].known_board.set_pieces([piece.clone() for piece in pieces])
+        gm.players[0].sync_owned_pieces()
+        gm.players[1].sync_owned_pieces()
+
+        gm.game_rules.combat = lambda a, d: a
+        move = Move((1, 1), (1, 2))
+
+        result = gm.make_move(gm.players[0].key, move)
+
+        self.assertEqual(result, (0, "BATTLE_HAPPENING"))
+        self.assertEqual(gm.players[0].pieces[attacker.id].position, (1, 2))
+        self.assertTrue(
+            gm.game_rules.has_remaining_moves(0, gm.players[0].pieces, gm.board),
+            "Player 0 should still have legal moves from the post-combat position",
+        )
 
 if __name__ == "__main__":
     unittest.main()

@@ -291,6 +291,7 @@ class GameManager():
                     if player.order != self.player_to_move:
                         player.update_belief_state_move(tileFrom.x, tileFrom.y, distance) ## TODO : check if this works
                     player.move(move)
+                    player.sync_owned_pieces()
                 self.change_turn()
                 return (1, "MOVE_SUCCESS")
             
@@ -372,6 +373,7 @@ class GameManager():
                 player.update_belief_state_winner(winner)
             for loser in losers:
                 player.update_belief_state_loser(loser)
+            player.sync_owned_pieces()
 
     def pause(self, my_key):
         """

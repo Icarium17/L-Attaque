@@ -237,7 +237,7 @@ class MCTS:
         their_moves = len(self.algo_infoSet.get_all_possible_moves(0))
 
         diff_oppo_moves = my_moves - their_moves
-        diff_my_moves = my_moves - self.initial_possible_moves()
+        diff_my_moves = my_moves - self.initial_possible_moves
 
         closest_piece_flag = self.algo_infoSet.closest_piece_to_flag()
 
