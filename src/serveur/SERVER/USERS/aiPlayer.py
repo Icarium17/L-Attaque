@@ -253,7 +253,7 @@ class AISetupBuilder:
             list: List of pre-placed bomb Piece objects.
         """
         start = random.randint(0, 7)
-        nums = (start, start + 3)
+        nums = (start, min(9, start + 3))
         return self._bomb_clusters(6, range_cols=nums, min_dist=1)
 
     def x_bomb(self):

@@ -49,9 +49,8 @@ class MCTS:
 
         self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
         self.algo_infoSet = None
-        self.revealed_opponent_pieces = self.ai.get_revealed_opponent_pieces()
         self.infoSet_main = InfoSet(copy.deepcopy(ai.known_board), ai.order, self.game_rules)
-        self.infoSet_main.sync_opponent_knowledge(self.hidden_belief_pieces, self.revealed_opponent_pieces)
+        self.infoSet_main.sync_opponent_knowledge(self.hidden_belief_pieces, self.ai.get_revealed_opponent_pieces())
         self.initial_possible_moves = len(self.infoSet_main.get_all_possible_moves())
 
         self.rollout_index = 0
@@ -60,7 +59,7 @@ class MCTS:
     def _reset_rollout_state(self):
         self.current_node = self.root_node
         self.previous_move = collections.deque(self.ai.last_moves, maxlen=self.ai.last_moves.maxlen)
-        self.revealed_opponent_pieces = 0
+        self.number_revealed_opponent_pieces = 0
         self.lost_combats = 0
 
         if self.rollout_index % 5 == 0:
@@ -127,7 +126,7 @@ class MCTS:
         if result is None:
             return
 
-        self.revealed_opponent_pieces += result["encounter_score"]
+        self.number_revealed_opponent_pieces += result["encounter_score"]
         self.lost_combats += int(result["encounter_score"] < 0)
         self.previous_move.append(move)
 
@@ -242,7 +241,7 @@ class MCTS:
 
         closest_piece_flag = self.algo_infoSet.closest_piece_to_flag()
 
-        score += diff_oppo_moves + diff_my_moves + self.revealed_opponent_pieces + self.lost_combats + closest_piece_flag
+        score += diff_oppo_moves + diff_my_moves + self.number_revealed_opponent_pieces + self.lost_combats + closest_piece_flag
 
         return score
 
@@ -347,8 +346,6 @@ class MCTS:
 
     def game_over(self):
         """
-        Check if the game is over for any player.
-        Returns 1 if the game has ended, otherwise 0.
         """
         for player in self.players:
             my_pieces = self.algo_infoSet.board_state.get_pieces(player.order)

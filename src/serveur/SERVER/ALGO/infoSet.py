@@ -152,15 +152,24 @@ class InfoSet:
 
     def actualize_belief_pieces(self, hidden_belief_pieces, pieces_left):
         belief_piece_ids = {piece.id for piece in hidden_belief_pieces}
-        belief_pieces = []
-        for row in self.board_state.tiles:
-            for tile in row:
-                if (
-                    tile.piece is not None
-                    and isinstance(tile.piece, BeliefPiece)
-                    and tile.piece.id in belief_piece_ids
-                ):
-                    belief_pieces.append(tile.piece)
+        board_belief_pieces = [
+            tile.piece
+            for row in self.board_state.tiles
+            for tile in row
+            if tile.piece is not None and isinstance(tile.piece, BeliefPiece)
+        ]
+        belief_pieces = [
+            belief_piece
+            for belief_piece in board_belief_pieces
+            if belief_piece.id in belief_piece_ids
+        ]
+
+        used_mismatch_recovery = (
+            len(belief_pieces) != len(belief_piece_ids)
+            or len(belief_pieces) != len(board_belief_pieces)
+        )
+        if used_mismatch_recovery:
+            belief_pieces = board_belief_pieces
 
         self.actualize_stats = {
             "hidden_belief_pieces": len(belief_pieces),
@@ -169,18 +178,22 @@ class InfoSet:
             "used_random_fallback": False,
             "assignment_completed": False,
             "timed_out": False,
+            "used_mismatch_recovery": used_mismatch_recovery,
         }
 
-        possible_setup = self.assign_types_backtracking(belief_pieces, pieces_left)
+        if used_mismatch_recovery:
+            self.actualize_stats["used_random_fallback"] = True
+            possible_setup = self.assign_types_random(belief_pieces, pieces_left)
+        else:
+            possible_setup = self.assign_types_backtracking(belief_pieces, pieces_left)
 
-        if possible_setup == []:
+        if possible_setup in (None, []):
             self.actualize_stats["used_random_fallback"] = True
             possible_setup = self.assign_types_random(belief_pieces, pieces_left)
 
-        if possible_setup is not None:
-            for belief_piece, type in zip(belief_pieces, possible_setup):
-                piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner, False)
-                self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece
+        for belief_piece, type in zip(belief_pieces, possible_setup):
+            piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner, False)
+            self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece
 
     def assign_types_backtracking(self, belief_pieces, pieces_left, timeout=0.5):
         """
