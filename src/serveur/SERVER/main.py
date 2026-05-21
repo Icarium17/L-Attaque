@@ -89,6 +89,12 @@ lobby = LobbyManager()
 
 @app.route('/signup', methods=['POST'])
 def handle_signup():
+    """
+    Create a new account from the incoming signup payload.
+
+    Returns:
+        Response: JSON response containing signup status, key, and message.
+    """
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -105,6 +111,12 @@ def handle_signup():
 
 @app.route('/signin', methods=['POST'])
 def handle_signin():
+    """
+    Authenticate a user from the incoming signin payload.
+
+    Returns:
+        Response: JSON response containing signin status and session key.
+    """
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -119,6 +131,12 @@ def handle_signin():
 
 @app.route('/signout', methods=['POST'])
 def handle_signout():
+    """
+    Disconnect the user identified by the provided session key.
+
+    Returns:
+        Response: JSON response containing the logout status.
+    """
     data = request.get_json()
     key = data.get('key')
 
@@ -129,10 +147,22 @@ def handle_signout():
 
 @app.route('/')
 def index():
+    """
+    Return a simple health-check response for the Flask server.
+
+    Returns:
+        str: Plain-text server status message.
+    """
     return "Serveur Python Flask OK"
 
 @app.route('/get_all_users', methods=['POST'])
 def handle_get_all_users():
+    """
+    Return the list of users together with their active connection status.
+
+    Returns:
+        Response: JSON response containing user summaries.
+    """
     
     data = request.get_json()
     my_key = data.get('key')
@@ -141,6 +171,12 @@ def handle_get_all_users():
 
 @app.route('/delete_user', methods=['POST'])
 def handle_delete_user():
+    """
+    Delete the user identified in the request payload.
+
+    Returns:
+        Response: JSON response containing whether deletion succeeded.
+    """
     data = request.get_json()
     user_id = data.get('user_id')
     result = lobby.DAOUsers.delete_user(user_id)
@@ -148,6 +184,12 @@ def handle_delete_user():
 
 @app.route('/start_game', methods=["POST"])
 def handle_start_game():
+    """
+    Start a new game in the requested mode for the calling user.
+
+    Returns:
+        Response: JSON response containing game start status and opponent name.
+    """
     data = request.get_json()
     my_key = data.get('key')
     mode = data.get('mode')
@@ -161,6 +203,12 @@ def handle_start_game():
 
 @app.route('/set_pieces', methods=['POST'])
 def handle_set_pieces():
+    """
+    Submit the player's starting piece placement.
+
+    Returns:
+        Response: JSON response containing setup status and resulting player status.
+    """
     data = request.get_json()
     my_key = data.get('key')
     my_pieces = data.get('pieces')
@@ -174,6 +222,12 @@ def handle_set_pieces():
  
 @app.route('/make_move', methods=['POST'])
 def handle_valid_move():
+    """
+    Submit one move for the current player.
+
+    Returns:
+        Response: JSON response containing the move status message.
+    """
     data = request.get_json()
     user_key = data.get('user_key')
     x_0 = data.get('colonne')
@@ -189,6 +243,12 @@ def handle_valid_move():
 
 @app.route('/get_status', methods=['POST'])
 def handle_get_status():
+    """
+    Return the current user or game status for the provided session key.
+
+    Returns:
+        Response: JSON response containing the status payload.
+    """
     data = request.get_json()
     key = data.get('key')
     # TODO : ajouter scores des joueurs
@@ -198,12 +258,24 @@ def handle_get_status():
 
 @app.route('/get_high_scores', methods=['POST'])
 def handle_get_high_scores():
+    """
+    Return the leaderboard payload.
+
+    Returns:
+        Response: JSON response containing high-score data.
+    """
     result = lobby.execute_action('leaderboard')
 
     return jsonify(result)
 
 @app.route('/surrender', methods=['POST'])
 def surrender():
+    """
+    Surrender the current game for the provided session key.
+
+    Returns:
+        Response: JSON response containing the surrender result.
+    """
     data = request.get_json()
     my_key = data.get('key')
     result = lobby.execute_action('surrender', (my_key,))
@@ -212,6 +284,12 @@ def surrender():
 
 @app.route('/pause', methods=['POST'])
 def pause():
+    """
+    Pause or resume the current game for the provided session key.
+
+    Returns:
+        Response: JSON response containing the pause result.
+    """
     data = request.get_json()
     my_key = data.get('key')
     result = lobby.execute_action('pause', (my_key,))
@@ -220,6 +298,12 @@ def pause():
 
 @app.route('/save', methods=['POST'])
 def save():
+    """
+    Save the current game associated with the provided session key.
+
+    Returns:
+        Response: JSON response containing the save result.
+    """
     data = request.get_json()
     my_key = data.get('key')
     result = lobby.execute_action('save', (my_key,))
@@ -228,6 +312,12 @@ def save():
 
 @app.route('/load', methods=['POST'])
 def load():
+    """
+    Load a previously saved game for the provided session key.
+
+    Returns:
+        Response: JSON response indicating whether restoration succeeded.
+    """
     data = request.get_json()
     my_key = data.get('key')
     result = lobby.execute_action('load', (my_key,))
