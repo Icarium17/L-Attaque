@@ -64,13 +64,13 @@ class Piece():
             id: Unique identifier for the piece.
             type: Concrete `PieceType` of the piece.
             position: Board coordinate as `(x, y)`.
-            owner: Player order owning the piece.
+            owner: Order of the player owning the piece.
             revealed: Whether the piece identity is currently known.
         """
         self.id = id
         self.type = type
         self.position = position
-        self.owner = owner ## int avec l'ordre du joueur
+        self.owner = owner 
         self.revealed = revealed
         self.mcts_revealed = False
 
@@ -221,7 +221,7 @@ class BeliefPiece(Piece):
 
         return None
     
-    def save(self): ##TODO : change back to dict 
+    def save(self): 
         """
         Serialize the belief piece, including probability metadata.
 

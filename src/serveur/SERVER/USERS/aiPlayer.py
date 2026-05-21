@@ -750,8 +750,6 @@ class AISetupLibrary:
         Returns:
             list: List of Piece objects for the easy setup.
         """
-        
-        # TODO : implement
         piece_types = self.setup_builder.generate_remaining_types()
         return self.setup_builder.generate_pieces(piece_types)
     

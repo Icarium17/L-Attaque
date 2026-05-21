@@ -33,7 +33,7 @@ class Board():
         id_tile = 0
         for i in range(self.rows):
             for j in range(self.cols):
-                if i in (4, 5) and j in (2, 3, 6, 7): ##TODO : modify if we have different sized boards
+                if i in (4, 5) and j in (2, 3, 6, 7): 
                     state = 1
                 else:
                     state = 0

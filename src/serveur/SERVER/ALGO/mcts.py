@@ -25,7 +25,13 @@ class MCTS:
         self.game_rules = game_rules
         self.player_to_move = self.ai.order
         self.players = players
+
         self.order = self.ai.order
+        self.difficulty = self.ai.difficulty
+        self.previous_moves = collections.deque(
+            self.ai.last_moves,
+            maxlen=self.ai.last_moves.maxlen
+        )
 
         self.simulation_by_level = {
             0: self.simulation_easy,
@@ -62,8 +68,6 @@ class MCTS:
             }
         }
 
-        self.difficulty = self.ai.difficulty
-
         self._setup(ai)
 
     def _setup(self, ai):
@@ -75,7 +79,6 @@ class MCTS:
         """
         self.root_node = Node(None, None)
         self.current_node = self.root_node
-        self.previous_move = collections.deque(self.ai.last_moves, maxlen=self.ai.last_moves.maxlen)
 
         self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
         self.algo_infoSet = None
@@ -95,7 +98,7 @@ class MCTS:
             or rebuilt opponent hidden information from scratch.
         """
         self.current_node = self.root_node
-        self.previous_move = collections.deque(self.ai.last_moves, maxlen=self.ai.last_moves.maxlen)
+        self.previous_moves_algo = collections.deque(self.previous_moves, maxlen=self.previous_moves)
         self.score_revealed_opponent_pieces = 0
         self.lost_combats = 0
 
@@ -150,9 +153,9 @@ class MCTS:
         """
         Traverse the tree from the root, selecting child nodes until a leaf is reached.
 
-                Returns:
-                    list | None: The untried moves available at the selected node, or
-                    `None` when no child and no untried move remain.
+        Returns:
+            list | None: The untried moves available at the selected node, or
+            `None` when no child and no untried move remain.
         """
         while True:
             untried_moves = self.algo_infoSet.get_all_possible_moves()
@@ -302,6 +305,233 @@ class MCTS:
         """
         return self._simulation_with_priors(self.prior_evaluate_difficult_move)
     
+    def _revisiting_count(self, move, weight):
+        count = 0
+        for prev in self.previous_moves_algo:
+            if move == prev:
+                count += 1
+        return weight * (1 - 0.5 ** count)
+    
+    def _resolve_combat(self, attacker, defender):
+        """
+        Classify the likely combat outcome between two concrete pieces.
+
+        Args:
+            attacker: Attacking piece in the simulated combat.
+            defender: Defending piece in the simulated combat.
+
+        Returns:
+            str: One of `"win"`, `"loss"`, `"draw"`, `"unknown"`, or `"invalid"`
+            from the AI perspective of the attacker/defender comparison logic.
+        """
+        if attacker is None or defender is None:
+            return "invalid"
+
+        a = attacker.type
+        d = defender.type
+
+        if d == PieceType.Drapeau:
+            return "win"
+
+        if d == PieceType.Bombe:
+            return "win" if a == PieceType.Demineur else "loss"
+
+        if a == PieceType.Espion and d == PieceType.Marechal:
+            return "win"
+
+        # --- fallback rules ---
+        if a.power is None or d.power is None:
+            return "unknown"
+
+        if a.power > d.power:
+            return "win"
+        elif a.power < d.power:
+            return "loss"
+        else:
+            return "draw"
+            
+    def _piece_value(self, piece):
+        """
+        Return the heuristic score value of a piece.
+
+        Args:
+            piece: Piece to evaluate.
+
+        Returns:
+            int: Piece score value, or `-1` when no piece is present.
+        """
+        if piece is None:
+            return -1
+
+        return piece.type.score
+    
+    def _common_priors(self, move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7):
+        """
+        Compute shared tactical priors used by medium and hard move scoring.
+
+        Args:
+            move: Candidate move being scored.
+            my_piece: Moving piece.
+            their_piece: Target piece, if any.
+            my_val: Numeric power of the moving piece.
+            their_val: Numeric power of the target piece.
+            eclaireur_bonus: Bonus applied to scout moves.
+            espion_bonus: Bonus applied to favorable spy attacks.
+
+        Returns:
+            float: Base prior score before difficulty-specific adjustments.
+        """
+        score = 0.0
+
+        if their_piece is not None:
+            combat_result = self._resolve_combat(my_piece, their_piece)
+
+            if combat_result == "win":
+                score += 0.8
+
+            elif combat_result == "loss":
+                score -= 0.8
+
+            else:
+                score -= 0.1 
+
+            if their_piece.type == PieceType.Drapeau:
+                score += 1.5
+
+            if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
+                score += espion_bonus
+
+        if my_piece.type == PieceType.Eclaireur:
+            score += eclaireur_bonus
+
+        x, y = move.moveTo
+        center_x, center_y = 4.5, 4.5
+
+        dist_to_center = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+        score -= 0.03 * dist_to_center
+
+        if x == 0 or x == 9 or y == 0 or y == 9:
+            score -= 0.2
+
+        board = self.algo_infoSet.board_state.tiles
+
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = x + dx, y + dy
+
+            if 0 <= nx <= 9 and 0 <= ny <= 9:
+                neighbor = board[ny][nx].piece
+
+                if neighbor and neighbor.revealed:
+
+                    neighbor_power = self._piece_value(neighbor)
+                    my_power = self._piece_value(my_piece)
+
+                    if my_power < neighbor_power:
+                        score -= 0.4
+
+        return score
+
+    def prior_evaluate_medium_move(self, move):
+        """
+        Evaluate one candidate move with medium-difficulty priors.
+
+        Args:
+            move: Candidate move to score.
+
+        Returns:
+            float: Desirability score for the move.
+        """
+        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
+
+        my_val = self._piece_value(my_piece)
+        their_val = self._piece_value(their_piece)
+
+        confidence = (
+            1.0
+            if their_piece is not None and their_piece.revealed
+            else self.confidence_by_level[1]
+        )
+
+        score = self._common_priors(
+            move,
+            my_piece,
+            their_piece,
+            my_val,
+            their_val,
+            eclaireur_bonus=0.1,
+            espion_bonus=0.7,
+        )
+
+        score -= self._revisiting_count(move, 0.5)   
+
+        score *= confidence
+
+        return score
+    
+    def prior_evaluate_difficult_move(self, move):
+        """
+        Evaluate one candidate move with hard-difficulty priors.
+
+        Args:
+            move: Candidate move to score.
+
+        Returns:
+            float: Desirability score for the move.
+        """
+        start_row = self.ai.rows[self.order][0]
+        direction = -1 if start_row > 4 else 1
+
+        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
+
+        my_val = self._piece_value(my_piece)
+        their_val = self._piece_value(their_piece)
+
+        confidence = (
+            1.0
+            if their_piece is not None and their_piece.revealed
+            else self.confidence_by_level[2]
+        )
+
+        score = self._common_priors(
+            move,
+            my_piece,
+            their_piece,
+            my_val,
+            their_val,
+            eclaireur_bonus=0.15,
+            espion_bonus=0.9,
+        )
+
+        if their_piece is not None and their_piece.type == PieceType.Drapeau:
+            return 1.5 * confidence
+
+        if their_piece is not None and their_piece.type == PieceType.Bombe:
+            if my_piece.type == PieceType.Demineur:
+                score += 0.7
+            else:
+                score -= 0.6
+
+        diff = my_val - their_val
+
+        if diff > 0:
+            score += 0.6 * (diff / 10)
+        elif diff < 0:
+            score -= 0.5 * (-diff / 10)
+
+        if their_piece is None or not their_piece.revealed:
+            score += 0.1
+
+            if my_val >= 7:
+                score -= 0.25
+
+        score += 0.05 * direction * (move.moveTo[1] - move.moveFrom[1])
+
+        score -= self._revisiting_count(move, 0.8)
+
+        score *= confidence
+
+        return score
+    
     def _extract_features_heuristics(self):
         """
         Compute heuristic features from the current rollout board state.
@@ -386,140 +616,6 @@ class MCTS:
         weights = self.heuristics_weights_by_level[self.difficulty]
 
         return self._evaluate_heuristics(features, weights)
-
-    def _piece_power(self, piece):
-        """
-        Return a comparable power value for a piece.
-
-        Args:
-            piece: The piece to inspect.
-
-        Returns:
-            int: The piece power, or `-1` when no comparable power exists.
-        """
-        if piece is None or piece.type is None or piece.type.power is None:
-            return -1
-
-        return piece.type.power
-    
-    def _common_priors(self, move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7):
-        """
-        Compute shared tactical priors used by medium and hard move scoring.
-
-        Args:
-            move: Candidate move being scored.
-            my_piece: Moving piece.
-            their_piece: Target piece, if any.
-            my_val: Numeric power of the moving piece.
-            their_val: Numeric power of the target piece.
-            eclaireur_bonus: Bonus applied to scout moves.
-            espion_bonus: Bonus applied to favorable spy attacks.
-
-        Returns:
-            float: Base prior score before difficulty-specific adjustments.
-        """
-        score = 0.0
-        if their_piece is not None:
-            if their_piece.revealed and my_val < their_val:
-                score -= 5.0
-
-            if their_piece.type == PieceType.Drapeau:
-                score += 1.0
-
-            elif their_piece.type == PieceType.Bombe and my_piece.type == PieceType.Demineur:
-                score += 0.5
-
-            elif my_val > their_val:
-                score += 0.6
-
-            elif my_val < their_val:
-                score -= 0.5
-
-            if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
-                score += espion_bonus
-
-        if my_piece.type == PieceType.Eclaireur:
-            score += eclaireur_bonus
-
-        x, y = move.moveTo
-        center_x, center_y = 4.5, 4.5
-        dist_to_center = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
-        score -= 0.03 * dist_to_center
-
-        if x == 0 or x == 9 or y == 0 or y == 9:
-            score -= 0.2
-
-        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx <= 9 and 0 <= ny <= 9:
-                neighbor = self.algo_infoSet.board_state.tiles[ny][nx].piece
-                if neighbor and hasattr(neighbor, 'revealed') and neighbor.revealed and hasattr(neighbor, 'type') and my_val < self._piece_power(neighbor):
-                    score -= 0.5
-
-        if self.previous_move and move in self.previous_move:
-            score -= 1.0
-
-        return score
-
-    def prior_evaluate_medium_move(self, move):
-        """
-        Evaluate one candidate move with medium-difficulty priors.
-
-        Args:
-            move: Candidate move to score.
-
-        Returns:
-            float: Desirability score for the move.
-        """
-        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-        my_val = self._piece_power(my_piece)
-        their_val = self._piece_power(their_piece)
-        confidence = 1.0 if their_piece is not None and their_piece.revealed else self.confidence_by_level[1]
-        score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7)
-
-        score *= confidence
-
-        return score
-    
-    def prior_evaluate_difficult_move(self, move):
-        """
-        Evaluate one candidate move with hard-difficulty priors.
-
-        Args:
-            move: Candidate move to score.
-
-        Returns:
-            float: Desirability score for the move.
-        """
-        start_row = self.ai.rows[self.order][0]
-        direction = -1 if start_row > 4 else 1
-        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-        confidence = 1.0 if their_piece is not None and their_piece.revealed else self.confidence_by_level[2]
-        my_val = self._piece_power(my_piece)
-        their_val = self._piece_power(their_piece)
-        score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.15, espion_bonus=0.9)
-
-        score *= confidence
-        
-        diff = my_val - their_val
-        if their_piece is not None and their_piece.type == PieceType.Drapeau:
-            return 1.5 * confidence
-        if their_piece is not None and their_piece.type == PieceType.Bombe:
-            if my_piece.type == PieceType.Demineur:
-                score += 0.7
-            else:
-                score -= 0.6
-        if diff > 0:
-            score += 0.6 * (diff / 10)
-        elif diff < 0:
-            score -= 0.5 * (-diff / 10)
-        if their_piece is None or not their_piece.revealed:
-            score += 0.1
-            if my_val >= 7:
-                score -= 0.25
-        score += 0.05 * direction * (move.moveTo[1] - move.moveFrom[1])
-        score *= confidence
-        return score
 
     def game_over(self):
         """

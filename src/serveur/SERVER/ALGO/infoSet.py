@@ -129,7 +129,7 @@ class InfoSet:
         my_value = my_piece.type.score
         their_value = their_piece.type.score
 
-        confidence = 1.0 if their_piece.is_revealed else confidence
+        confidence = 1.0 if their_piece.revealed else confidence
 
         adjusted_their_value = their_value * confidence
 

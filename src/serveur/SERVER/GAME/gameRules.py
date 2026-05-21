@@ -515,7 +515,7 @@ class GameRules():
         possible_moves = self.get_remaining_moves(pieces, player_order, board, reason)
         return len(possible_moves) != 0
     
-    ## TODO : Add an actual scoring system
+
     def calc_score(self, player):
         """
         Compute a player's score from the remaining pieces.

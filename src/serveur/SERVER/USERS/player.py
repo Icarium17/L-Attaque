@@ -37,7 +37,7 @@ class Player(User):
         self.initialize_piece_left()
 
         self.score = score
-        self.last_moves = collections.deque(maxlen=4)
+        self.last_moves = collections.deque(maxlen=10)
 
     def load(self, known_pieces, time_remaining, last_moves):
         self.known_board = Board()

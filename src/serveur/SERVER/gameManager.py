@@ -292,7 +292,7 @@ class GameManager():
                 self.board.move(move)
                 for player in self.players:
                     if player.order != self.player_to_move:
-                        player.update_belief_state_move(tileFrom.x, tileFrom.y, distance) ## TODO : check if this works
+                        player.update_belief_state_move(tileFrom.x, tileFrom.y, distance)
                     player.move(move)
                     player.sync_owned_pieces()
                 self.change_turn()
@@ -441,7 +441,7 @@ class GameManager():
         """
         player = self.players[self.get_order(player_id)]
         if player.order == -1:
-            return {"status": "INVALID_KEY"} ##TODO : change for the player only
+            return {"status": "INVALID_KEY"}
         
         list_pieces = player.known_board.return_pieces()
 
@@ -466,7 +466,7 @@ class GameManager():
             scores = [self.players[0].score, self.players[1].score] 
             
             if self.status == "BATTLE":
-                status["battle"] = self.battle ##TODO : à rajouter dans le front end
+                status["battle"] = self.battle
             
         else:
             elapsed = time.time() - self.wait_timer_start
@@ -482,8 +482,6 @@ class GameManager():
     
 
     ###### End Game ######
-
-    ## TODO : Check the end game conditions after each moves
     def check_end_state(self):
         """
         Check if the game has ended for any player.
