@@ -16,7 +16,19 @@ export default function Index() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [mode, setMode] = useState("login"); //  mode de formulaire login ou register
+  const [mode, setMode] = useState("login"); // mode de formulaire login ou register
+
+  // Évaluation des critères du mot de passe
+  const passwordCriteria = {
+    length: registerForm.motDePasse.length >= 6,
+    uppercase: /[A-Z]/.test(registerForm.motDePasse),
+    lowercase: /[a-z]/.test(registerForm.motDePasse),
+    number: /[0-9]/.test(registerForm.motDePasse),
+    special: /[^A-Za-z0-9]/.test(registerForm.motDePasse),
+  };
+
+  // Vérifie si tous les critères sont respectés
+  const isPasswordValid = Object.values(passwordCriteria).every(Boolean);
 
   // Vérifier session au chargement
   useEffect(() => {
@@ -29,64 +41,71 @@ export default function Index() {
     setRegisterForm({ nom: "", motDePasse: "" });
   }, []);
 
-// Fonction gérer le signin et le signout
-const auth = (action, data1 = "", data2 = "") => {
-  setLoading(true);
-  let formData = new FormData();
-  formData.append("action", action);
+  // Fonction gérer le signin et le signout
+  const auth = (action, data1 = "", data2 = "") => {
+    setLoading(true);
+    let formData = new FormData();
+    formData.append("action", action);
 
-  if (action == "signin") {
-    formData.append("nom", data1);
-    formData.append("motDePasse", data2);
-  } else {
-    formData.append("key", data1);
-  }
+    if (action == "signin") {
+      formData.append("nom", data1);
+      formData.append("motDePasse", data2);
+    } else {
+      formData.append("key", data1);
+    }
 
-  fetch("/api/index.php", { method: "POST", body: formData })
-    .then(res => res.json())
-    .then(data => {
-      setLoading(false);
+    fetch("/api/index.php", { method: "POST", body: formData })
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
 
-      // SIGNIN REUSSI
-      if (action == "signin" && data.result.success) {
-        setRedirecting(true);
-        setSuccess(`Bienvenue ${data.result.username} !`);
-        localStorage.setItem("sessionKey", data.result.key);
-        localStorage.setItem("username", data.result.username);
-        setTimeout(() => {
-          setSession({ username: data.result.username, key: data.result.key });
-          navigate("/lobby");
-          setRedirecting(false);
-        }, 3000);
-      }
+        // SIGNIN REUSSI
+        if (action == "signin" && data.result.success) {
+          setRedirecting(true);
+          setSuccess(`Bienvenue ${data.result.username} !`);
+          localStorage.setItem("sessionKey", data.result.key);
+          localStorage.setItem("username", data.result.username);
+          setTimeout(() => {
+            setSession({ username: data.result.username, key: data.result.key });
+            navigate("/lobby");
+            setRedirecting(false);
+          }, 3000);
+        }
 
-      // SIGNOUT REUSSI
-      else if (action == "signout" && data.response_svr.status == "USER_DISCONNECTED") {
-        setRedirecting(true);
-        setSuccess("Déconnexion réussie");
-        setTimeout(() => {
-          localStorage.removeItem("sessionKey");
-          localStorage.removeItem("username");
-          setSession(null);
-          setRedirecting(false);
-          setSuccess("");
-        }, 1000);
-      }
+        // SIGNOUT REUSSI
+        else if (action == "signout" && data.response_svr.status == "USER_DISCONNECTED") {
+          setRedirecting(true);
+          setSuccess("Déconnexion réussie");
+          setTimeout(() => {
+            localStorage.removeItem("sessionKey");
+            localStorage.removeItem("username");
+            setSession(null);
+            setRedirecting(false);
+            setSuccess("");
+          }, 1000);
+        }
 
-      // Erreurs
-      else if (data.result.error) {
-        setError(data.result.error);
-        setTimeout(() => setError(""), 3000);
-        if (action == "signin") setLoginForm({ nom: "", motDePasse: "" });
-      }
-    })
-    .catch(() => {
-      setLoading(false);
-      setError("Erreur serveur");
-    });
-};
+        // Erreurs
+        else if (data.result.error) {
+          setError(data.result.error);
+          setTimeout(() => setError(""), 3000);
+          if (action == "signin") setLoginForm({ nom: "", motDePasse: "" });
+        }
+      })
+      .catch(() => {
+        setLoading(false);
+        setError("Erreur serveur");
+      });
+  };
 
   const register = () => {
+    // On bloque si le mot de passe ne respecte pas les critères
+    if (!isPasswordValid) {
+      setError("Le mot de passe ne respecte pas les critères.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
     setLoading(true); 
     let formData = new FormData();
     formData.append("action", "register");
@@ -113,46 +132,47 @@ const auth = (action, data1 = "", data2 = "") => {
         }
       })   
       .catch(() => {
-      setLoading(false);  
-      setError("Erreur d'inscription.");
-    });
+        setLoading(false);  
+        setError("Erreur d'inscription.");
+      });
   };
 
   // Affichage pendant la session
-if (session) {
+  if (session) {
     return (
       <MainLayout title="Accueil" background={background} session={session} hideMenu={true}>
         <div className="relative flex flex-col justify-center items-center min-h-screen w-full overflow-hidden">
           <div className="absolute inset-0 bg-gray-950/70" />
           
-          <div className="relative z-10 flex flex-col items-center gap-8 p-8 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
-            <img src={logo} alt="Logo" className="max-w-2xl h-auto drop-shadow-2xl" />
-            <h1 className="text-white text-3xl font-bold text-center">
+          <div className="relative z-10 flex flex-col items-center gap-8 p-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+            <img src={logo} alt="Logo" className="max-w-3xl h-auto drop-shadow-2xl" />
+            <h1 className="text-white text-4xl md:text-5xl font-bold text-center">
               Bienvenue dans l'Attaque, <span className="text-primary">{session.username}</span> !
             </h1>
             <Button
-              className="w-full max-w-xs mx-auto"
+              className="w-full max-w-sm mx-auto text-xl py-3"
               variant="secondary"
               onClick={() => auth("signout", session.key)}
             >
               Se déconnecter
             </Button>
-          <Button 
-          className="w-full max-w-xs mx-auto"
-            onClick={() => {
-            localStorage.clear();
-            window.location.reload();
-          }}
-        >RESET
-        </Button>
+            <Button 
+              className="w-full max-w-sm mx-auto text-xl py-3"
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }}
+            >
+              RESET
+            </Button>
           </div>
           {error && (
-            <div className="absolute bottom-10 z-50 w-full max-w-md">
+            <div className="absolute bottom-10 z-50 w-full max-w-lg">
               <Notification variant="error" message={error} onClose={() => setError("")} />
             </div>
           )}
           {success && (
-            <div className="absolute bottom-10 z-50 w-full max-w-md">
+            <div className="absolute bottom-10 z-50 w-full max-w-lg">
               <Notification variant="success" message={success} onClose={() => setSuccess("")} />
             </div>
           )}
@@ -162,125 +182,146 @@ if (session) {
     );
   }
 
+  return (
+    <MainLayout
+      title="Accueil"
+      background={background}
+      session={session}
+      hideMenu={true}
+    >
+      <div className="relative flex flex-col justify-start items-center min-h-screen w-full overflow-hidden">
+        <div className="absolute inset-0 bg-gray-950/70" />
 
-return (
-  <MainLayout
-    title="Accueil"
-    background={background}
-    session={session}
-    hideMenu={true}
-  >
-    <div className="relative flex flex-col justify-start items-center min-h-screen w-full overflow-hidden">
-      <div className="absolute inset-0 bg-gray-950/70" />
+        <div className="relative z-10 flex flex-col items-center mt-32 w-full max-w-7xl">
+          <img
+            src={logo}
+            alt="Logo du Jeu"
+            className="max-w-3xl h-auto drop-shadow-2xl mb-12"
+          />
 
-      <div className="relative z-10 flex flex-col items-center mt-40 w-full max-w-7xl">
-        <img
-          src={logo}
-          alt="Logo du Jeu"
-          className="max-w-2xl h-auto drop-shadow-2xl mb-12"
-        />
+          <div className="flex flex-col items-center gap-8 p-10 bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg">
+            {mode == "login" ? (
+              <>
+                {/* Section Connexion */}
+                <h1 className="text-white text-3xl font-bold text-center">
+                  Vous avez déjà un compte
+                </h1>
+                <div className="flex flex-col gap-6 items-center w-full max-w-sm">
+                  <input
+                    type="text"
+                    placeholder="Nom d'utilisateur"
+                    autoComplete="off"
+                    value={loginForm.nom}
+                    onChange={(e) => setLoginForm({ ...loginForm, nom: e.target.value })}
+                    className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Mot de passe"
+                    value={loginForm.motDePasse}
+                    onChange={(e) => setLoginForm({ ...loginForm, motDePasse: e.target.value })}
+                    className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
+                  />
+                  <Button 
+                    className="w-full text-lg py-3 mt-2"
+                    variant="primary"
+                    onClick={() => auth("signin", loginForm.nom, loginForm.motDePasse)}
+                  >
+                    Se connecter
+                  </Button>
+                </div>
+                <p className="text-gray-300 text-lg mt-2">
+                  Pas de compte ?{" "}
+                  <span className="text-blue-400 font-semibold cursor-pointer underline hover:text-blue-300" onClick={() => setMode("register")}>
+                    Créer un compte
+                  </span>
+                </p>
+              </>
+            ) : (
+              <>
+                {/* Section Inscription */}
+                <h1 className="text-white text-3xl font-bold text-center">
+                  Nouveau compte
+                </h1>
+                <div className="flex flex-col gap-5 items-center w-full max-w-sm">
+                  <input
+                    type="text"
+                    placeholder="Nouveau nom d'utilisateur"
+                    value={registerForm.nom}
+                    onChange={(e) => setRegisterForm({ ...registerForm, nom: e.target.value })}
+                    className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Nouveau mot de passe"
+                    value={registerForm.motDePasse}
+                    onChange={(e) => setRegisterForm({ ...registerForm, motDePasse: e.target.value })}
+                    className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
+                  />
+                  
+                  {/* Affichage dynamique des critères */}
+                  <div className="w-full text-base flex flex-col gap-2 p-4 bg-black/30 rounded-xl text-left shadow-inner">
+                    <span className={passwordCriteria.length ? "text-green-400 font-medium" : "text-gray-300"}>
+                      {passwordCriteria.length ? "✓" : "○"} 6 caractères minimum
+                    </span>
+                    <span className={passwordCriteria.uppercase ? "text-green-400 font-medium" : "text-gray-300"}>
+                      {passwordCriteria.uppercase ? "✓" : "○"} Une majuscule
+                    </span>
+                    <span className={passwordCriteria.lowercase ? "text-green-400 font-medium" : "text-gray-300"}>
+                      {passwordCriteria.lowercase ? "✓" : "○"} Une minuscule
+                    </span>
+                    <span className={passwordCriteria.number ? "text-green-400 font-medium" : "text-gray-300"}>
+                      {passwordCriteria.number ? "✓" : "○"} Un chiffre
+                    </span>
+                    <span className={passwordCriteria.special ? "text-green-400 font-medium" : "text-gray-300"}>
+                      {passwordCriteria.special ? "✓" : "○"} Un caractère spécial
+                    </span>
+                  </div>
 
-        <div className="flex flex-col items-center gap-6 p-8 bg-white/10 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-md">
-          {mode == "login" ? (
-            <>
-              {/* Section Connexion */}
-              <h1 className="text-white text-2xl font-bold text-center">
-                Vous avez déjà un compte
-              </h1>
-              <div className="flex flex-col gap-4 items-center w-80">
-                <input
-                  type="text"
-                  placeholder="Nom d'utilisateur"
-                  autoComplete="off"
-                  value={loginForm.nom}
-                  onChange={(e) => setLoginForm({ ...loginForm, nom: e.target.value })}
-                  className="w-full p-4 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
-                />
-                <input
-                  type="password"
-                  placeholder="Mot de passe"
-                  value={loginForm.motDePasse}
-                  onChange={(e) => setLoginForm({ ...loginForm, motDePasse: e.target.value })}
-                  className="w-full p-4 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
-                />
-                <Button 
-                  className="w-full"
-                  variant="primary"
-                  onClick={() => auth("signin", loginForm.nom, loginForm.motDePasse)}
-                >
-                  Se connecter
-                </Button>
-              </div>
-              <p className="text-gray-300 text-sm">
-                Pas de compte ?{" "}
-                <span className="text-blue-500 cursor-pointer underline hover:text-blue-900" onClick={() => setMode("register")}>
-                  Créer un compte
-                </span>
-              </p>
-            </>
-          ) : (
-            <>
-              {/* Section Inscription */}
-              <h1 className="text-white text-2xl font-bold text-center">
-                Nouveau compte
-              </h1>
-              <div className="flex flex-col gap-4 items-center w-80">
-                <input
-                  type="text"
-                  placeholder="Nouveau nom d'utilisateur"
-                  value={registerForm.nom}
-                  onChange={(e) => setRegisterForm({ ...registerForm, nom: e.target.value })}
-                  className="w-full p-4 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
-                />
-                <input
-                  type="password"
-                  placeholder="Nouveau mot de passe"
-                  value={registerForm.motDePasse}
-                  onChange={(e) => setRegisterForm({ ...registerForm, motDePasse: e.target.value })}
-                  className="w-full p-4 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
-                />
-                <Button
-                  className="w-full"
-                  variant="secondary"
-                  onClick={register}
-                >
-                  Créer un compte
-                </Button>
-              </div>
-              <p className="text-gray-300 text-sm">
-                Déjà un compte ?{" "}
-                <span className="text-blue-500 cursor-pointer underline hover:text-blue-900" onClick={() => setMode("login")}>
-                  Se connecter
-                </span>
-              </p>
-            </>
+                  <Button
+                    className="w-full text-lg py-3 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="secondary"
+                    onClick={register}
+                    disabled={!isPasswordValid || registerForm.nom.trim() === ""}
+                  >
+                    Créer un compte
+                  </Button>
+                </div>
+                <p className="text-gray-300 text-lg mt-2">
+                  Déjà un compte ?{" "}
+                  <span className="text-blue-400 font-semibold cursor-pointer underline hover:text-blue-300" onClick={() => setMode("login")}>
+                    Se connecter
+                  </span>
+                </p>
+              </>
+            )}
+          </div>
+
+          {error && (
+            <div className="mt-8 w-full max-w-lg">
+              <Notification
+                variant="error"
+                message={error}
+                autoClose={3000}
+                onClose={() => setError("")}
+              />
+            </div>
+          )}
+
+          {success && (
+            <div className="mt-8 w-full max-w-lg">
+              <Notification
+                variant="success"
+                message={success}
+                autoClose={5000}
+                onClose={() => setSuccess("")}
+              />
+            </div>
           )}
         </div>
-
-        {error && (
-          <div className="mt-6 w-fit">
-            <Notification
-              variant="error"
-              message={error}
-              autoClose={3000}
-              onClose={() => setError("")}
-            />
-          </div>
-        )}
-
-        {success && (
-          <div className="mt-6 w-fit">
-            <Notification
-              variant="success"
-              message={success}
-              autoClose={5000}
-              onClose={() => setSuccess("")}
-            />
-          </div>
-        )}
       </div>
-    </div>
 
-    {(loading || redirecting) && <Loading silent={true} />}
-  </MainLayout>
-);}
+      {(loading || redirecting) && <Loading silent={true} />}
+    </MainLayout>
+  );
+}
