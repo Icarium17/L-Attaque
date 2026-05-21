@@ -25,6 +25,7 @@ class MCTS:
         self.game_rules = game_rules
         self.player_to_move = self.ai.order
         self.players = players
+        self.order = self.ai.order
 
         self.simulation_by_level = {
             0: self.simulation_easy,
@@ -32,10 +33,33 @@ class MCTS:
             2: self.simulation_hard
         }
 
-        self.heuristic_by_level = {
-            0: self.heuristic_evaluation_easy,
-            1: self.heuristic_evaluation_medium,
-            2: self.heuristic_evaluation_hard
+        self.confidence_by_level = {
+            0 : 1.0,
+            1 : 0.5,
+            2: 0.75
+        }
+
+        self.heuristics_weights_by_level = {
+            0 : {
+                "material": 1.0
+            },
+            1 : {
+                "material": 1.0,
+                "mobility": 0.5,
+                "flag": 1.0,
+                "info": 1.0,
+                "trades": 1.0
+            },
+            2 : {
+                "material": 1.0,
+                "mobility": 0.3,
+                "flag": 2.0,
+                "info": 3.0,
+                "trades": 2.0,
+                "opp_confidence_material": 1.5,
+                "reveal_bonus": 2.0,
+                "self_reveal_penalty": 1.0
+            }
         }
 
         self.difficulty = self.ai.difficulty
@@ -43,6 +67,12 @@ class MCTS:
         self._setup(ai)
 
     def _setup(self, ai):
+        """
+        Initialize or reset the persistent search state for a new root search.
+
+        Args:
+            ai: The AI player owning this search instance.
+        """
         self.root_node = Node(None, None)
         self.current_node = self.root_node
         self.previous_move = collections.deque(self.ai.last_moves, maxlen=self.ai.last_moves.maxlen)
@@ -57,9 +87,16 @@ class MCTS:
         self.closest_dist = self.infoSet_main.closest_piece_to_flag()
         
     def _reset_rollout_state(self):
+        """
+        Reset rollout-local state before one MCTS iteration.
+
+        Returns:
+            dict: Metadata about whether the rollout reused a cached determinization
+            or rebuilt opponent hidden information from scratch.
+        """
         self.current_node = self.root_node
         self.previous_move = collections.deque(self.ai.last_moves, maxlen=self.ai.last_moves.maxlen)
-        self.number_revealed_opponent_pieces = 0
+        self.score_revealed_opponent_pieces = 0
         self.lost_combats = 0
 
         if self.rollout_index % 5 == 0:
@@ -86,18 +123,24 @@ class MCTS:
 
 
     def algo(self):
+        """
+        Execute one full MCTS iteration.
+
+        The iteration resets rollout state, performs selection and optional
+        expansion, simulates forward from the chosen node, evaluates terminal
+        status, then backpropagates the resulting score.
+        """
         self._reset_rollout_state()
         filtered_untried_moves = self.selection()
 
         if filtered_untried_moves is not None:
             self.expansion(filtered_untried_moves)
 
-            win_score = self.simulation()
+            self.simulation()
 
-        else:
-            win_score = self.game_over()
+        game_won = self.game_over()
 
-        self.backpropagation(win_score)
+        self.backpropagation(game_won)
 
         self.rollout_index += 1
 
@@ -106,7 +149,10 @@ class MCTS:
     def selection(self):
         """
         Traverse the tree from the root, selecting child nodes until a leaf is reached.
-        Updates self.current_node to the selected leaf node.
+
+                Returns:
+                    list | None: The untried moves available at the selected node, or
+                    `None` when no child and no untried move remain.
         """
         while True:
             untried_moves = self.algo_infoSet.get_all_possible_moves()
@@ -121,12 +167,21 @@ class MCTS:
                 return None
             
     def update_infoSet(self, move):
-        result = self.algo_infoSet.update_infoSet(move)
+        """
+        Apply a simulated move to the current rollout information set.
+
+        Args:
+            move: The move to apply inside the rollout state.
+
+        Returns:
+            None
+        """
+        result = self.algo_infoSet.update_infoSet(move, self.confidence_by_level[self.difficulty])
 
         if result is None:
             return
 
-        self.number_revealed_opponent_pieces += result["encounter_score"]
+        self.score_revealed_opponent_pieces += result["encounter_score"]
         self.lost_combats += int(result["encounter_score"] < 0)
         self.previous_move.append(move)
 
@@ -134,7 +189,10 @@ class MCTS:
     def expansion(self, filtered_untried_moves):
         """
         Expand the current node by adding a new child node if possible.
-        Updates self.current_node and self.infoSet if expansion occurs.
+
+        Args:
+            filtered_untried_moves (list): Candidate moves not yet expanded from
+            the current node.
         """
         next_move = random.choice(filtered_untried_moves)
         
@@ -149,25 +207,26 @@ class MCTS:
 
     def simulation(self):
         """
-        Simulate a random playout from the current node to a terminal state or step limit.
-        Returns the result of the simulation (game outcome).
+        Simulate a playout from the current node to a terminal state or step limit.
+
+        Returns:
+            None
         """
-        game_over = -1
+        game_over = 0
         s = 0
-        while game_over == -1 and s < 25:
+        while game_over == 0 and s < 25:
             if not self.simulation_by_level[self.difficulty]():
                 return game_over
 
-            game_over = self.game_over() ## TODO : find a way to make it lighter so its not such a bottleneck
+            game_over = self.game_over()
            
             s += 1
-
-        return game_over
     
 
     def backpropagation(self, win_score):
         """
         Backpropagate the simulation result up the tree, updating visit and win counts.
+
         Args:
             win_score: The result of the simulation to propagate.
         """
@@ -180,6 +239,9 @@ class MCTS:
     def simulation_easy(self):
         """
         Perform a random move for easy difficulty.
+
+        Returns:
+            int: `1` when a move was applied, `0` when no legal move exists.
         """
         possible_moves = self.algo_infoSet.get_all_possible_moves()
         if len(possible_moves) == 0:
@@ -191,13 +253,22 @@ class MCTS:
         return 1
 
     def _simulation_with_priors(self, prior_func):
+        """
+        Perform one rollout step using a mix of random choice and move priors.
+
+        Args:
+            prior_func: Callable used to score candidate moves for the AI side.
+
+        Returns:
+            int: `1` when a move was applied, `0` when no legal move exists.
+        """
         possible_moves = self.algo_infoSet.get_all_possible_moves()
         if len(possible_moves) == 0:
             return 0
 
         move_priors = []
         for move in possible_moves:
-            if self.algo_infoSet.player_turn == self.ai.order:
+            if self.algo_infoSet.player_turn == self.order:
                 prior = prior_func(move)
                 move_priors.append((move, prior))
             else:
@@ -214,47 +285,139 @@ class MCTS:
         return 1
 
     def simulation_medium(self): 
+        """
+        Perform one medium-difficulty rollout step.
+
+        Returns:
+            int: `1` when a move was applied, `0` when no legal move exists.
+        """
         return self._simulation_with_priors(self.prior_evaluate_medium_move)
 
     def simulation_hard(self): 
+        """
+        Perform one hard-difficulty rollout step.
+
+        Returns:
+            int: `1` when a move was applied, `0` when no legal move exists.
+        """
         return self._simulation_with_priors(self.prior_evaluate_difficult_move)
+    
+    def _extract_features_heuristics(self):
+        """
+        Compute heuristic features from the current rollout board state.
 
-    def heuristic_evaluation_easy(self, winner):
-        my_pieces = self.algo_infoSet.board_state.get_pieces(self.ai.order)
-        opponent_pieces = self.algo_infoSet.board_state.get_pieces(1 - self.ai.order)
+        Returns:
+            dict: Named feature values used by heuristic evaluation.
+        """
+        my_pieces = self.algo_infoSet.board_state.get_pieces(self.order)
+        opp_pieces = self.algo_infoSet.board_state.get_pieces(1 - self.order)
 
-        my_score = sum(piece.type.score for piece in my_pieces.values())
-        opp_score = sum(piece.type.score for piece in opponent_pieces.values())
+        features = {}
 
-        score = my_score - opp_score + (100 if winner else -100)
+        features["material"] = (
+            sum(p.type.score for p in my_pieces.values())
+            - sum(p.type.score for p in opp_pieces.values())
+        )
 
-        return score
+        features["mobility"] = (
+            len(self.algo_infoSet.get_all_possible_moves(self.order))
+            - len(self.algo_infoSet.get_all_possible_moves(1 - self.order))
+        )
 
-    def heuristic_evaluation_medium(self, winner): ##TODO
-        score = self.heuristic_evaluation_easy(winner)
+        features["flag"] = -self.algo_infoSet.closest_piece_to_flag()
 
-        my_moves = len(self.algo_infoSet.get_all_possible_moves(1))
-        their_moves = len(self.algo_infoSet.get_all_possible_moves(0))
+        features["info"] = self.score_revealed_opponent_pieces
 
-        diff_oppo_moves = my_moves - their_moves
-        diff_my_moves = my_moves - self.initial_possible_moves
+        features["trades"] = self.lost_combats
 
-        closest_piece_flag = self.algo_infoSet.closest_piece_to_flag()
+        features["opp_confidence_material"] = sum(
+            -p.type.score * (1.0 if p.revealed else self.confidence_by_level[self.difficulty])
+            for p in opp_pieces.values()
+        )
 
-        score += diff_oppo_moves + diff_my_moves + self.number_revealed_opponent_pieces + self.lost_combats + closest_piece_flag
+        features["reveal_bonus"] = sum(
+            p.type.score * 2
+            for p in opp_pieces.values()
+            if p.mcts_revealed
+        )
 
-        return score
+        features["self_reveal_penalty"] = sum(
+            -p.type.score
+            for p in my_pieces.values()
+            if p.mcts_revealed
+        )
 
-    def heuristic_evaluation_hard(self, winner): ##TODO
-        return self.heuristic_evaluation_easy(winner)
+        return features
+    
+    def _evaluate_heuristics(self, features, weights):
+        """
+        Combine extracted heuristic features with a difficulty-specific weight map.
+
+        Args:
+            features (dict): Feature values to aggregate.
+            weights (dict): Per-feature weights to apply.
+
+        Returns:
+            float: The weighted heuristic score.
+        """
+        return sum(
+            features[k] * weights.get(k, 0)
+            for k in features
+        )
+    
+    def heuristic_evaluation(self, ai_won, opp_won):
+        """
+        Evaluate the current rollout state from the AI perspective.
+
+        Args:
+            ai_won: Truthy when the rollout already ended in an AI win.
+            opp_won: Truthy when the rollout already ended in an AI loss.
+
+        Returns:
+            float: A terminal bonus or weighted heuristic score.
+        """
+        if ai_won:
+            return 10000
+        if opp_won:
+            return -10000
+
+        features = self._extract_features_heuristics()
+
+        weights = self.heuristics_weights_by_level[self.difficulty]
+
+        return self._evaluate_heuristics(features, weights)
 
     def _piece_power(self, piece):
+        """
+        Return a comparable power value for a piece.
+
+        Args:
+            piece: The piece to inspect.
+
+        Returns:
+            int: The piece power, or `-1` when no comparable power exists.
+        """
         if piece is None or piece.type is None or piece.type.power is None:
             return -1
 
         return piece.type.power
     
     def _common_priors(self, move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7):
+        """
+        Compute shared tactical priors used by medium and hard move scoring.
+
+        Args:
+            move: Candidate move being scored.
+            my_piece: Moving piece.
+            their_piece: Target piece, if any.
+            my_val: Numeric power of the moving piece.
+            their_val: Numeric power of the target piece.
+            eclaireur_bonus: Bonus applied to scout moves.
+            espion_bonus: Bonus applied to favorable spy attacks.
+
+        Returns:
+            float: Base prior score before difficulty-specific adjustments.
+        """
         score = 0.0
         if their_piece is not None:
             if their_piece.revealed and my_val < their_val:
@@ -300,13 +463,18 @@ class MCTS:
 
     def prior_evaluate_medium_move(self, move):
         """
-        Evaluate a move based on tactical, mobility, information, and strategy priors.
-        Returns a score (float/int) representing the move's desirability.
+        Evaluate one candidate move with medium-difficulty priors.
+
+        Args:
+            move: Candidate move to score.
+
+        Returns:
+            float: Desirability score for the move.
         """
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
         my_val = self._piece_power(my_piece)
         their_val = self._piece_power(their_piece)
-        confidence = 1.0 if their_piece is not None and their_piece.revealed else 0.5
+        confidence = 1.0 if their_piece is not None and their_piece.revealed else self.confidence_by_level[1]
         score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7)
 
         score *= confidence
@@ -314,10 +482,19 @@ class MCTS:
         return score
     
     def prior_evaluate_difficult_move(self, move):
-        start_row = self.ai.rows[self.ai.order][0]
+        """
+        Evaluate one candidate move with hard-difficulty priors.
+
+        Args:
+            move: Candidate move to score.
+
+        Returns:
+            float: Desirability score for the move.
+        """
+        start_row = self.ai.rows[self.order][0]
         direction = -1 if start_row > 4 else 1
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-        confidence = 1.0 if their_piece is not None and their_piece.revealed else 0.45
+        confidence = 1.0 if their_piece is not None and their_piece.revealed else self.confidence_by_level[2]
         my_val = self._piece_power(my_piece)
         their_val = self._piece_power(their_piece)
         score = self._common_priors(move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.15, espion_bonus=0.9)
@@ -346,20 +523,30 @@ class MCTS:
 
     def game_over(self):
         """
+        Evaluate whether the simulated state is terminal for either side.
+
+        Returns:
+            float: Heuristic terminal evaluation from the AI perspective.
         """
+        ai_won = 0
+        opp_won = 0
         for player in self.players:
             my_pieces = self.algo_infoSet.board_state.get_pieces(player.order)
             opponent_pieces = self.algo_infoSet.board_state.get_pieces(1- player.order)
 
             ended, _ = self.game_rules.check_player_end_state(player, self.players, self.algo_infoSet.board_state, my_pieces, opponent_pieces, 1)
             if ended:
-                ai_won = player.order != self.ai.order ## 1 if it wins, 0 if it doesnt
-                return self.heuristic_by_level[self.difficulty](ai_won) 
-        return -1
+                ai_won = player.order != self.order
+                opp_won = player.order == self.order
+        
+        return self.heuristic_evaluation(ai_won, opp_won) 
 
     def get_best_move(self):
         """
         Return the move from the best child of the root node after search.
+
+        Returns:
+            Move: The selected move to play.
         """
         if self.root_node.children:
             best_child = max(self.root_node.children, key=lambda x: x.win_score)

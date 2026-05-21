@@ -8,6 +8,9 @@ from GAME.piece import BeliefPiece, PieceType
 from USERS.aiPlayer import AIPlayer
 
 class GameManager():
+    """
+    Coordinate one live game, including setup, move resolution, timers, and end-state handling.
+    """
     def __init__(self, lobbyManager, players, status = None, game_type = "original"):
         """
         Initialize a new GameManager instance.
@@ -400,16 +403,14 @@ class GameManager():
         
     def invert_positions_if_needed(self, player_order, pieces):
         """
-        Invert the y positions of pieces for the second player.
+        Mirror setup coordinates for the second player's board perspective.
+
         Args:
             player_order: The order/index of the player.
             pieces: List of Piece objects.
+
         Returns:
             List of Piece objects with updated positions.
-        """
-        """
-        Invert the y position of all pieces if player_order is 1 (second player),
-        so that (x, 6) becomes (x, 3), (x, 7) -> (x, 2), (x, 8) -> (x, 1), (x, 9) -> (x, 0)
         """
         if player_order == 1:
             for piece in pieces:
@@ -670,6 +671,16 @@ class PlayerTimer:
             duration: Optional delay in seconds before resuming the timer.
         """
         def resume_after_delay(player_idx, delay):
+            """
+            Resume the timer for a player after a fixed delay.
+
+            Args:
+                player_idx: Index of the player whose timer should resume.
+                delay: Number of seconds to wait before resuming.
+
+            Returns:
+                None
+            """
             time.sleep(delay)
             self.start(player_idx)
 

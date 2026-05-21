@@ -16,7 +16,6 @@ class AIPlayer(Player):
     setup classes so the game-facing AI logic stays separate from board-placement details.
     """
     def __init__(self, user_instance, order, difficulty, score = 0, time_remaining = (60*20)):
-        print("AIPlayer.__init__ called")
         """
         Initialize an AIPlayer.
 
@@ -49,7 +48,6 @@ class AIPlayer(Player):
         self.setup = self.setup_library.full_builders
 
     def initialize_game(self):
-        print("AIPlayer.initialize_game called")
         """
         Initialize the AI player for a new game.
 
@@ -59,7 +57,6 @@ class AIPlayer(Player):
         return super().initialize_game()
     
     def setup_pieces(self):
-        print("AIPlayer.setup_pieces called")
         """
         Build and return the starting setup for the current difficulty.
 
@@ -69,7 +66,6 @@ class AIPlayer(Player):
         return self.setup[self.difficulty]()
     
     def choose_move(self):
-        print("AIPlayer.choose_move called")
         """
         Select a move for the AI by running MCTS for a difficulty-based time budget.
 
@@ -98,7 +94,6 @@ class AISetupBuilder:
     so the remaining fill logic can avoid duplicating already-placed piece types.
     """
     def __init__(self, ai_player):
-        print("AISetupBuilder.__init__ called")
         """
         Initialize an AISetupBuilder.
 
@@ -107,8 +102,32 @@ class AISetupBuilder:
         """
         self.ai_player = ai_player
 
+    def _player_rows(self):
+        return self.ai_player.rows[self.ai_player.order]
+
+    def _is_top_side(self):
+        row_start, _ = self._player_rows()
+        return row_start == 0
+
+    def _front_row_range(self):
+        row_start, row_end = self._player_rows()
+        if self._is_top_side():
+            return (row_end - 2, row_end)
+        return (row_start, row_start + 2)
+
+    def _front_rows(self):
+        row_start, row_end = self._player_rows()
+        if self._is_top_side():
+            return [row_end - 1, row_end - 2]
+        return [row_start, row_start + 1]
+
+    def _back_rows(self):
+        row_start, row_end = self._player_rows()
+        if self._is_top_side():
+            return [row_start + 1, row_start]
+        return [row_end - 2, row_end - 1]
+
     def generate_pieces(self, piece_types, pieces=None):
-        print("AISetupBuilder.generate_pieces called")
         """
         Fill the remaining setup rows with the provided piece types.
 
@@ -139,7 +158,6 @@ class AISetupBuilder:
         return pieces
 
     def generate_rest_of_types(self):
-        print("AISetupBuilder.generate_rest_of_types called")
         """
         Generate the remaining piece types not excluded by already-placed motifs.
 
@@ -149,7 +167,6 @@ class AISetupBuilder:
         return self.generate_remaining_types()
 
     def generate_remaining_types(self, pieces=None):
-        print("AISetupBuilder.generate_remaining_types called")
         """
         Generate the remaining piece types after accounting for already-placed pieces.
 
@@ -183,7 +200,6 @@ class AISetupBuilder:
         return pieces_types
 
     def compose_motifs(self, motifs):
-        print("AISetupBuilder.compose_motifs called")
         """
         Compose multiple motif callables into one partial setup.
 
@@ -215,7 +231,6 @@ class AISetupBuilder:
         return pieces
 
     def spread_out_bombs(self):
-        print("AISetupBuilder.spread_out_bombs called")
         """
         Create a bomb motif with bombs spread across many clusters.
 
@@ -225,7 +240,6 @@ class AISetupBuilder:
         return self._bomb_clusters(6, min_dist=2)
 
     def single_bomb_cluster(self):
-        print("AISetupBuilder.single_bomb_cluster called")
         """
         Create a bomb motif with a single bomb cluster.
 
@@ -235,7 +249,6 @@ class AISetupBuilder:
         return self._bomb_clusters(1)
 
     def spread_out_bomb_clusters(self):
-        print("AISetupBuilder.spread_out_bomb_clusters called")
         """
         Create a bomb motif with bombs distributed across two clusters.
 
@@ -245,7 +258,6 @@ class AISetupBuilder:
         return self._bomb_clusters(2)
 
     def bomb_side(self):
-        print("AISetupBuilder.bomb_side called")
         """
         Create a bomb motif concentrated on a random side band of the board.
 
@@ -257,7 +269,6 @@ class AISetupBuilder:
         return self._bomb_clusters(6, range_cols=nums, min_dist=1)
 
     def x_bomb(self):
-        print("AISetupBuilder.x_bomb called")
         """
         Create an X-shaped bomb motif around a central position.
 
@@ -268,7 +279,6 @@ class AISetupBuilder:
         return pieces
 
     def diagonal_bombs(self, *, nb_bombes=PieceType.Bombe.count, pivot=None):
-        print("AISetupBuilder.diagonal_bombs called")
         """
         Create a diagonal bomb motif anchored at a back-corner pivot.
 
@@ -329,19 +339,15 @@ class AISetupBuilder:
         return pieces
 
     def front_line_bombs(self):
-        print("AISetupBuilder.front_line_bombs called")
         """
         Create a bomb motif concentrated near the front line.
 
         Returns:
             list: List of pre-placed bomb Piece objects.
         """
-        all_rows = self.ai_player.rows[self.ai_player.order]
-        rows = (2, 3) if 3 in all_rows else (6, 7)
-        return self._bomb_clusters(3, rows=rows, min_dist=2)
+        return self._bomb_clusters(3, rows=self._front_row_range(), min_dist=2)
 
     def front_line_flag(self):
-        print("AISetupBuilder.front_line_flag called")
         """
         Place the flag using the front-line flag motif.
 
@@ -351,7 +357,6 @@ class AISetupBuilder:
         return self.place_flag()
 
     def safe_flag(self):
-        print("AISetupBuilder.safe_flag called")
         """
         Place the flag using the safer backline flag motif.
 
@@ -361,7 +366,6 @@ class AISetupBuilder:
         return self.place_flag("safe")
 
     def corner_flag(self):
-        print("AISetupBuilder.corner_flag called")
         """
         Place the flag in a back corner.
 
@@ -371,7 +375,6 @@ class AISetupBuilder:
         return self.place_flag("corner")
 
     def place_flag(self, mode="front_line"):
-        print("AISetupBuilder.place_flag called")
         """
         Place a flag according to the selected flag-placement mode.
 
@@ -381,18 +384,16 @@ class AISetupBuilder:
         Returns:
             list: List containing the pre-placed flag Piece.
         """
-        all_rows = self.ai_player.rows[self.ai_player.order]
-
         if mode == "front_line":
             cols = [2, 3, 6, 7]
-            row = 3 if 3 in all_rows else 6
+            row = self._front_rows()[0]
             pos = (random.choice(cols), row)
         elif mode == "safe":
-            rows = (8, 9) if 9 in all_rows else (1, 0)
+            rows = self._back_rows()
             row = random.choices(rows, weights=[1, 3])[0]
             pos = (random.randrange(10), row)
         elif mode == "corner":
-            row = 9 if 9 in all_rows else 0
+            row = self._back_rows()[1]
             pos = (random.choice([0, 9]), row)
         else:
             raise ValueError(f"Unknown flag mode: {mode}")
@@ -401,7 +402,6 @@ class AISetupBuilder:
         return [Piece(0, PieceType.Drapeau, pos, self.ai_player.order)]
 
     def scouts_front(self, rows=None):
-        print("AISetupBuilder.scouts_front called")
         """
         Place scouts near the front to create early probing pressure.
 
@@ -414,8 +414,9 @@ class AISetupBuilder:
         piece_id = 0
         pieces = []
         if rows is None:
-            rows = self.ai_player.rows[self.ai_player.order]
-        target_rows = [3, 2] if 3 in rows else [6, 7]
+            target_rows = self._front_rows()
+        else:
+            target_rows = list(rows)
         columns = random.sample(range(10), PieceType.Eclaireur.count)
         for col in columns:
             row = random.choices(target_rows, weights=[3, 1])[0]
@@ -426,7 +427,6 @@ class AISetupBuilder:
         return pieces
 
     def spread_out_bomb_clusters_flag(self):
-        print("AISetupBuilder.spread_out_bomb_clusters_flag called")
         """
         Create a spread bomb-cluster motif with an adjacent flag placement.
 
@@ -460,7 +460,6 @@ class AISetupBuilder:
         return pieces
 
     def bottle_neck_lakes(self):
-        print("AISetupBuilder.bottle_neck_lakes called")
         """
         Create a setup motif that emphasizes lake bottlenecks.
 
@@ -470,20 +469,18 @@ class AISetupBuilder:
         return self._bottle_necks()
 
     def strong_center(self):
-        print("AISetupBuilder.strong_center called")
         """
         Create a setup motif that emphasizes stronger central control.
 
         Returns:
             list: List of pre-placed Piece objects for the motif.
         """
-        all_rows = self.ai_player.rows[self.ai_player.order]
-        rows = (1, 2) if 2 in all_rows else (7, 8)
+        row_start, _ = self._player_rows()
+        rows = (row_start + 1, row_start + 2)
         cols = [(index, index + 1) for index in range(0, 10, 2)]
         return self._bottle_necks(row=rows, cols=cols)
 
     def x_bomb_flag(self):
-        print("AISetupBuilder.x_bomb_flag called")
         """
         Create an X-shaped bomb motif with a nearby flag placement.
 
@@ -508,7 +505,6 @@ class AISetupBuilder:
         return pieces
 
     def _x_bomb_positions(self):
-        print("AISetupBuilder._x_bomb_positions called")
         """
         Build the underlying X-bomb positions used by x_bomb and x_bomb_flag.
 
@@ -549,7 +545,6 @@ class AISetupBuilder:
         return pieces, used_pos, center_pos
 
     def _bomb_clusters(self, cluster_nb, *, rows=None, range_cols=(0, 9), min_dist=3):
-        print("AISetupBuilder._bomb_clusters called")
         """
         Create clustered bomb placements under spacing constraints.
 
@@ -625,7 +620,6 @@ class AISetupBuilder:
         return pieces
 
     def _bottle_necks(self, *, row=None, cols=None):
-        print("AISetupBuilder._bottle_necks called")
         """
         Build a bottleneck-oriented setup motif with mixed strong pieces and bombs.
 
@@ -639,7 +633,7 @@ class AISetupBuilder:
         pieces = []
         all_rows = list(range(self.ai_player.rows[self.ai_player.order][0], self.ai_player.rows[self.ai_player.order][1]))
         if row is None:
-            row = (3, 2) if 3 in all_rows else (6, 7)
+            row = tuple(self._front_rows())
         all_cols = list(range(10))
         if cols is None:
             cols = [(0, 1), (4, 5), (8, 9)]
@@ -723,7 +717,6 @@ class AISetupLibrary:
     setup builders used by AIPlayer. It relies on AISetupBuilder for the concrete placement work.
     """
     def __init__(self, ai_player):
-        print("AISetupLibrary.__init__ called")
         """
         Initialize an AISetupLibrary.
 
@@ -751,7 +744,6 @@ class AISetupLibrary:
         }
 
     def generate_piece_list_easy(self):
-        print("AISetupLibrary.generate_piece_list_easy called")
         """
         Generate a easy-difficulty, random setup.
 
@@ -764,19 +756,16 @@ class AISetupLibrary:
         return self.setup_builder.generate_pieces(piece_types)
     
     def generate_piece_list_medium(self):
-        print("AISetupLibrary.generate_piece_list_medium called")
         """
         Build a medium setup by selecting a random preset builder for the current player order.
 
         Returns:
             list: Full setup as a list of Piece objects.
         """
-        preset_builder = random.choice((0, 1))
-        motif = self.medium_preset_builders[preset_builder]
+        motif = self.medium_preset_builders.get(self.ai_player.order, self.medium_preset_builders[0])
         return random.choice(motif)()
 
     def generate_piece_list_hard(self):
-        print("AISetupLibrary.generate_piece_list_hard called")
         """
         Generate a hard-difficulty setup by combining multiple motifs.
 
@@ -798,7 +787,6 @@ class AISetupLibrary:
         return self.setup_builder.generate_pieces(piece_types, pieces)
 
     def _bomb_pressure_motifs(self):
-        print("AISetupLibrary._bomb_pressure_motifs called")
         """
         Return medium motifs focused on bomb pressure and bomb structure.
 
@@ -817,7 +805,6 @@ class AISetupLibrary:
         ]
 
     def _frontline_motifs(self):
-        print("AISetupLibrary._frontline_motifs called")
         """
         Return medium motifs focused on front-line pressure and forward posture.
 
@@ -832,7 +819,6 @@ class AISetupLibrary:
         ]
 
     def _backline_motifs(self):
-        print("AISetupLibrary._backline_motifs called")
         """
         Return medium motifs focused on safer backline flag placements.
 
@@ -845,7 +831,6 @@ class AISetupLibrary:
         ]
 
     def _probe_motifs(self):
-        print("AISetupLibrary._probe_motifs called")
         """
         Return medium motifs focused on probing and early information pressure.
 
@@ -858,7 +843,6 @@ class AISetupLibrary:
         ]
 
     def build_medium_bomb_pressure_setup(self):
-        print("AISetupLibrary.build_medium_bomb_pressure_setup called")
         """
         Build a medium setup by choosing a random bomb-pressure motif.
 
@@ -868,7 +852,6 @@ class AISetupLibrary:
         return self.build_from_motif(random.choice(self._bomb_pressure_motifs()))
 
     def build_medium_frontline_setup(self):
-        print("AISetupLibrary.build_medium_frontline_setup called")
         """
         Build a medium setup by choosing a random frontline motif.
 
@@ -878,7 +861,6 @@ class AISetupLibrary:
         return self.build_from_motif(random.choice(self._frontline_motifs()))
 
     def build_medium_backline_setup(self):
-        print("AISetupLibrary.build_medium_backline_setup called")
         """
         Build a medium setup by choosing a random backline motif.
 
@@ -888,7 +870,6 @@ class AISetupLibrary:
         return self.build_from_motif(random.choice(self._backline_motifs()))
 
     def build_medium_probe_setup(self):
-        print("AISetupLibrary.build_medium_probe_setup called")
         """
         Build a medium setup by choosing a random probe motif.
 
@@ -898,7 +879,6 @@ class AISetupLibrary:
         return self.build_from_motif(random.choice(self._probe_motifs()))
 
     def build_from_motif(self, motif):
-        print("AISetupLibrary.build_from_motif called")
         """
         Build a full setup from a single pre-placement motif.
 

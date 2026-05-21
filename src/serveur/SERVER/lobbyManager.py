@@ -12,7 +12,13 @@ from GAME.piece import Piece, PieceType, BeliefPiece
 
 
 class LobbyManager:
+    """
+    Coordinate connected users, active games, persistence, and lobby-level actions.
+    """
     def __init__(self):
+        """
+        Initialize lobby state, action routing, and DAO helpers.
+        """
         self.games = {}  # dict: pour chaque player_id, donne la game, donc 2 entrées par jeu
         self.wait_list = []
         self.active_users = {}
@@ -346,6 +352,19 @@ class LobbyManager:
         return "INVALID_PIECE_SETUP", self.active_users[my_key].status
     
     def convert_pieces(self, pieces_data, owner = None):
+        """
+        Convert serialized piece payloads into `Piece` or `BeliefPiece` objects.
+
+        Args:
+            pieces_data: Iterable of serialized piece dictionaries.
+            owner: Optional player object whose order should override serialized ownership.
+
+        Returns:
+            list: Converted piece objects.
+
+        Raises:
+            ValueError: Raised when the serialized payload is malformed.
+        """
         pieces = []
         for i, piece_dict in enumerate(pieces_data):
             try:
@@ -435,6 +454,7 @@ class LobbyManager:
             loser: The Player or AIPlayer who lost.
             reason: Reason for game end (unused).
         """
+        print(reason)
         game = None
         for player in (winner, loser):
             if not isinstance(player, AIPlayer) and player.key in self.games:

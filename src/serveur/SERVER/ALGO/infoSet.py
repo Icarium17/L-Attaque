@@ -4,7 +4,6 @@ import time
 from GAME.piece import BeliefPiece, Piece, PieceType
 
 
-## Should only store observable states. the sampled board should be in the algo, not in the nodes.
 class InfoSet:
     """
     Represents the information set for a player, including board state, player turn, and game rules.
@@ -26,6 +25,9 @@ class InfoSet:
     def get_all_possible_moves(self, player_turn = None):
         """
         Get all possible moves for the current player.
+
+        Args:
+            player_turn: Optional player override. Uses `self.player_turn` when omitted.
         
         Returns:
             list: List of possible moves for the current player.
@@ -49,15 +51,16 @@ class InfoSet:
         valid, _ = self.game_rules.validate_move(self.player_turn, move, self.board_state)
         return valid
 
-    def update_infoSet(self, move):
+    def update_infoSet(self, move, confidence = 1.0):
         """
         Update the current InfoSet in place by applying a move, if valid.
         
         Args:
             move: The move to apply.
+            confidence: Confidence multiplier used when evaluating uncertain combat.
         
         Returns:
-            None if move is invalid, otherwise updates in place.
+            None if move is invalid, otherwise a summary dict describing the move result.
         """
         valid = self.validate_move(move)
         if not valid:
@@ -75,7 +78,13 @@ class InfoSet:
         if defender is None:
             self.board_state.move(move)
         else:
-            encounter_score = self.encounter_score(attacker, defender)
+            if not attacker.revealed :
+                attacker.mcts_revealed
+
+            if not defender.revealed : 
+                defender.mcts_revealed
+                
+            encounter_score = self.encounter_score(attacker, defender, confidence) 
 
             winner = self.game_rules.combat(attacker, defender)
             tile_from.piece = None
@@ -92,21 +101,55 @@ class InfoSet:
             "had_combat": defender is not None
         }
 
-    def encounter_score(self, my_piece, their_piece):
+    def encounter_score(self, attacker, defender, confidence = 1.0):
+        """
+        Estimate the value swing of one combat from the AI perspective.
+
+        Args:
+            attacker: The attacking piece in the simulated combat.
+            defender: The defending piece in the simulated combat.
+            confidence: Confidence multiplier applied to uncertain opponent value.
+
+        Returns:
+            float: Positive when the exchange favors the AI, negative when it does not.
+        """
+        if attacker.owner == 1:
+            my_piece = attacker
+            their_piece = defender
+
+        else :
+            my_piece = defender
+            their_piece = attacker
+
         if their_piece is None:
             return 0
 
+        winner = self.game_rules.combat(attacker, defender)
+
+        my_value = my_piece.type.score
         their_value = their_piece.type.score
-        winner = self.game_rules.combat(my_piece, their_piece)
+
+        confidence = 1.0 if their_piece.is_revealed else confidence
+
+        adjusted_their_value = their_value * confidence
 
         if winner is my_piece:
-            return 2 * their_value
+            return adjusted_their_value - my_value * 0.5
+
         elif winner is None:
             return 0
+
         else:
-            return -my_piece.type.score
+            return -my_value
         
     def closest_piece_to_flag(self):
+        """
+        Measure how close player 0 is to player 1's flag.
+
+        Returns:
+            float: Euclidean distance from the nearest player 0 piece to player 1's
+            flag, or `0` when the relevant pieces are missing.
+        """
         player_1_pieces = self.board_state.get_pieces(1)
         flag_piece = next(
             (piece for piece in player_1_pieces.values() if piece.type == PieceType.Drapeau),
@@ -137,6 +180,16 @@ class InfoSet:
         return closest_dist
 
     def sync_opponent_knowledge(self, hidden_belief_pieces, revealed_opponent_pieces):
+        """
+        Copy known opponent pieces into the local board state.
+
+        Args:
+            hidden_belief_pieces: Hidden opponent belief pieces to clone onto the board.
+            revealed_opponent_pieces: Revealed opponent pieces to clone onto the board.
+
+        Returns:
+            None
+        """
         for piece in hidden_belief_pieces:
             self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece.clone()
 
@@ -144,6 +197,15 @@ class InfoSet:
             self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece.clone()
 
     def return_pieces(self, move):
+        """
+        Return the source and destination pieces involved in a move.
+
+        Args:
+            move: The move whose endpoints should be inspected.
+
+        Returns:
+            tuple: A pair `(my_piece, their_piece)` from the move source and destination.
+        """
         x_0, y_0, x_1, y_1 = move.get_params()
         my_piece = self.board_state.tiles[y_0][x_0].piece
         their_piece = self.board_state.tiles[y_1][x_1].piece
@@ -151,6 +213,21 @@ class InfoSet:
         return my_piece, their_piece
 
     def actualize_belief_pieces(self, hidden_belief_pieces, pieces_left):
+        """
+        Determinize hidden belief pieces into concrete pieces on the board.
+
+        The method attempts a constrained backtracking assignment when the hidden
+        board state matches expectations, and falls back to a greedy randomized
+        assignment when mismatches or search failure occur. It also records summary
+        statistics about the actualization attempt in `self.actualize_stats`.
+
+        Args:
+            hidden_belief_pieces: Belief pieces representing currently hidden opponents.
+            pieces_left: Remaining piece inventory keyed by `PieceType`.
+
+        Returns:
+            None
+        """
         belief_piece_ids = {piece.id for piece in hidden_belief_pieces}
         board_belief_pieces = [
             tile.piece
