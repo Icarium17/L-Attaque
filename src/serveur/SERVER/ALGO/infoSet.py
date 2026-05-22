@@ -21,6 +21,99 @@ class InfoSet:
         self.player_turn = player_turn
         self.game_rules = game_rules
         self.actualize_stats = None
+        self._possible_moves_cache = {
+            0: {},
+            1: {},
+        }
+
+    def invalidate_possible_moves_cache(self, player_turn=None):
+        """
+        Mark cached move lists as stale.
+
+        Args:
+            player_turn: Optional player whose cache should be invalidated.
+
+        Returns:
+            None
+        """
+        if player_turn is None:
+            for order in self._possible_moves_cache:
+                self._possible_moves_cache[order].clear()
+            return
+
+        self._possible_moves_cache[player_turn].clear()
+
+    def _get_piece_possible_moves(self, piece, player_turn):
+        """
+        Compute legal moves for a single piece.
+
+        Args:
+            piece: The piece whose moves should be generated.
+            player_turn: Owner of the piece.
+
+        Returns:
+            list: Legal moves for the provided piece.
+        """
+        if piece.type in (PieceType.Drapeau, PieceType.Bombe):
+            return []
+
+        return self.game_rules.get_remaining_moves(
+            {piece.id: piece},
+            player_turn,
+            self.board_state,
+        )
+
+    def _invalidate_piece_moves(self, piece):
+        """
+        Remove cached moves for one piece if present.
+
+        Args:
+            piece: Piece whose cached moves should be discarded.
+
+        Returns:
+            None
+        """
+        if piece is None:
+            return
+
+        self._possible_moves_cache[piece.owner].pop(piece.id, None)
+
+    def _invalidate_local_possible_moves_cache(self, positions, touched_pieces=()):
+        """
+        Invalidate only move caches affected by local board changes.
+
+        Args:
+            positions: Coordinates whose occupancy changed.
+            touched_pieces: Pieces directly moved, removed, or restored.
+
+        Returns:
+            None
+        """
+        normalized_positions = [
+            (x, y)
+            for x, y in positions
+            if x is not None and y is not None
+        ]
+
+        for piece in touched_pieces:
+            self._invalidate_piece_moves(piece)
+
+        for row in self.board_state.tiles:
+            for tile in row:
+                piece = tile.piece
+                if piece is None:
+                    continue
+
+                px, py = piece.position
+
+                for x, y in normalized_positions:
+                    if (px, py) == (x, y) or abs(px - x) + abs(py - y) == 1:
+                        self._invalidate_piece_moves(piece)
+                        break
+
+                    if piece.type == PieceType.Eclaireur and (px == x or py == y):
+                        self._invalidate_piece_moves(piece)
+                        break
 
     def get_all_possible_moves(self, player_turn = None):
         """
@@ -34,8 +127,22 @@ class InfoSet:
         """
         if player_turn is None:
             player_turn = self.player_turn
+
         pieces = self.board_state.get_pieces(player_turn)
-        possible_moves = self.game_rules.get_remaining_moves(pieces, player_turn, self.board_state)
+        cached_moves = self._possible_moves_cache[player_turn]
+        current_piece_ids = set(pieces)
+
+        for cached_piece_id in list(cached_moves):
+            if cached_piece_id not in current_piece_ids:
+                del cached_moves[cached_piece_id]
+
+        possible_moves = []
+        for piece_id, piece in pieces.items():
+            if piece_id not in cached_moves:
+                cached_moves[piece_id] = self._get_piece_possible_moves(piece, player_turn)
+
+            possible_moves.extend(cached_moves[piece_id])
+
         return possible_moves
 
     def validate_move(self, move):
@@ -51,20 +158,21 @@ class InfoSet:
         valid, _ = self.game_rules.validate_move(self.player_turn, move, self.board_state)
         return valid
 
-    def update_infoSet(self, move, confidence = 1.0):
+    def apply_move(self, move, confidence = 1.0):
         """
-        Update the current InfoSet in place by applying a move, if valid.
-        
+        Apply a move to the current InfoSet and return the data required to undo it.
+
         Args:
             move: The move to apply.
             confidence: Confidence multiplier used when evaluating uncertain combat.
-        
+
         Returns:
-            None if move is invalid, otherwise a summary dict describing the move result.
+            tuple: ``(summary, undo_record)`` when the move is valid, otherwise
+            ``(None, None)``.
         """
         valid = self.validate_move(move)
         if not valid:
-            return None
+            return None, None
 
         encounter_score = 0
 
@@ -75,14 +183,29 @@ class InfoSet:
         attacker = tile_from.piece
         defender = tile_to.piece
 
+        undo_record = {
+            "prev_player_turn": self.player_turn,
+            "x_0": x_0,
+            "y_0": y_0,
+            "x_1": x_1,
+            "y_1": y_1,
+            "attacker": attacker,
+            "defender": defender,
+            "attacker_old_position": attacker.position,
+            "attacker_old_mcts_revealed": attacker.mcts_revealed,
+            "defender_old_mcts_revealed": defender.mcts_revealed if defender is not None else None,
+        }
+
         if defender is None:
-            self.board_state.move(move)
+            tile_from.piece = None
+            tile_to.piece = attacker
+            attacker.position = move.moveTo
         else:
             if not attacker.revealed :
-                attacker.mcts_revealed
+                attacker.mcts_revealed = True
 
             if not defender.revealed : 
-                defender.mcts_revealed
+                defender.mcts_revealed = True
                 
             encounter_score = self.encounter_score(attacker, defender, confidence) 
 
@@ -96,10 +219,64 @@ class InfoSet:
                 attacker.position = move.moveTo
 
         self.player_turn = 1 - self.player_turn
+        self._invalidate_local_possible_moves_cache(
+            [move.moveFrom, move.moveTo],
+            (attacker, defender),
+        )
         return {
             "encounter_score": encounter_score,
             "had_combat": defender is not None
-        }
+        }, undo_record
+
+    def undo_move(self, undo_record):
+        """
+        Restore the board state saved by ``apply_move()``.
+
+        Args:
+            undo_record: State snapshot returned by ``apply_move()``.
+
+        Returns:
+            None
+        """
+        x_0 = undo_record["x_0"]
+        y_0 = undo_record["y_0"]
+        x_1 = undo_record["x_1"]
+        y_1 = undo_record["y_1"]
+
+        tile_from = self.board_state.tiles[y_0][x_0]
+        tile_to = self.board_state.tiles[y_1][x_1]
+
+        attacker = undo_record["attacker"]
+        defender = undo_record["defender"]
+
+        tile_from.piece = attacker
+        tile_to.piece = defender
+
+        attacker.position = undo_record["attacker_old_position"]
+        attacker.mcts_revealed = undo_record["attacker_old_mcts_revealed"]
+
+        if defender is not None:
+            defender.mcts_revealed = undo_record["defender_old_mcts_revealed"]
+
+        self.player_turn = undo_record["prev_player_turn"]
+        self._invalidate_local_possible_moves_cache(
+            [attacker.position, (x_1, y_1)],
+            (attacker, defender),
+        )
+
+    def update_infoSet(self, move, confidence = 1.0):
+        """
+        Backward-compatible wrapper around ``apply_move()``.
+
+        Args:
+            move: The move to apply.
+            confidence: Confidence multiplier used when evaluating uncertain combat.
+
+        Returns:
+            None if move is invalid, otherwise a summary dict describing the move result.
+        """
+        summary, _ = self.apply_move(move, confidence)
+        return summary
 
     def encounter_score(self, attacker, defender, confidence = 1.0):
         """
@@ -196,6 +373,8 @@ class InfoSet:
         for piece in revealed_opponent_pieces:
             self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece.clone()
 
+        self.invalidate_possible_moves_cache()
+
     def return_pieces(self, move):
         """
         Return the source and destination pieces involved in a move.
@@ -271,6 +450,8 @@ class InfoSet:
         for belief_piece, type in zip(belief_pieces, possible_setup):
             piece = Piece(belief_piece.id, type, belief_piece.position, belief_piece.owner, False)
             self.board_state.tiles[piece.position[1]][piece.position[0]].piece = piece
+
+        self.invalidate_possible_moves_cache()
 
     def assign_types_backtracking(self, belief_pieces, pieces_left, timeout=0.5):
         """

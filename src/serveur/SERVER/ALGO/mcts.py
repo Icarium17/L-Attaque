@@ -87,15 +87,12 @@ class MCTS:
         self.initial_possible_moves = len(self.infoSet_main.get_all_possible_moves())
 
         self.rollout_index = 0
-        self.closest_dist = self.infoSet_main.closest_piece_to_flag()
+        self.closest_dist_flag = self.infoSet_main.closest_piece_to_flag()
+        self.undo_stack = []
         
     def _reset_rollout_state(self):
         """
         Reset rollout-local state before one MCTS iteration.
-
-        Returns:
-            dict: Metadata about whether the rollout reused a cached determinization
-            or rebuilt opponent hidden information from scratch.
         """
         self.current_node = self.root_node
         self.previous_moves_algo = collections.deque(self.previous_moves, maxlen=self.previous_moves.maxlen)
@@ -103,25 +100,12 @@ class MCTS:
         self.lost_combats = 0
 
         if self.rollout_index % 5 == 0:
-            actualize_start_ns = time.perf_counter_ns()
-            self.algo_infoSet = copy.deepcopy(self.infoSet_main)
-            self.algo_infoSet.actualize_belief_pieces(
+            self.determinized_root = copy.deepcopy(self.infoSet_main)
+            self.determinized_root.actualize_belief_pieces(
                 self.hidden_belief_pieces,
                 self.ai.opponent_belief_pieces_left.copy(),
             )
-            self.determinized_root = copy.deepcopy(self.algo_infoSet)
-            return {
-                "mode": "redeterminized",
-                "actualize_ns": time.perf_counter_ns() - actualize_start_ns,
-                "actualize_stats": self.algo_infoSet.actualize_stats or {},
-            }
-        else:
-            self.algo_infoSet = copy.deepcopy(self.determinized_root)
-            return {
-                "mode": "cached-root",
-                "actualize_ns": 0,
-                "actualize_stats": {},
-            }
+        self.algo_infoSet = self.determinized_root
         
 
 
@@ -145,6 +129,9 @@ class MCTS:
 
         self.backpropagation(game_won)
 
+        while self.undo_stack:
+            self.algo_infoSet.undo_move(self.undo_stack.pop())
+
         self.rollout_index += 1
 
         
@@ -166,6 +153,7 @@ class MCTS:
             next_node = self.current_node.select_best_child()
             if next_node is not None:
                 self.current_node = next_node
+                self.update_infoSet(next_node.move)
             else:
                 return None
             
@@ -179,15 +167,15 @@ class MCTS:
         Returns:
             None
         """
-        result = self.algo_infoSet.update_infoSet(move, self.confidence_by_level[self.difficulty])
+        result, undo_record = self.algo_infoSet.apply_move(move, self.confidence_by_level[self.difficulty])
 
         if result is None:
             return
 
+        self.undo_stack.append(undo_record)
         self.score_revealed_opponent_pieces += result["encounter_score"]
         self.lost_combats += int(result["encounter_score"] < 0)
-        self.previous_moves.append(move)
-
+        self.previous_moves_algo.append(move)
 
     def expansion(self, filtered_untried_moves):
         """
@@ -365,7 +353,7 @@ class MCTS:
 
         return piece.type.score
     
-    def _common_priors(self, move, my_piece, their_piece, my_val, their_val, eclaireur_bonus=0.1, espion_bonus=0.7):
+    def _common_priors(self, move, my_piece, their_piece, eclaireur_bonus=0.1, espion_bonus=0.7):
         """
         Compute shared tactical priors used by medium and hard move scoring.
 
@@ -456,8 +444,6 @@ class MCTS:
             move,
             my_piece,
             their_piece,
-            my_val,
-            their_val,
             eclaireur_bonus=0.1,
             espion_bonus=0.7,
         )
@@ -496,8 +482,6 @@ class MCTS:
             move,
             my_piece,
             their_piece,
-            my_val,
-            their_val,
             eclaireur_bonus=0.15,
             espion_bonus=0.9,
         )

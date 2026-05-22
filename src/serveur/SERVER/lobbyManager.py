@@ -195,7 +195,7 @@ class LobbyManager:
         """
         player = Player(self.active_users[my_key], 0)
         ai_user = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
-        ai_player = AIPlayer(ai_user, 1, 0)
+        ai_player = AIPlayer(ai_user, 1, 1)
         game = GameManager(self, [player, ai_player])
         self.games[my_key] = game
 

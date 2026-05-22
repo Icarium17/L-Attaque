@@ -330,5 +330,14 @@ def load():
         "restored" : restored
     })
 
+@app.route('/difficulty', methods=['POST'])
+def difficulty():
+    data = request.get_json()
+    my_key = data.get('key')
+    difficulty = data.get('difficulty')
+    result = lobby.execute_action('difficulty', (my_key, difficulty))
+
+    return jsonify(result)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

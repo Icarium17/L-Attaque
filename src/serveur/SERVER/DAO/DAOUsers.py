@@ -66,9 +66,17 @@ class DAOUsers():
             user_id = user[0]["_id"]
             if bcrypt.checkpw(password.encode(), stored_hash):
                 session_key = secrets.token_hex(32)  # Generates a random session key
+
+                db.execute("UPDATE users SET game_status = 'IDLE' WHERE username=%s", (username,))
+
                 return True, user_id, session_key, score
 
             return False, 0
+        
+    def logout(self, user_id):
+        with Connection() as db:
+            db.execute("UPDATE users SET game_status = 'DISCONNECTED' WHERE _id=%s", (user_id,))
+
 
     def delete_user(self, user_id):
         """
