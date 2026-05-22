@@ -2,6 +2,7 @@ from USERS.user import User
 import collections
 from GAME.piece import BeliefPiece, Piece, PieceType
 from GAME.board import Board
+from GAME.move import Move
 
 class Player(User):
     """
@@ -45,7 +46,10 @@ class Player(User):
         self.populate_all_known_pieces(known_pieces)
         self.known_board.set_pieces(known_pieces)
         self.time_remaining = time_remaining
-        self.last_moves = collections.deque(last_moves, maxlen=8) if last_moves is not None else collections.deque(maxlen=4)
+        self.last_moves = collections.deque(
+            [Move.from_dict(move_data) for move_data in last_moves],
+            maxlen=10
+        )
 
     
     def populate_all_known_pieces(self, known_pieces):

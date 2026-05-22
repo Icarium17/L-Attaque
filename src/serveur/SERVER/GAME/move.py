@@ -58,5 +58,35 @@ class Move():
         x1, y1 = self.moveTo
         self.moveFrom = (9 - x0, 9 - y0)
         self.moveTo = (9 - x1, 9 - y1)
+
+    def to_dict(self):
+        """
+        Convert the move into a JSON-serializable dictionary.
+
+        Returns:
+            dict: Dictionary containing the source and destination
+            coordinates as lists.
+        """
+        return {
+            "moveFrom": list(self.moveFrom),
+            "moveTo": list(self.moveTo)
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """
+        Create a move from a serialized dictionary.
+
+        Args:
+            data (dict): Dictionary containing "moveFrom" and
+            "moveTo" coordinate lists.
+
+        Returns:
+            Move: Reconstructed move instance.
+        """
+        return cls(
+            tuple(data["moveFrom"]),
+            tuple(data["moveTo"])
+        )
     
   

@@ -284,7 +284,7 @@ class GameManager():
                 self.battle = [pieceFrom.send(), tileTo.piece.send()]
                 self.combat(pieceFrom, tileTo.piece, tileTo)
                 self.status = "BATTLE"
-                self.timers.stop(6)
+                self.timers.stop(5)
                 self.turn_change_timer = threading.Timer(4, self.change_turn)
                 self.turn_change_timer.start()
             else:
@@ -594,7 +594,10 @@ class GameManager():
             "board": self.board.return_pieces(),
             "scores": [player.score for player in self.players],
             "times": [player.time_remaining for player in self.players],
-            "last_moves": [player.last_moves for player in self.players]
+            "last_moves": [
+                [move.to_dict() for move in player.last_moves]
+                for player in self.players
+            ]
         }
         # Serialize to a single JSON string
         game_state_json = json.dumps(game_state)

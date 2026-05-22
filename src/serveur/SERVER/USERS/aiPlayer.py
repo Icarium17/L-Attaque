@@ -35,9 +35,9 @@ class AIPlayer(Player):
         }
 
         self.move_timers = { ## TODO : tinker with the times, this doesnt look right
-            0:1,
-            1:3,
-            2:3
+            0:6,
+            1:6,
+            2:6
         }
 
         self.game_rules = None

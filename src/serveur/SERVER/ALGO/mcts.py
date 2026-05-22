@@ -98,7 +98,7 @@ class MCTS:
             or rebuilt opponent hidden information from scratch.
         """
         self.current_node = self.root_node
-        self.previous_moves_algo = collections.deque(self.previous_moves, maxlen=self.previous_moves)
+        self.previous_moves_algo = collections.deque(self.previous_moves, maxlen=self.previous_moves.maxlen)
         self.score_revealed_opponent_pieces = 0
         self.lost_combats = 0
 
@@ -186,7 +186,7 @@ class MCTS:
 
         self.score_revealed_opponent_pieces += result["encounter_score"]
         self.lost_combats += int(result["encounter_score"] < 0)
-        self.previous_move.append(move)
+        self.previous_moves.append(move)
 
 
     def expansion(self, filtered_untried_moves):
