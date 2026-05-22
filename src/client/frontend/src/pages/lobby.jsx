@@ -64,7 +64,7 @@ export default function Lobby() {
       .then(data => {
         setLoading(false);
         if (data.result && data.result.success && data.result.restored) {
-          navigate("/game");
+          navigate("/game", { state: { resumed: true } });
         } else {
           setButtonError('resume', "Aucune sauvegarde");
         }

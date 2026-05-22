@@ -1,6 +1,6 @@
 // React
 import { useEffect, useState} from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 // Hooks custom
 import { useGameSync } from "../js/useGameSync.js";
 import { usePlacement } from "../js/usePlacement.js";
@@ -41,7 +41,8 @@ export default function Game() {
   // État du plateau et du jeu
   const [board, setBoard] = useState(() => createEmptyBoard()); 
   const [turn, setTurn] = useState("BLUE");
-  const [phase, setPhase] = useState("PLACEMENT"); // Phase placement à l'arrivée sur la page
+  const location = useLocation();
+  const [phase, setPhase] = useState(location.state?.resumed ? "PLAYING" : "PLACEMENT"); 
   const [timeRemaining, setTimeRemaining] = useState([0, 0]);
 
   // État UI
@@ -174,32 +175,48 @@ export default function Game() {
   };
 
   // Fonction sauvegarder
-  const saveGame = () => {
-    setLoading(true);
-    const key = localStorage.getItem("sessionKey");
-    const formData = new FormData();
-    formData.append("action", "save");
-    formData.append("key", key);
+const saveGame = () => {
+  setLoading(true);
+  const key = localStorage.getItem("sessionKey");
+  const formData = new FormData();
+  formData.append("action", "save");
+  formData.append("key", key);
 
-    fetch("/api/game.php", { method: "POST", body: formData })
-      .then(res => res.json())
-      .then(data => {
-        setLoading(false);
-        if (!data.result.success) {
-          setError(data.result.error || "Erreur de sauvegarde.");
+  fetch("/api/game.php", { method: "POST", body: formData })
+    .then(res => res.json())
+    .then(data => {
+      setLoading(false);
+      if (data.result.success) {
+        const status = data.result.gameState?.[1];
+        if (status == "SAVE_COMPLETE") {
+          // Reset complet de l'état du jeu
+          setBoard(createEmptyBoard());
+          setPhase("PLACEMENT");
+          setBattleData(null);
+          setBattleCell(null);
+          setGameResult(null);
+          setCapturedPieces({});
+          setLostPieces({});
+          setScoreBlue(0);
+          setScoreRed(0);
+          setPlayerOrder(null);
+          setTurn("BLUE");
+          navigate("/lobby");
+        } else if (status == "SAVING") {
         }
-      })
-      .catch(() => { setLoading(false); setError("Erreur serveur."); });
-  };
-
-
-
-
+      } else {
+        setError(data.result.error || "Erreur sauvegarde");
+      }
+    })
+    .catch(() => { setLoading(false); setError("Erreur serveur"); });
+};
 
 
   const battleCells = battleCell
     ? [battleCell]
     : [];
+
+if (!session) return null;
  
 return (
   <MainLayout
