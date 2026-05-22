@@ -112,3 +112,13 @@ class DAOUsers():
                 WHERE _id = %s
             """, (new_score, win, win, user_id))
         
+    def update_difficutly(self, user_id, difficulty):
+        with Connection() as db:
+            return db.execute("UPDATE users SET ai_difficulty =  %s WHERE _id=%s", (difficulty, user_id))
+        
+    def get_difficulty(self, user_id):
+        with Connection() as db:
+            result = db.fetch("SELECT ai_difficulty FROM users WHERE _id=%s", (user_id,))
+            difficulty = result[0]['ai_difficulty'] if result else None
+            print(difficulty)
+            return difficulty

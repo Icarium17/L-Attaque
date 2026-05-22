@@ -30,8 +30,9 @@ class LobbyManager:
             "signin": self.login,
             "signout": self.logout,
             "getStatus" : self.get_status,
-            "deleteProfile" : self.logout,
+            "deleteProfile" : self.delete_profile,
             "modifyProfile" : self.modify_profile,
+            "update_difficulty" : self.update_difficulty,
             "startGame" : self.start_game,
             "setPieces" : self.set_pieces,
             "surrender" : self.surrender,
@@ -113,9 +114,11 @@ class LobbyManager:
         Returns:
             Status message.
         """
-        (session_id,) = args
-        if session_id in self.active_users:
-            del self.active_users[session_id]
+        (my_key,) = args
+        if my_key in self.active_users:
+            user = self.active_users[my_key]
+            self.DAOUsers.logout(user.account_id)
+            del self.active_users[my_key]
             return "USER_DISCONNECTED"
         return "INVALID_KEY"
         
@@ -129,6 +132,7 @@ class LobbyManager:
             Result of DAOUsers.delete_user.
         """
         (my_key,) = args
+        self.logout(args)
 
         return self.DAOUsers.delete_user(my_key)
     
@@ -136,7 +140,21 @@ class LobbyManager:
         """
         Modify a user profile. (Not implemented)
         """
+        pass
 
+    def update_difficulty(self, args):
+        (my_key, difficulty) = args
+
+        if my_key in self.active_users:
+            user = self.active_users[my_key]
+            result = self.DAOUsers.update_difficutly(user.account_id, difficulty)
+
+            if result == 1 :
+                return "DIFFICULTY_UPDATED"
+            
+            return "ERROR"
+
+        return "INVALID_KEY"
 
     ## Start/End Game
     def start_game(self, args):
@@ -194,8 +212,9 @@ class LobbyManager:
             Tuple of (status, ai_username).
         """
         player = Player(self.active_users[my_key], 0)
+        difficulty = self.DAOUsers.get_difficulty(player.user.account_id)
         ai_user = User(-1, "AI_KEY", "AI_Opponent", 0, "IDLE")
-        ai_player = AIPlayer(ai_user, 1, 1)
+        ai_player = AIPlayer(ai_user, 1, difficulty)
         game = GameManager(self, [player, ai_player])
         self.games[my_key] = game
 
@@ -305,6 +324,7 @@ class LobbyManager:
 
         player = Player(user, 0, player_score)
         player.load(boards[1], times_remaining[0], last_moves[0])
+        player.status = "PLAYING"
 
 
         ai_user = User(-1, "AI_KEY", "AI_Opponent", ai_score, "IDLE")

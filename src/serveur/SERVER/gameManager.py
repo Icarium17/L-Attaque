@@ -65,6 +65,10 @@ class GameManager():
         game.player_to_move = player_to_move
         game.timers.start(player_to_move)
 
+        ai_player = game.players[1]
+        ai_player.game_rules = game.game_rules
+        ai_player.players = game.players
+
         return game
 
         
@@ -563,7 +567,7 @@ class GameManager():
         winner = self.players[1 - surrenderer.order]
         print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
         winner.score += self.game_rules.calc_score_surrender()
-        threading.Timer(10, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
+        threading.Timer(5, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
 
     def save(self, my_key):
         """
