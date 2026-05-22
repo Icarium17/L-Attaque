@@ -16,11 +16,12 @@ class Node:
         """
         self.parent = parent
         self.visit_count = 0
-        self.win_score = 0
+        self.value = 0
         self.children = []
         self.tried_moves = set()
         self.c_param = 1.4
         self.move = move
+        self.prior = 0.0
 
     def get_filtered_untried_moves(self, possible_moves):
         """
@@ -34,35 +35,21 @@ class Node:
         """
         return [move for move in possible_moves if move not in self.tried_moves]
 
-    
-    def UCB1(self):
-        """
-        Calculate the Upper Confidence Bound (UCB1) value for this node.
-
-        Returns:
-            float: The UCB1 score for this node, or `float('inf')` when the node
-            has not yet been visited.
-        """
-        if self.visit_count == 0:
-            return float('inf')
-        return (self.win_score / self.visit_count) + self.c_param * math.sqrt(2 * math.log(self.parent.visit_count) / self.visit_count)
-
 
     def select_best_child(self):
-        """
-        Select the best child node using UCB1.
-
-        Returns:
-            Node | None: The child with the highest UCB1 score, or `None` when no
-            children are available.
-        """
         best_score = -float('inf')
         best_child = None
+
         for child in self.children:
-            score = child.UCB1()
+            Q = child.value / child.visit_count
+            U = child.prior * math.sqrt(self.visit_count + 1) / (1 + child.visit_count)
+
+            score = Q + self.c_param * U
+
             if score > best_score:
                 best_score = score
                 best_child = child
+
         return best_child
-    
+        
     

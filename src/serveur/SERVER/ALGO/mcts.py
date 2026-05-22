@@ -1,3 +1,4 @@
+import math
 import random
 from ALGO.infoSet import InfoSet
 from ALGO.node import Node
@@ -185,16 +186,26 @@ class MCTS:
             filtered_untried_moves (list): Candidate moves not yet expanded from
             the current node.
         """
-        next_move = random.choice(filtered_untried_moves)
-        
-        self.update_infoSet(next_move)
+        if len(filtered_untried_moves) == 0:
+            return
 
+        next_move = random.choice(filtered_untried_moves)
+
+        self.update_infoSet(next_move)
         self.current_node.tried_moves.add(next_move)
 
         next_node = Node(self.current_node, next_move)
+
+        if self.difficulty == 0:
+            next_node.prior = 1.0
+        elif self.difficulty == 1:
+            next_node.prior = self.prior_evaluate_medium_move(next_move)
+        else:
+            next_node.prior = self.prior_evaluate_difficult_move(next_move)
+
         self.current_node.children.append(next_node)
         self.current_node = next_node
-            
+                
 
     def simulation(self):
         """
@@ -214,18 +225,20 @@ class MCTS:
             s += 1
     
 
-    def backpropagation(self, win_score):
+    def backpropagation(self, value):
         """
         Backpropagate the simulation result up the tree, updating visit and win counts.
 
         Args:
-            win_score: The result of the simulation to propagate.
+            value: The result of the simulation to propagate.
         """
         node = self.current_node
         while node is not None:
             node.visit_count += 1
-            node.win_score += win_score
+            node.value += value
             node = node.parent
+
+    
 
     def simulation_easy(self):
         """
@@ -327,7 +340,6 @@ class MCTS:
         if a == PieceType.Espion and d == PieceType.Marechal:
             return "win"
 
-        # --- fallback rules ---
         if a.power is None or d.power is None:
             return "unknown"
 
@@ -430,9 +442,6 @@ class MCTS:
             float: Desirability score for the move.
         """
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-
-        my_val = self._piece_value(my_piece)
-        their_val = self._piece_value(their_piece)
 
         confidence = (
             1.0
@@ -591,15 +600,17 @@ class MCTS:
             float: A terminal bonus or weighted heuristic score.
         """
         if ai_won:
-            return 10000
+            return 1.0
         if opp_won:
-            return -10000
+            return -1.0
 
         features = self._extract_features_heuristics()
 
         weights = self.heuristics_weights_by_level[self.difficulty]
 
-        return self._evaluate_heuristics(features, weights)
+        raw = self._evaluate_heuristics(features, weights)
+
+        return max(-1.0, min(1.0, raw / 5.0))
 
     def game_over(self):
         """
