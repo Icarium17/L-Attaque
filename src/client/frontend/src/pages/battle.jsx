@@ -1,27 +1,26 @@
 import { useEffect, useState } from "react";
-import PieceCard             from "../components/pieceCard.jsx";
-import battleBackground   from "../assets/images/battle-background.png";
+import PieceCard from "../components/pieceCard.jsx";
+import battleBackground from "../assets/images/battle-background.png";
 
-const DELAY_APPEAR = 1000; 
-const PHASE_REVEAL = 3000 + DELAY_APPEAR;  
-const PHASE_CLOSE  = 4000 + DELAY_APPEAR;  
-
+const DELAY_APPEAR = 1000;
+const PHASE_REVEAL = 3000 + DELAY_APPEAR;
+const PHASE_CLOSE = 4000 + DELAY_APPEAR;
 
 export default function Battle({ attacker, defender, result, onClose }) {
-  const [visible,    setVisible]    = useState(false);
+  const [visible, setVisible] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     const t = setTimeout(() => setVisible(true), DELAY_APPEAR);
     return () => clearTimeout(t);
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     const t = setTimeout(() => setShowResult(true), PHASE_REVEAL);
     return () => clearTimeout(t);
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     const t = setTimeout(() => {
       setVisible(false);
       setTimeout(() => onClose?.(), 350);
@@ -29,14 +28,14 @@ useEffect(() => {
     return () => clearTimeout(t);
   }, [onClose]);
 
-  const isDraw  = result == "DRAW" || result == "BOTH_LOSE";
-  const winner  = result == "ATTACKER_WIN" ? attacker : result == "DEFENDER_WIN" ? defender : null;
-  const isRed   = winner?.player == "RED";
+  const isDraw = result == "DRAW" || result == "BOTH_LOSE";
+  const winner = result == "ATTACKER_WIN" ? attacker : result == "DEFENDER_WIN" ? defender : null;
+  const isRed = winner?.player == "RED";
 
   return (
     <div
       className={`
-        absolute inset-0 z-50 flex flex-col items-center justify-center
+        absolute inset-0 z-50 flex items-center justify-center
         bg-cover bg-center transition-opacity duration-350
         ${visible ? "opacity-100" : "opacity-0 pointer-events-none"}
       `}
@@ -44,46 +43,48 @@ useEffect(() => {
     >
       <div className="absolute inset-0 bg-black/65 pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col items-center gap-4">
+     
+      <div className="relative z-10 flex items-center justify-center w-[500px] h-[320px]">
 
-        {/* Afficher les 2 pieces */}
+        {/* Phase 1 : les 2 pièces côte à côte */}
         {!showResult && (
-          <div className="flex items-center gap-10 px-8">
+          <div className="flex items-center gap-10">
             <PieceCard piece={attacker} />
             <PieceCard piece={defender} />
           </div>
         )}
 
-        {/* Afficher la piece gagnante*/}
+        {/* Phase 2 : résultat */}
         {showResult && (
-          <div className="flex flex-col items-center gap-4 animate-[fadeIn_0.5s_ease]">
+          <div className="flex items-center justify-center animate-[fadeIn_0.5s_ease]">
             {isDraw ? (
-                <div className="flex items-center gap-6">
-                  <div className="scale-110"><PieceCard piece={attacker} /></div>
-                  <div className="scale-110"><PieceCard piece={defender} /></div>
-                </div>
+              <div className="flex items-center gap-10">
+                <div className="scale-110"><PieceCard piece={attacker} /></div>
+                <div className="scale-110"><PieceCard piece={defender} /></div>
+              </div>
             ) : (
-              <div className="flex flex-col items-center gap-3">
-                <div className="scale-150">
-                  <PieceCard piece={winner} />
-                </div>
-                <span className={`mt-10 text-xl font-black tracking-widest uppercase ${isRed ? "text-red-300" : "text-blue-300"}`}>
-                  Vainqueur !
-                </span>
+              <div className="scale-150">
+                <PieceCard piece={winner} />
               </div>
             )}
           </div>
         )}
+      </div>
 
-        {/* Égalité */}
-        <div className="h-10 flex items-center justify-center">
-        {showResult && isDraw && (
-          <span className="text-xl font-black tracking-widest uppercase text-yellow-300">
-            Égalité !
-          </span>
-        )}
-      </div>
-      </div>
+      {/* Égalité */}
+      {showResult && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-10" style={{ top: "calc(50% + 180px)" }}>
+          {isDraw ? (
+            <span className="text-xl font-black tracking-widest uppercase text-yellow-300animate-[fadeIn_0.5s_ease]">
+              Égalité !
+            </span>
+          ) : (
+            <span className={`text-xl font-black tracking-widest uppercase animate-[fadeIn_0.5s_ease] ${isRed ? "text-red-300" : "text-blue-300"}`}>
+              Vainqueur !
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

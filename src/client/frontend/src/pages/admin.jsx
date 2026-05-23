@@ -173,74 +173,83 @@ export default function Admin() {
               )}
             </button>
           </form>
-
-          <table className="w-full text-center text-lg">
-            <tbody>
-              <tr className="bg-blue-900/80 text-white">
-                <th className="py-3 px-4">ID</th>
-                <th className="py-3 px-4">Connexion</th>
-                <th className="py-3 px-4">Login</th>
-                <th className="py-3 px-4">Droits</th>
-                <th className="py-3 px-4">Action</th>
-              </tr>
-
-              {loading ? (
+          <div 
+            className={`border border-yellow-700/50 rounded-md ${
+              users.length > 10 
+                ? "max-h-137.5 overflow-y-auto scrollbar-thin scrollbar-thumb-yellow-700 scrollbar-track-transparent" 
+                : ""
+            }`}
+          >
+            <table className="w-full text-center text-lg relative">
+              <thead className="sticky top-0 bg-blue-900 text-white z-10 shadow-md">
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="py-10 text-center text-gray-400 italic"
-                  > 
-                  Chargement des données...
-                  </td>
+                  <th className="py-3 px-4">ID</th>
+                  <th className="py-3 px-4">Connexion</th>
+                  <th className="py-3 px-4">Login</th>
+                  <th className="py-3 px-4">Droits</th>
+                  <th className="py-3 px-4">Action</th>
                 </tr>
-              ) : users.length > 0 ? (
-                users
-                  .sort((a, b) => a._id - b._id)
-                  .map((user) => (
-                    <tr
-                      key={user._id}
-                      className="border-t border-yellow-700/40 text-gray-100"
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="py-10 text-center text-gray-400 italic"
                     >
-                      <td className="py-3 px-4">{user._id}</td>
-                      <td
-                        className={`py-3 px-4 text-center align-middle ${
-                          user.connected
-                            ? "text-green-500 text-4xl"
-                            : "text-red-500 text-4xl"
-                        }`}
+                      Chargement des données...
+                    </td>
+                  </tr>
+                ) : users.length > 0 ? (
+                  users
+                    .sort((a, b) => a._id - b._id)
+                    .map((user) => (
+                      <tr
+                        key={user._id}
+                        className="border-t border-yellow-700/40 text-gray-100 hover:bg-gray-800/50 transition-colors"
                       >
-                        ●
-                      </td>
-                      <td className="py-3 px-4">{user.username}</td>
-                      <td className="py-3 px-4">
-                        {user.rights == "Admin" ? (
-                          <span className="text-yellow-400 font-semibold">Admin</span>
-                        ) : (
-                          <span className="text-gray-400">User</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() => deleteUser(user._id)}
-                          className="text-red-500 hover:text-red-700 text-sm"
+                        <td className="py-3 px-4">{user._id}</td>
+                        <td
+                          className={`py-3 px-4 text-center align-middle ${
+                            user.connected
+                              ? "text-green-500 text-4xl"
+                              : "text-red-500 text-4xl"
+                          }`}
                         >
-                          Supprimer
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="py-10 text-center text-gray-400 italic"
-                  >
-                    Aucune donnée retournée
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                          ●
+                        </td>
+                        <td className="py-3 px-4">{user.username}</td>
+                        <td className="py-3 px-4">
+                          {user.rights == "Admin" ? (
+                            <span className="text-yellow-400 font-semibold">Admin</span>
+                          ) : (
+                            <span className="text-gray-400">User</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <button
+                            onClick={() => deleteUser(user._id)}
+                            className="text-red-500 hover:text-red-700 text-sm font-bold"
+                          >
+                            Supprimer
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="py-10 text-center text-gray-400 italic"
+                    >
+                      Aucune donnée retournée
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

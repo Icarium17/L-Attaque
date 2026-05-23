@@ -1,53 +1,52 @@
- 
-//Composant de base réutilisable pour tous les GameMessage et les Notifications.
+// Composant de base réutilisable pour tous les GameMessage et les Notifications.
 
 import { useState, useEffect, useRef } from "react";
+import plaqueError from "../assets/images/plaque-error.svg";
+import plaqueSuccess from "../assets/images/plaque-success.svg";
+import plaqueInfo from "../assets/images/plaque-info.svg";
+import plaqueWarning from "../assets/images/plaque-warning.svg";
 
 const VARIANTS = {
   error: {
-    border: "#c0392b,#ff6b5a,#8b1a1a,#c0392b,#ff6b5a", // plusieurs couleurs pour le gradient de bordure
-    bg: "linear-gradient(to bottom, #1e1111, #150b0b, #0d0606)",
-    color: "#e74c3c",
-    colorSecond: "#eFFFFF",
+    plaque: plaqueError,
+    color: "#ff8a7a",
+    colorSecond: "#fdf3ee",
     glow: "231,76,60",
   },
   warning: {
-    border: "#d4a44a,#f5d78e,#8b6914,#d4a44a,#f5d78e",
-    bg: "linear-gradient(to bottom, #1e1a0f, #14100a, #0d0b06)",
-    color: "#d4a44a",
-    colorSecond: "#eFFFFF",
+    plaque: plaqueWarning,
+    color: "#f5d78e",
+    colorSecond: "#fdf3ee",
     glow: "212,164,74",
   },
   info: {
-    border: "#4a7fd4,#8eb5f5,#14418b,#4a7fd4,#8eb5f5",
-    bg: "linear-gradient(to bottom, #0f1520, #0a0f18, #06090d)",
-    color:  "#095228",
-    colorSecond:  "#eFFFFF",
+    plaque: plaqueInfo,
+    color: "#8eb5f5",
+    colorSecond: "#fdf3ee",
     glow: "91,155,255",
   },
   success: {
-    border: "#27ae60,#6ddb95,#1a6b3a,#27ae60,#6ddb95",
-    bg: "linear-gradient(to bottom, #0f1e14, #0a150d, #060d08)",
-    color: "#2ecc71",
-    colorSecond: "#eFFFFF",
+    plaque: plaqueSuccess,
+    color: "#a8e6c0",
+    colorSecond: "#fdf3ee",
     glow: "46,204,113",
   },
   title: {
-    border: null,
+    plaque: null,
     bg: "transparent",
     color: "#d4a44a",
     colorSecond: "#ffffff",
     glow: "212,164,74",
   },
   score: {
-    border: "#c0a000,#ffe066,#7a6000,#c0a000,#ffe066",
+    plaque: null,
     bg: "linear-gradient(to bottom, #1a1600, #110f00, #0a0800)",
     color: "#ffe066",
     colorSecond: "#ffffff",
-    glow: "255,220,80", 
+    glow: "255,220,80",
   },
   name: {
-    border: null,
+    plaque: null,
     bg: "transparent",
     color: "#ffffff",
     colorSecond: "#ffffff",
@@ -67,33 +66,34 @@ export default function Panel({
   autoClose = 0,
 }) {
 
-if (!message && !children && !title) return null;
-
   const [visible, setVisible] = useState(true);
   const [hovered, setHovered] = useState(false);
   const [anim, setAnim] = useState({ glow: 0.3, pulse: 1 });
   const rafRef = useRef(null);
   const timerRef = useRef(null);
 
-  /* Femeture automatique */
   useEffect(() => {
-    if (autoClose > 0) {
+    setVisible(true);
+  }, [message, title, children]);
+
+  // Fermeture automatique
+  useEffect(() => {
+    if (autoClose > 0 && visible) {
+      if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         setVisible(false);
         onClose?.();
       }, autoClose);
       return () => clearTimeout(timerRef.current);
     }
-  }, [autoClose, onClose]);
-
-  /* Animation si hover */
-  useEffect(() => {
+  }, [autoClose, message, title, visible]);
+    /* Animation si hover */  
+    useEffect(() => {
     if (!hovered) {
       setAnim({ glow: 0.3, pulse: 1 });
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
     }
-
     const tick = (t) => {
       setAnim({
         glow: 0.3 + 0.15 * (1 + Math.sin(t / 600)),
@@ -105,38 +105,162 @@ if (!message && !children && !title) return null;
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [hovered]);
 
-
   if (!visible) return null;
+  if (!message && !children && !title) return null;
 
   const v = VARIANTS[variant] || VARIANTS.error;
   const g = v.glow;
+  const usesPlaque = !!v.plaque;
 
   const handleClose = () => {
     setVisible(false);
     onClose?.();
   };
 
-  return ( 
+  // Variant bois
+  if (usesPlaque) {
+    return (
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={className}
+        style={{
+          position: "relative",
+          minHeight: "80px",
+          padding: "18px 50px",
+          backgroundImage: `url(${v.plaque})`,
+          backgroundSize: "100% 100%",
+          backgroundRepeat: "no-repeat",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          filter: hovered
+            ? `drop-shadow(0 0 18px rgba(${g},0.45)) drop-shadow(0 6px 12px rgba(0,0,0,0.6))`
+            : `drop-shadow(0 0 8px rgba(${g},0.2)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))`,
+          transition: "all 0.3s ease",
+          transform: `scale(${anim.pulse})`,
+          ...style,
+        }}
+      >
+        {title && (
+          <div
+            style={{
+              color: v.color,
+              fontWeight: 700,
+              fontSize: "16px",
+              letterSpacing: "3px",
+              textAlign: "center",
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+              textShadow: `0 0 12px rgba(${g},0.7), 0 2px 4px rgba(0,0,0,0.9)`,
+              marginBottom: children || message ? "6px" : 0,
+              width: "100%",
+            }}
+          >
+            {title}
+          </div>
+        )}
+
+        {(children || message) && (
+          <div
+            style={{
+              color: v.colorSecond,
+              fontSize: "16px",
+              lineHeight: 1.4,
+              textAlign: "center",
+              textTransform: "uppercase",
+              letterSpacing: "2px",
+              fontWeight: 600,
+              textShadow: `0 2px 4px rgba(0,0,0,0.95), 0 0 8px rgba(${g},0.4)`,
+              width: "100%",
+            }}
+          >
+            {children || message}
+          </div>
+        )}
+
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            style={{
+              marginTop: "10px",
+              background: "rgba(0,0,0,0.3)",
+              border: `1.5px solid rgba(245,216,120,0.6)`,
+              borderRadius: "6px",
+              color: "#f5d878",
+              fontSize: "14px",
+              fontWeight: 600,
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              padding: "6px 16px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              textShadow: `0 0 8px rgba(${g},0.4)`,
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = `rgba(245,216,120,1)`;
+              e.target.style.boxShadow = `0 0 12px rgba(${g},0.4)`;
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = `rgba(245,216,120,0.6)`;
+              e.target.style.boxShadow = "none";
+            }}
+          >
+            Réessayer
+          </button>
+        )}
+   
+        {onClose && (
+          <button
+            onClick={handleClose}
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "14px",
+              background: "none",
+              border: "none",
+              color: v.colorSecond,
+              cursor: "pointer",
+              padding: "2px",
+              fontSize: "20px",
+              lineHeight: 1,
+              opacity: 0.7,
+              transition: "all 0.2s ease",
+              textShadow: "0 1px 3px rgba(0,0,0,0.9)",
+              zIndex: 2,
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.opacity = "1";
+              e.target.style.color = v.color;
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.opacity = "0.7";
+              e.target.style.color = v.colorSecond;
+            }}
+          >
+            ×
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  //  Variants sans plaque  
+  return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-
       style={{
-        background: v.border ? `linear-gradient(135deg, ${v.border})` : "transparent",
-        padding: v.border ? "2px" : "0px",
+        background: "transparent",
+        padding: "0px",
         borderRadius: "12px",
-        boxShadow: v.border
-        ? (hovered
-            ? `0 8px 32px rgba(0,0,0,0.6), 0 0 40px rgba(${g},0.3)`
-            : `0 4px 20px rgba(0,0,0,0.5), 0 0 20px rgba(${g},0.15)`)
-        : "none",
         transition: "all 0.3s ease",
         transform: `scale(${anim.pulse})`,
       }}
       className={className}
     >
-
-      {/* Bas du container */}
       <div
         style={{
           background: v.bg,
@@ -152,40 +276,7 @@ if (!message && !children && !title) return null;
           ...style,
         }}
       >
-
-        {/* Reflet sur le dessus*/}
-        <span
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "10%",
-            right: "10%",
-            height: "1px",
-            background: v.border
-            ? `linear-gradient(90deg, transparent, rgba(${g},${hovered ? 0.5 : 0.25}), transparent)`
-            : "none",
-            transition: "all 0.3s ease",
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* Hover */}
-        {hovered && (
-          <span
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%,-50%)",
-              width: "90%",
-              height: "90%",
-              background: `radial-gradient(ellipse, rgba(${g},${anim.glow * 0.08}), transparent 50%)`,
-              pointerEvents: "none",
-            }}
-          />
-        )}
-        {/* Texte*/}
-        <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "14px", alignItems: "flex-start" }}>      
+        <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "14px", alignItems: "flex-start" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {title && (
               <div
@@ -220,69 +311,7 @@ if (!message && !children && !title) return null;
                 {children || message}
               </div>
             )}
-
-            {/* Bouton Réessayer */}
-            {onRetry && (
-              <button
-                onClick={onRetry}
-                style={{
-                  marginTop: "10px",
-                  background: "none",
-                  border: `2px solid rgba(${g},0.3)`,
-                  borderRadius: "8px",
-                  color: v.color,
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  letterSpacing: "3px",
-                  textTransform: "uppercase",
-                  padding: "6px 16px",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  textShadow: `0 0 8px rgba(${g},0.3)`,
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.borderColor = `rgba(${g},0.6)`;
-                  e.target.style.boxShadow = `0 0 12px rgba(${g},0.2)`;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.borderColor = `rgba(${g},0.3)`;
-                  e.target.style.boxShadow = "none";
-                }}
-              >
-                Réessayer
-              </button>
-            )}
           </div>
-
-          {/* Bouton Fermer */}
-          {onClose && (
-            <button
-              onClick={handleClose}
-              style={{
-                background: "none",
-                border: "none",
-                color: v.colorSecond,
-                cursor: "pointer",
-                padding: "2px",
-                fontSize: "24px",
-                lineHeight: 1,
-                opacity: 0.6,
-                transition: "all 0.2s ease",
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.opacity = "1";
-                e.target.style.color = v.color;
-                e.target.style.textShadow = `0 0 8px rgba(${g},0.5)`;
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.opacity = "0.6";
-                e.target.style.color = v.colorSecond;
-                e.target.style.textShadow = "none";
-              }}
-              >              
-            </button>
-          )}
         </div>
       </div>
     </div>

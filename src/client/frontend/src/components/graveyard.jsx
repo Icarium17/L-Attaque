@@ -51,9 +51,9 @@ export default function Graveyard({ title , counts ={}}) {
                   revealed={true}
                 />
               </div>
-              <span className={`font-bold text-2xl min-w-17 ${ count >0 ? "text-amber-300" :"text-amber-600"}`}>
-                {count}/{total}
-              </span>   
+             <span className={`font-bold text-2xl min-w-17 ${ count > 0 ? "text-amber-300" :  "text-stone-100" }`}>
+              {count}/{total}
+            </span>
             </div>
           );
           })}       

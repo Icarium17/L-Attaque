@@ -73,6 +73,12 @@ export default function Game() {
   // Etat PAUSE
   const [isPaused, setIsPaused] = useState(false);  
 
+  // Sauvegarde
+  const [saveSuccess, setSaveSuccess] = useState("");
+
+  // Notification mouvement réussi
+  const [moveSuccess, setMoveSuccess] = useState("");
+
   // PopUp YourTurn
   const [showYourTurn, setShowYourTurn] = useState(false);
 
@@ -121,7 +127,7 @@ export default function Game() {
   // { propriétés extraites } = useCellClick(params)
   const { 
     handleCellClick,handleDragStart: handlePlayingDragStart,handleBoardDrop: handlePlayingBoardDrop,} = 
-    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, handlePlacementCellClick, isLake, playerColor, playerOrder, opponentColor, setPingMs, setBattleCell});
+    useCellClick({board, setBoard, turn, setTurn, selectedCell, setSelectedCell,loading, setLoading, phase, setError, setMoveSuccess, handlePlacementCellClick, isLake, playerColor, playerOrder, opponentColor, setPingMs, setBattleCell});
 
   // Sélectionne le bon handler drag/drop selon la phase (PLACEMENT ou PLAYING)
   const activeDragStart = phase == "PLACEMENT" ? handlePlacementDragStart : phase == "PLAYING"   ? handlePlayingDragStart: undefined;
@@ -174,42 +180,48 @@ export default function Game() {
     });
   };
 
-  // Fonction sauvegarder
-const saveGame = () => {
-  setLoading(true);
-  const key = localStorage.getItem("sessionKey");
-  const formData = new FormData();
-  formData.append("action", "save");
-  formData.append("key", key);
+ 
+// Fonction sauvegarder
+  const saveGame = () => {
+    setLoading(true);
+    const key = localStorage.getItem("sessionKey");
+    const formData = new FormData();
+    formData.append("action", "save");
+    formData.append("key", key);
 
-  fetch("/api/game.php", { method: "POST", body: formData })
-    .then(res => res.json())
-    .then(data => {
-      setLoading(false);
-      if (data.result.success) {
-        const status = data.result.gameState?.[1];
-        if (status == "SAVE_COMPLETE") {
-          // Reset complet de l'état du jeu
-          setBoard(createEmptyBoard());
-          setPhase("PLACEMENT");
-          setBattleData(null);
-          setBattleCell(null);
-          setGameResult(null);
-          setCapturedPieces({});
-          setLostPieces({});
-          setScoreBlue(0);
-          setScoreRed(0);
-          setPlayerOrder(null);
-          setTurn("BLUE");
-          navigate("/lobby");
-        } else if (status == "SAVING") {
+    fetch("/api/game.php", { method: "POST", body: formData })
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
+        if (data.result.success) {
+          const status = data.result.gameState?.[1];
+          if (status == "SAVE_COMPLETE") {
+            setSaveSuccess("Partie sauvegardée");           
+ 
+            setTimeout(() => {
+              // Reset complet de l'état du jeu
+              setBoard(createEmptyBoard());
+              setPhase("PLACEMENT");
+              setBattleData(null);
+              setBattleCell(null);
+              setGameResult(null);
+              setCapturedPieces({});
+              setLostPieces({});
+              setScoreBlue(0);
+              setScoreRed(0);
+              setPlayerOrder(null);
+              setTurn("BLUE");
+              navigate("/lobby");
+            }, 3000);
+
+          } else if (status == "SAVING") {
+          }
+        } else {
+          setError(data.result.error || "Erreur sauvegarde");
         }
-      } else {
-        setError(data.result.error || "Erreur sauvegarde");
-      }
-    })
-    .catch(() => { setLoading(false); setError("Erreur serveur"); });
-};
+      })
+      .catch(() => { setLoading(false); setError("Erreur serveur"); });
+  };
 
 
   const battleCells = battleCell
@@ -335,7 +347,7 @@ return (
                 width: "120px",
                 height: "120px",
               }} />
-            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour " + playerColor + "!")} />
+            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} isPaused={isPaused} onExpire={surrenderGame} />
           </div>
         )}
         
@@ -477,6 +489,29 @@ return (
           />
         </div>
       )}
+
+    {saveSuccess && (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">
+    <Notification
+      variant="success"
+      message={saveSuccess}
+      autoClose={1000}
+      onClose={() => setSaveSuccess("")}
+    />
+  </div>
+  )}
+
+  {moveSuccess && (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">
+      <Notification
+        variant="success"
+        message={moveSuccess}
+        autoClose={1000}
+        onClose={() => setMoveSuccess("")}
+      />
+    </div>
+  )}
+  
     </div> 
   </MainLayout>
 );

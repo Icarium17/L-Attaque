@@ -1,0 +1,109 @@
+<svg width="100%" viewBox="0 0 400 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="wood-grain" x1="0" y1="0" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#2a1804"/>
+      <stop offset="20%" stop-color="#4a2e0a"/>
+      <stop offset="50%" stop-color="#6a4214"/>
+      <stop offset="80%" stop-color="#4a2e0a"/>
+      <stop offset="100%" stop-color="#2a1804"/>
+    </linearGradient>
+    <linearGradient id="wood-vertical" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="gold-frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a3a0c"/>
+      <stop offset="20%" stop-color="#d4a850"/>
+      <stop offset="50%" stop-color="#f5d878"/>
+      <stop offset="80%" stop-color="#a87528"/>
+      <stop offset="100%" stop-color="#3a2400"/>
+    </linearGradient>
+    <linearGradient id="gold-ornament" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8a5a14"/>
+      <stop offset="50%" stop-color="#f5d878"/>
+      <stop offset="100%" stop-color="#6a3e08"/>
+    </linearGradient>
+    <radialGradient id="wood-highlight" cx="0.5" cy="0.3" r="0.7">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="wood-texture" x="0" y="0" width="80" height="60" patternUnits="userSpaceOnUse">
+      <path d="M0 8 Q40 6 80 9" stroke="#000" stroke-opacity="0.12" stroke-width="0.4" fill="none"/>
+      <path d="M0 22 Q40 24 80 21" stroke="#000" stroke-opacity="0.1" stroke-width="0.3" fill="none"/>
+      <path d="M0 38 Q40 36 80 40" stroke="#000" stroke-opacity="0.14" stroke-width="0.5" fill="none"/>
+      <path d="M0 52 Q40 54 80 50" stroke="#000" stroke-opacity="0.09" stroke-width="0.3" fill="none"/>
+    </pattern>
+  </defs>
+
+  <!-- Outer gold frame -->
+  <rect x="0" y="0" width="400" height="100" rx="8" fill="url(#gold-frame)"/>
+
+  <!-- Inner dark groove -->
+  <rect x="4" y="4" width="392" height="92" rx="5" fill="#1a0d04"/>
+
+  <!-- Wood panel -->
+  <rect x="7" y="7" width="386" height="86" rx="3" fill="url(#wood-grain)"/>
+  <rect x="7" y="7" width="386" height="86" rx="3" fill="url(#wood-texture)"/>
+  <rect x="7" y="7" width="386" height="86" rx="3" fill="url(#wood-vertical)"/>
+  <rect x="7" y="7" width="386" height="86" rx="3" fill="url(#wood-highlight)"/>
+
+  <!-- Accent color tint on the wood (subtle) -->
+  <rect x="7" y="7" width="386" height="86" rx="3" fill="#d4a44a" fill-opacity="0.08"/>
+
+  <!-- Inner gold rim (thin) -->
+  <rect x="7" y="7" width="386" height="86" rx="3" fill="none" stroke="url(#gold-ornament)" stroke-width="1.2"/>
+
+  <!-- TOP-LEFT corner ornament: scrollwork + leaves -->
+  <g transform="translate(8 8)">
+    <path d="M0 0 L24 0 Q24 4 22 6 Q18 9 14 8 Q10 6 8 9 Q6 13 9 16 Q12 19 8 22 L0 22 Z"
+          fill="url(#gold-ornament)" stroke="#5a3a0c" stroke-width="0.4"/>
+    <circle cx="6" cy="6" r="1.8" fill="#f5d878" stroke="#5a3a0c" stroke-width="0.3"/>
+    <circle cx="6" cy="6" r="0.6" fill="#3a2400"/>
+    <path d="M15 4 Q19 4 19 8 Q19 12 15 12 Q11 12 11 8 Q11 4 15 4 Z M15 6 Q17 6 17 8 Q17 10 15 10 Q13 10 13 8 Q13 6 15 6 Z"
+          fill="#d4a850" stroke="#3a2400" stroke-width="0.3"/>
+  </g>
+
+  <!-- TOP-RIGHT corner ornament (mirrored) -->
+  <g transform="translate(392 8) scale(-1 1)">
+    <path d="M0 0 L24 0 Q24 4 22 6 Q18 9 14 8 Q10 6 8 9 Q6 13 9 16 Q12 19 8 22 L0 22 Z"
+          fill="url(#gold-ornament)" stroke="#5a3a0c" stroke-width="0.4"/>
+    <circle cx="6" cy="6" r="1.8" fill="#f5d878" stroke="#5a3a0c" stroke-width="0.3"/>
+    <circle cx="6" cy="6" r="0.6" fill="#3a2400"/>
+    <path d="M15 4 Q19 4 19 8 Q19 12 15 12 Q11 12 11 8 Q11 4 15 4 Z M15 6 Q17 6 17 8 Q17 10 15 10 Q13 10 13 8 Q13 6 15 6 Z"
+          fill="#d4a850" stroke="#3a2400" stroke-width="0.3"/>
+  </g>
+
+  <!-- BOTTOM-LEFT corner (vertically mirrored) -->
+  <g transform="translate(8 92) scale(1 -1)">
+    <path d="M0 0 L24 0 Q24 4 22 6 Q18 9 14 8 Q10 6 8 9 Q6 13 9 16 Q12 19 8 22 L0 22 Z"
+          fill="url(#gold-ornament)" stroke="#5a3a0c" stroke-width="0.4"/>
+    <circle cx="6" cy="6" r="1.8" fill="#f5d878" stroke="#5a3a0c" stroke-width="0.3"/>
+    <circle cx="6" cy="6" r="0.6" fill="#3a2400"/>
+  </g>
+
+  <!-- BOTTOM-RIGHT corner -->
+  <g transform="translate(392 92) scale(-1 -1)">
+    <path d="M0 0 L24 0 Q24 4 22 6 Q18 9 14 8 Q10 6 8 9 Q6 13 9 16 Q12 19 8 22 L0 22 Z"
+          fill="url(#gold-ornament)" stroke="#5a3a0c" stroke-width="0.4"/>
+    <circle cx="6" cy="6" r="1.8" fill="#f5d878" stroke="#5a3a0c" stroke-width="0.3"/>
+    <circle cx="6" cy="6" r="0.6" fill="#3a2400"/>
+  </g>
+
+  <!-- Top center ornament: small fleur with curlicues -->
+  <g transform="translate(200 7)">
+    <path d="M-18 2 Q-12 0 -6 2 Q-3 3 0 1 Q3 3 6 2 Q12 0 18 2 Q14 4 8 3 Q3 2 0 4 Q-3 2 -8 3 Q-14 4 -18 2 Z"
+          fill="url(#gold-ornament)" stroke="#3a2400" stroke-width="0.3"/>
+    <circle cx="0" cy="4" r="1.5" fill="#f5d878" stroke="#5a3a0c" stroke-width="0.3"/>
+  </g>
+
+  <!-- Bottom center ornament -->
+  <g transform="translate(200 88) scale(1 -1)">
+    <path d="M-18 2 Q-12 0 -6 2 Q-3 3 0 1 Q3 3 6 2 Q12 0 18 2 Q14 4 8 3 Q3 2 0 4 Q-3 2 -8 3 Q-14 4 -18 2 Z"
+          fill="url(#gold-ornament)" stroke="#3a2400" stroke-width="0.3"/>
+    <circle cx="0" cy="4" r="1.5" fill="#f5d878" stroke="#5a3a0c" stroke-width="0.3"/>
+  </g>
+
+  <!-- Subtle inner shadow at edges for depth -->
+  <rect x="8" y="8" width="384" height="84" rx="2.5" fill="none" stroke="#000" stroke-opacity="0.35" stroke-width="1"/>
+</svg>

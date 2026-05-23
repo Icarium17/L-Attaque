@@ -65,17 +65,25 @@ export default function LeaderBoard() {
           
           {error && <div className="text-red-500 text-center mb-4">{error}</div>}
 
-          <div className="overflow-hidden rounded border border-yellow-700/40">
-            <table className="w-full text-center text-lg">
-              <tbody>
-                <tr className="bg-gray-900/80 text-yellow-300">
+          <div 
+            className={`rounded border border-yellow-700/40 ${
+              leaderboardData.length > 10
+                ? "max-h-112.5 overflow-y-auto scrollbar-thin scrollbar-thumb-yellow-700 scrollbar-track-transparent" 
+                : "overflow-hidden"
+            }`}
+          >
+            <table className="w-full text-center text-lg relative">
+              <thead className="sticky top-0 bg-gray-900 text-yellow-300 z-10 shadow-md">
+                <tr>
                   <th className="py-3 px-4">#</th>
                   <th className="py-3 px-4">Joueur</th>
                   <th className="py-3 px-4">Victoires</th>
                   <th className="py-3 px-4">Défaites</th>
                   <th className="py-3 px-4">Score</th>
                 </tr>
-                
+              </thead>
+              
+              <tbody>
                 {loading ? (
                   <tr>
                     <td colSpan={5} className="py-10 text-center text-gray-400 italic">
@@ -84,7 +92,7 @@ export default function LeaderBoard() {
                   </tr>
                 ) : leaderboardData.length > 0 ? (
                   leaderboardData.map((player, index) => (
-                    <tr key={index} className="border-t border-yellow-700/40 text-gray-100">
+                    <tr key={index} className="border-t border-yellow-700/40 text-gray-100 hover:bg-gray-800/50 transition-colors">
                       <td className="py-3 px-4">{index + 1}</td>
                       <td className="py-3 px-4">{player.username || "Joueur"}</td>
                       <td className="py-3 px-4">{player.games_won || 0}</td>
@@ -99,7 +107,6 @@ export default function LeaderBoard() {
                     </td>
                   </tr>
                 )}
-
               </tbody>
             </table>
           </div>
