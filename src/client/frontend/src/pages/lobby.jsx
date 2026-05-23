@@ -132,7 +132,7 @@ export default function Lobby() {
       </div>
 
       <div className="absolute top-[62%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
-        <Button variant="ghost"
+        <Button variant="ghost" onClick={() => navigate("/options")}
           className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
           style={{ background: `url(${buttonBg}) center/100% 100% no-repeat`, minHeight: '140px' }}>
           OPTIONS

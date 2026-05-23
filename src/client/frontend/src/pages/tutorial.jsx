@@ -159,8 +159,8 @@ export default function Tutorial() {
         <div key={activeStep} className="relative h-32 flex items-center justify-center sm:text-3xl text-center font-bold bg-black/40 text-white rounded-lg">
           <div>
             {currentStep.texts.map((text, index) => (
-              <div className="flex flex-col justify-center h-full">
-              <p key={index} className={`pop delay-${index} m+10`}>
+              <div key={index} className="flex flex-col justify-center h-full">
+                <p className={`pop delay-${index} m+10`}>
                 {text}
               </p>
               </div>

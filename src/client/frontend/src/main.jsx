@@ -9,6 +9,7 @@ import Game from './pages/game'
 import Admin from './pages/admin'
 import LeaderBoard from './pages/leaderboard'
 import Tutorial from './pages/tutorial'
+import Options from './pages/options'
 
 
 createRoot(document.getElementById('root')).render(
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')).render(
       <Route path="/admin" element={<Admin />} />
       <Route path="/leaderboard" element={<LeaderBoard />} />
       <Route path="/tutorial" element={<Tutorial />} />
+      <Route path="/options" element={<Options />} />
     </Routes>
   </BrowserRouter>
 )
