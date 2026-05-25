@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from GAME.board import Board
 from GAME.gameRules import GameRules
 from GAME.piece import BeliefPiece, PieceType
+from ALGO.mcts import MCTS
 from USERS.aiPlayer import AIPlayer
 
 
@@ -393,8 +394,8 @@ class GameManager():
                 return
             self.ai_move_status = "thinking"
             self.ai_move_error = None
-            ai_player.player_to_move = self.player_to_move
-        move = ai_player.choose_move()
+            search_snapshot = MCTS.build_snapshot(ai_player, self.game_type, self.players)
+        move = ai_player.choose_move(search_snapshot)
         self.make_move(ai_player.order, move)
 
     def combat(self, attacker, defender, defender_tile):

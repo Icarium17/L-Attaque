@@ -81,7 +81,7 @@ class Piece():
         Returns:
             Piece: Cloned piece instance.
         """
-        return Piece(self.id, self.type, self.position, self.owner)
+        return Piece(self.id, self.type, self.position, self.owner, self.revealed)
 
     def send(self):
         """

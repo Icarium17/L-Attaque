@@ -65,16 +65,16 @@ class AIPlayer(Player):
         """
         return self.setup[self.difficulty]()
     
-    def choose_move(self):
+    def choose_move(self, search_snapshot):
         """
-        Select a move for the AI by running MCTS for a difficulty-based time budget.
+        Select a move for the AI by running MCTS for a detached snapshot.
 
         Returns:
             The move selected by the MCTS search.
         """
         iteration_nb = 0
-        mcts = MCTS(self, self.game_rules, self.players)
-        move_time = self.move_timers[self.difficulty]
+        mcts = MCTS(search_snapshot)
+        move_time = search_snapshot.move_time
         start = time.time()
 
         while time.time() - start < move_time:
@@ -82,6 +82,11 @@ class AIPlayer(Player):
             iteration_nb += 1
 
         elapsed = time.time() - start
+        root_visit_summary = mcts.get_root_visit_summary()
+        print(
+            "MCTS root visits: "
+            + (" | ".join(root_visit_summary) if root_visit_summary else "no expanded root children")
+        )
         move = mcts.get_best_move()
         iterations_per_second = iteration_nb / elapsed if elapsed > 0 else 0
         average_phase_times_ms = mcts.get_average_phase_times_ms()
@@ -91,7 +96,7 @@ class AIPlayer(Player):
         )
         print(
             "AI debug: "
-            f"difficulty={self.difficulty}, "
+            f"difficulty={search_snapshot.difficulty}, "
             f"budget={move_time:.2f}s, "
             f"elapsed={elapsed:.2f}s, "
             f"initial_possible_moves={mcts.initial_possible_moves}, "

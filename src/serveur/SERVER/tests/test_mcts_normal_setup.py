@@ -49,7 +49,7 @@ class TestMCTSWithNormalAISetup(unittest.TestCase):
         Run MCTS for the first AI and check that it returns a move.
         """
         from ALGO.mcts import MCTS
-        mcts = MCTS(self.ai1, self.gm.game_rules, self.players)
+        mcts = MCTS(MCTS.build_snapshot(self.ai1, self.gm.game_type, self.players))
         # Run a few iterations to ensure a move is found
         for _ in range(10):
             mcts.algo()

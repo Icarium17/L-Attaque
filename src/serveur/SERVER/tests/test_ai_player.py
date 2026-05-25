@@ -162,5 +162,11 @@ class TestAIPlayerMediumSetupStrategies(unittest.TestCase):
                     PieceType.Bombe.count,
                 )
 
+    def test_choose_move_requires_detached_snapshot(self):
+        ai = AIPlayer(DummyUser(), order=0, difficulty=1)
+
+        with self.assertRaises(TypeError):
+            ai.choose_move()
+
 if __name__ == '__main__':
     unittest.main()

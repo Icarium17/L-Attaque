@@ -33,7 +33,7 @@ class TestMCTS(unittest.TestCase):
             self.game.setup_ai_player(i)
 
         # MCTS instance
-        self.mcts = MCTS(ai1, self.game.game_rules, self.players)
+        self.mcts = MCTS(MCTS.build_snapshot(ai1, self.game.game_type, self.players))
 
     def test_algo_runs(self):
         try:
@@ -53,7 +53,7 @@ class TestMCTS(unittest.TestCase):
     def test_reset_rollout_state_determinizes_impossible_beliefs(self):
         self.game.finish_set_up()
         ai = self.players[0]
-        self.mcts = MCTS(ai, self.game.game_rules, self.players)
+        self.mcts = MCTS(MCTS.build_snapshot(ai, self.game.game_type, self.players))
         hidden_beliefs = ai.get_hidden_belief_pieces()
 
         self.assertTrue(hidden_beliefs, "Expected hidden belief pieces after setup")
@@ -97,7 +97,7 @@ class TestMCTS(unittest.TestCase):
     def test_prior_evaluate_medium_move_ignores_stale_move_with_empty_source(self):
         self.game.finish_set_up()
         ai = self.players[0]
-        self.mcts = MCTS(ai, self.game.game_rules, self.players)
+        self.mcts = MCTS(MCTS.build_snapshot(ai, self.game.game_type, self.players))
         self.mcts._reset_rollout_state()
 
         stale_move = Move((0, 4), (0, 5))
@@ -110,7 +110,7 @@ class TestMCTS(unittest.TestCase):
         self.game.finish_set_up()
         ai = self.players[0]
         ai.difficulty = 2
-        self.mcts = MCTS(ai, self.game.game_rules, self.players)
+        self.mcts = MCTS(MCTS.build_snapshot(ai, self.game.game_type, self.players))
         self.mcts._reset_rollout_state()
 
         stale_move = Move((0, 4), (0, 5))
@@ -122,7 +122,7 @@ class TestMCTS(unittest.TestCase):
     def test_selection_soft_skips_stale_child_and_keeps_it_in_tree(self):
         self.game.finish_set_up()
         ai = self.players[0]
-        self.mcts = MCTS(ai, self.game.game_rules, self.players)
+        self.mcts = MCTS(MCTS.build_snapshot(ai, self.game.game_type, self.players))
         self.mcts._reset_rollout_state()
 
         legal_moves = self.mcts.algo_infoSet.get_all_possible_moves()

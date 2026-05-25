@@ -1,6 +1,7 @@
 import copy
 import random
 import time
+from GAME.board import Board
 from GAME.piece import BeliefPiece, Piece, PieceType
 
 
@@ -25,6 +26,32 @@ class InfoSet:
             0: {},
             1: {},
         }
+
+    @staticmethod
+    def _clone_piece_for_rollout(piece):
+        if piece is None:
+            return None
+
+        cloned_piece = piece.clone()
+        return cloned_piece
+
+    def clone_for_rollout(self):
+        """
+        Clone only the state required for one MCTS rollout.
+
+        Returns:
+            InfoSet: Independent rollout copy with a fresh move cache.
+        """
+        cloned_board = Board(self.board_state.game_type)
+
+        for row in self.board_state.tiles:
+            for tile in row:
+                if tile.piece is None:
+                    continue
+
+                cloned_board.tiles[tile.y][tile.x].piece = self._clone_piece_for_rollout(tile.piece)
+
+        return InfoSet(cloned_board, self.player_turn, self.game_rules)
 
     def invalidate_possible_moves_cache(self, player_turn=None):
         """

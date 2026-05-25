@@ -1,37 +1,88 @@
 import math
 import random
+from dataclasses import dataclass
 from ALGO.infoSet import InfoSet
 from ALGO.node import Node
 import collections
 import copy
 import time
 
+from GAME.gameRules import GameRules
 from GAME.piece import PieceType
+
+
+@dataclass(frozen=True)
+class MCTSPlayerIdentity:
+    order: int
+    username: str
+
+
+@dataclass
+class MCTSPlayerState:
+    order: int
+    username: str
+    pieces: dict
+    end_state_cache: dict
+
+
+@dataclass
+class MCTSSnapshot:
+    game_type: str
+    order: int
+    difficulty: int
+    rows: dict
+    move_time: float
+    last_moves: tuple
+    last_moves_maxlen: int
+    known_board: object
+    hidden_belief_pieces: tuple
+    revealed_opponent_pieces: tuple
+    opponent_belief_pieces_left: dict
+    player_identities: tuple
 
 class MCTS:
     """
     Monte Carlo Tree Search (MCTS) implementation for game AI.
     Handles selection, expansion, simulation, and backpropagation phases.
     """
-    def __init__(self, ai, game_rules, players):
+    @staticmethod
+    def build_snapshot(ai, game_type, players):
+        return MCTSSnapshot(
+            game_type=game_type,
+            order=ai.order,
+            difficulty=ai.difficulty,
+            rows=copy.deepcopy(ai.rows),
+            move_time=ai.move_timers[ai.difficulty],
+            last_moves=tuple(ai.last_moves),
+            last_moves_maxlen=ai.last_moves.maxlen,
+            known_board=copy.deepcopy(ai.known_board),
+            hidden_belief_pieces=tuple(copy.deepcopy(ai.get_hidden_belief_pieces())),
+            revealed_opponent_pieces=tuple(copy.deepcopy(ai.get_revealed_opponent_pieces())),
+            opponent_belief_pieces_left=ai.opponent_belief_pieces_left.copy(),
+            player_identities=tuple(
+                MCTSPlayerIdentity(order=player.order, username=player.username)
+                for player in players
+            ),
+        )
+
+    def __init__(self, snapshot):
         """
         Initialize the MCTS algorithm.
 
         Args:
-            ai: The AI player object controlling the search.
-            game_rules: The rules object governing game logic and move validation.
-            players: List of player objects participating in the game.
+            snapshot: Detached AI search snapshot.
         """
-        self.ai = ai
-        self.game_rules = game_rules
-        self.player_to_move = self.ai.order
-        self.players = players
+        self.game_rules = GameRules(snapshot.game_type)
+        self.player_to_move = snapshot.order
+        self.player_identities = snapshot.player_identities
 
-        self.order = self.ai.order
-        self.difficulty = self.ai.difficulty
+        self.order = snapshot.order
+        self.difficulty = snapshot.difficulty
+        self.rows = snapshot.rows
+        self.opponent_belief_pieces_left = snapshot.opponent_belief_pieces_left.copy()
         self.previous_moves = collections.deque(
-            self.ai.last_moves,
-            maxlen=self.ai.last_moves.maxlen
+            snapshot.last_moves,
+            maxlen=snapshot.last_moves_maxlen
         )
 
         self.simulation_by_level = {
@@ -69,22 +120,25 @@ class MCTS:
             }
         }
 
-        self._setup(ai)
+        self._setup(snapshot)
 
-    def _setup(self, ai):
+    def _setup(self, snapshot):
         """
         Initialize or reset the persistent search state for a new root search.
 
         Args:
-            ai: The AI player owning this search instance.
+            snapshot: Detached AI search snapshot.
         """
-        self.root_node = Node(None, None, self.ai.order)
+        self.root_node = Node(None, None, self.order)
         self.current_node = self.root_node
 
-        self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
+        self.hidden_belief_pieces = copy.deepcopy(snapshot.hidden_belief_pieces)
         self.algo_infoSet = None
-        self.infoSet_main = InfoSet(copy.deepcopy(ai.known_board), ai.order, self.game_rules)
-        self.infoSet_main.sync_opponent_knowledge(self.hidden_belief_pieces, self.ai.get_revealed_opponent_pieces())
+        self.infoSet_main = InfoSet(copy.deepcopy(snapshot.known_board), self.order, self.game_rules)
+        self.infoSet_main.sync_opponent_knowledge(
+            self.hidden_belief_pieces,
+            copy.deepcopy(snapshot.revealed_opponent_pieces),
+        )
         self.initial_possible_moves = len(self.infoSet_main.get_all_possible_moves())
 
         self.rollout_index = 0
@@ -134,14 +188,46 @@ class MCTS:
 
         if self.rollout_index % 3 == 0:
             redeterminize_start = time.perf_counter()
-            self.determinized_root = copy.deepcopy(self.infoSet_main)
+            self.determinized_root = self.infoSet_main.clone_for_rollout()
             self.determinized_root.actualize_belief_pieces(
                 self.hidden_belief_pieces,
-                self.ai.opponent_belief_pieces_left.copy(),
+                self.opponent_belief_pieces_left.copy(),
             )
             self.phase_time_totals["redeterminize"] += time.perf_counter() - redeterminize_start
             self.phase_counts["redeterminize"] += 1
         self.algo_infoSet = self.determinized_root
+
+    def _build_end_state_cache(self, pieces):
+        piece_counts = {piece_type: 0 for piece_type in PieceType}
+        flag_position = None
+
+        for piece in pieces.values():
+            if piece.type is None:
+                continue
+
+            piece_counts[piece.type] += 1
+            if piece.type == PieceType.Drapeau:
+                flag_position = piece.position
+
+        return {
+            "piece_counts": piece_counts,
+            "flag_position": flag_position,
+        }
+
+    def _build_end_state_players(self):
+        players = []
+        for identity in self.player_identities:
+            pieces = self.algo_infoSet.board_state.get_pieces(identity.order)
+            players.append(
+                MCTSPlayerState(
+                    order=identity.order,
+                    username=identity.username,
+                    pieces=pieces,
+                    end_state_cache=self._build_end_state_cache(pieces),
+                )
+            )
+
+        return players
         
 
 
@@ -587,7 +673,7 @@ class MCTS:
         Returns:
             float: Desirability score for the move.
         """
-        start_row = self.ai.rows[self.order][0]
+        start_row = self.rows[self.order][0]
         direction = -1 if start_row > 4 else 1
 
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
@@ -738,11 +824,14 @@ class MCTS:
         """
         ai_won = 0
         opp_won = 0
-        for player in self.players:
-            my_pieces = self.algo_infoSet.board_state.get_pieces(player.order)
-            opponent_pieces = self.algo_infoSet.board_state.get_pieces(1- player.order)
-
-            ended, _ = self.game_rules.check_player_end_state(player, self.players, self.algo_infoSet.board_state, my_pieces, opponent_pieces, 1)
+        players = self._build_end_state_players()
+        for player in players:
+            ended, _ = self.game_rules.check_player_end_state(
+                player,
+                players,
+                self.algo_infoSet.board_state,
+                reason=1,
+            )
             if ended:
                 ai_won = player.order != self.order
                 opp_won = player.order == self.order
@@ -765,8 +854,31 @@ class MCTS:
                 return None
             best_move = random.choice(fallback_moves)
 
-        self.ai.last_moves.append(best_move)
         return best_move
+
+    def get_root_visit_summary(self):
+        """
+        Return visit statistics for each root child after search.
+
+        Returns:
+            list[str]: Root-child visit summaries sorted by visit count.
+        """
+        ranked_children = sorted(
+            self.root_node.children,
+            key=lambda child: (
+                child.visit_count,
+                child.value / child.visit_count if child.visit_count else float("-inf"),
+            ),
+            reverse=True,
+        )
+
+        return [
+            (
+                f"move={child.move}, visits={child.visit_count}, "
+                f"value={child.value:.3f}"
+            )
+            for child in ranked_children
+        ]
     
 
         

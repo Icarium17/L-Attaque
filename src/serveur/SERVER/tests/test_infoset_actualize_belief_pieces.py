@@ -103,6 +103,34 @@ class TestInfoSetActualizeBeliefPieces(unittest.TestCase):
         self.assertEqual(info_set.actualize_stats["recursive_calls"], 0)
         self._assert_opponent_tiles_are_concrete_pieces(info_set)
 
+    def test_clone_for_rollout_creates_independent_board_with_fresh_cache(self):
+        info_set = self._make_info_set()
+        hidden_beliefs = self.ai.get_hidden_belief_pieces()
+
+        info_set.sync_opponent_knowledge(
+            hidden_beliefs,
+            self.ai.get_revealed_opponent_pieces(),
+        )
+        info_set.get_all_possible_moves()
+
+        cloned_info_set = info_set.clone_for_rollout()
+
+        self.assertIsNot(cloned_info_set, info_set)
+        self.assertIsNot(cloned_info_set.board_state, info_set.board_state)
+        self.assertEqual(cloned_info_set.player_turn, info_set.player_turn)
+        self.assertIs(cloned_info_set.game_rules, info_set.game_rules)
+        self.assertEqual(cloned_info_set._possible_moves_cache, {0: {}, 1: {}})
+
+        original_piece = info_set.board_state.tiles[0][0].piece
+        cloned_piece = cloned_info_set.board_state.tiles[0][0].piece
+        self.assertIsNot(cloned_piece, original_piece)
+        self.assertEqual(cloned_piece.id, original_piece.id)
+        self.assertEqual(cloned_piece.position, original_piece.position)
+        self.assertEqual(cloned_piece.revealed, original_piece.revealed)
+
+        cloned_piece.position = (9, 9)
+        self.assertNotEqual(cloned_piece.position, original_piece.position)
+
 
 if __name__ == "__main__":
     unittest.main()
