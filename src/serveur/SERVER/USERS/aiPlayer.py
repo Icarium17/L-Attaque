@@ -72,16 +72,34 @@ class AIPlayer(Player):
         Returns:
             The move selected by the MCTS search.
         """
+        iteration_nb = 0
         mcts = MCTS(self, self.game_rules, self.players)
         move_time = self.move_timers[self.difficulty]
         start = time.time()
 
         while time.time() - start < move_time:
             mcts.algo()
-            print("choosing")
+            iteration_nb += 1
 
+        elapsed = time.time() - start
         move = mcts.get_best_move()
-        print(move)
+        iterations_per_second = iteration_nb / elapsed if elapsed > 0 else 0
+        average_phase_times_ms = mcts.get_average_phase_times_ms()
+        phase_summary = ", ".join(
+            f"{phase}_avg_ms={duration:.3f}"
+            for phase, duration in average_phase_times_ms.items()
+        )
+        print(
+            "AI debug: "
+            f"difficulty={self.difficulty}, "
+            f"budget={move_time:.2f}s, "
+            f"elapsed={elapsed:.2f}s, "
+            f"initial_possible_moves={mcts.initial_possible_moves}, "
+            f"iterations={iteration_nb}, "
+            f"iter_per_sec={iterations_per_second:.2f}, "
+            f"move={move}, "
+            f"{phase_summary}"
+        )
         return move
 
 

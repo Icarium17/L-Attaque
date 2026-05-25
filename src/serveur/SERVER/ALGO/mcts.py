@@ -90,22 +90,57 @@ class MCTS:
         self.rollout_index = 0
         self.closest_dist_flag = self.infoSet_main.closest_piece_to_flag()
         self.undo_stack = []
+        self.phase_time_totals = {
+            "reset": 0.0,
+            "redeterminize": 0.0,
+            "selection": 0.0,
+            "expansion": 0.0,
+            "simulation": 0.0,
+            "game_over": 0.0,
+            "backpropagation": 0.0,
+            "undo": 0.0,
+        }
+        self.phase_counts = {
+            phase: 0
+            for phase in self.phase_time_totals
+        }
+
+    def get_average_phase_times_ms(self):
+        """
+        Return average elapsed time per MCTS phase in milliseconds.
+
+        Returns:
+            dict: Average phase times keyed by phase name.
+        """
+        if self.rollout_index == 0:
+            return {phase: 0.0 for phase in self.phase_time_totals}
+
+        return {
+            phase: (total / self.phase_counts[phase]) * 1000 if self.phase_counts[phase] else 0.0
+            for phase, total in self.phase_time_totals.items()
+        }
         
     def _reset_rollout_state(self):
         """
         Reset rollout-local state before one MCTS iteration.
         """
+        reset_start = time.perf_counter()
         self.current_node = self.root_node
         self.previous_moves_algo = collections.deque(self.previous_moves, maxlen=self.previous_moves.maxlen)
         self.score_revealed_opponent_pieces = 0
         self.lost_combats = 0
+        self.phase_time_totals["reset"] += time.perf_counter() - reset_start
+        self.phase_counts["reset"] += 1
 
         if self.rollout_index % 3 == 0:
+            redeterminize_start = time.perf_counter()
             self.determinized_root = copy.deepcopy(self.infoSet_main)
             self.determinized_root.actualize_belief_pieces(
                 self.hidden_belief_pieces,
                 self.ai.opponent_belief_pieces_left.copy(),
             )
+            self.phase_time_totals["redeterminize"] += time.perf_counter() - redeterminize_start
+            self.phase_counts["redeterminize"] += 1
         self.algo_infoSet = self.determinized_root
         
 
@@ -119,19 +154,38 @@ class MCTS:
         status, then backpropagates the resulting score.
         """
         self._reset_rollout_state()
+
+        phase_start = time.perf_counter()
         filtered_untried_moves = self.selection()
+        self.phase_time_totals["selection"] += time.perf_counter() - phase_start
+        self.phase_counts["selection"] += 1
 
         if filtered_untried_moves is not None:
+            phase_start = time.perf_counter()
             self.expansion(filtered_untried_moves)
+            self.phase_time_totals["expansion"] += time.perf_counter() - phase_start
+            self.phase_counts["expansion"] += 1
 
+            phase_start = time.perf_counter()
             self.simulation()
+            self.phase_time_totals["simulation"] += time.perf_counter() - phase_start
+            self.phase_counts["simulation"] += 1
 
+        phase_start = time.perf_counter()
         game_won = self.game_over()
+        self.phase_time_totals["game_over"] += time.perf_counter() - phase_start
+        self.phase_counts["game_over"] += 1
 
+        phase_start = time.perf_counter()
         self.backpropagation(game_won)
+        self.phase_time_totals["backpropagation"] += time.perf_counter() - phase_start
+        self.phase_counts["backpropagation"] += 1
 
+        phase_start = time.perf_counter()
         while self.undo_stack:
             self.algo_infoSet.undo_move(self.undo_stack.pop())
+        self.phase_time_totals["undo"] += time.perf_counter() - phase_start
+        self.phase_counts["undo"] += 1
 
         self.rollout_index += 1
 

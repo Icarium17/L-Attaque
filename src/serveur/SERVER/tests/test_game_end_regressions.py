@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import threading
 import time
 import unittest
 from unittest.mock import MagicMock, patch
@@ -14,7 +15,7 @@ from GAME.piece import Piece, PieceType
 from USERS.aiPlayer import AIPlayer
 from USERS.player import Player
 from USERS.user import User
-from gameManager import GameManager, PlayerTimer
+from gameManager import AI_MOVE_EXECUTOR, GameManager, PlayerTimer
 
 
 class DummyLobbyManager:
@@ -325,6 +326,34 @@ class TestGameEndRegressions(unittest.TestCase):
 
                     self.assertEqual(move_result, (1, "MOVE_SUCCESS"))
                     self.assertEqual(lobby.ended_games, [])
+
+    def test_pvai_reports_queued_status_while_shared_worker_is_busy(self):
+        worker_started = threading.Event()
+        release_worker = threading.Event()
+
+        def block_shared_worker():
+            worker_started.set()
+            release_worker.wait(timeout=2)
+
+        blocker = AI_MOVE_EXECUTOR.submit(block_shared_worker)
+        self.assertTrue(worker_started.wait(timeout=1), "expected blocker task to occupy AI worker")
+
+        try:
+            lobby, game = self._create_pvai_game(difficulty=0)
+            game.player_to_move = 0
+            game.check_end_state = MagicMock(return_value=False)
+
+            game.change_turn()
+
+            self.assertEqual(game.ai_move_status, "queued")
+            self.assertIsNotNone(game.ai_move_future)
+            self.assertFalse(game.ai_move_future.running())
+            self.assertEqual(game.get_status("human")["ai_status"], "queued")
+        finally:
+            release_worker.set()
+            blocker.result(timeout=1)
+            if game.ai_move_future is not None:
+                game.ai_move_future.result(timeout=1)
 
     def test_pvp_opening_sequences_stay_live_across_many_plies(self):
         variants = ((0, 0), (1, 1), (2, 0), (2, 1))

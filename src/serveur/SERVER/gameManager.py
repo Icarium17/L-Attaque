@@ -1,16 +1,36 @@
 import time
 import threading
 import json
+import os
+from concurrent.futures import ThreadPoolExecutor
 
 from GAME.board import Board
 from GAME.gameRules import GameRules
 from GAME.piece import BeliefPiece, PieceType
 from USERS.aiPlayer import AIPlayer
 
+
 class GameManager():
     """
     Coordinate one live game, including setup, move resolution, timers, and end-state handling.
     """
+
+    @staticmethod
+    def _get_ai_worker_count():
+        configured_workers = os.getenv("L_ATTAQUE_AI_WORKERS")
+        if configured_workers is not None:
+            try:
+                return max(1, int(configured_workers))
+            except ValueError:
+                pass
+        return 1
+
+    AI_MOVE_MAX_WORKERS = _get_ai_worker_count.__func__()
+    AI_MOVE_EXECUTOR = ThreadPoolExecutor(
+        max_workers=AI_MOVE_MAX_WORKERS,
+        thread_name_prefix="ai-move",
+    )
+
     def __init__(self, lobbyManager, players, status = None, game_type = "original"):
         """
         Initialize a new GameManager instance.
@@ -35,6 +55,10 @@ class GameManager():
         self.timers = None
         self.wait_timer_handle = None
         self.turn_change_timer = None
+        self.game_lock = threading.RLock()
+        self.ai_move_future = None
+        self.ai_move_status = "idle"
+        self.ai_move_error = None
         self.set_player_boards()
         if len(players) == 2:
             self.timers = PlayerTimer(self.players, [player.time_remaining for player in self.players], self.timer_expired)
@@ -156,30 +180,31 @@ class GameManager():
         Returns:
             str: Status message or error.
         """
-        player_order = self.get_order(player_id)
-        if player_order == -1:
-            return ("Le joueur n'est pas valide")
-        
-        pieces = self.invert_positions_if_needed(player_order, pieces)
-        positions = self.game_rules.validate_placement(player_order, pieces)
+        with self.game_lock:
+            player_order = self.get_order(player_id)
+            if player_order == -1:
+                return ("Le joueur n'est pas valide")
+            
+            pieces = self.invert_positions_if_needed(player_order, pieces)
+            positions = self.game_rules.validate_placement(player_order, pieces)
 
-        if positions[0] == 0:
-            return positions
-        
-        self.board.set_pieces(pieces)
-        player_pieces = self.clone_pieces(pieces)
-        self.players[player_order].position_pieces(player_pieces)
-        self.players[player_order].sync_owned_pieces()
-        self.players_ready.add(player_id)
-        for player in self.players:
-            if isinstance(player, AIPlayer):
-                self.setup_ai_player(player.order)
-        if len(self.players) == 2 and all(p.key in self.players_ready for p in self.players):
-            print("setup")
-            self.finish_set_up()
-        else:
-            self.players[player_order].user.status = "WAITING_FOR_OPPONENT"
-        return ("SETUP_SUCCESS")
+            if positions[0] == 0:
+                return positions
+            
+            self.board.set_pieces(pieces)
+            player_pieces = self.clone_pieces(pieces)
+            self.players[player_order].position_pieces(player_pieces)
+            self.players[player_order].sync_owned_pieces()
+            self.players_ready.add(player_id)
+            for player in self.players:
+                if isinstance(player, AIPlayer):
+                    self.setup_ai_player(player.order)
+            if len(self.players) == 2 and all(p.key in self.players_ready for p in self.players):
+                print("setup")
+                self.finish_set_up()
+            else:
+                self.players[player_order].user.status = "WAITING_FOR_OPPONENT"
+            return ("SETUP_SUCCESS")
 
     def setup_ai_player(self, order):
         """
@@ -200,19 +225,20 @@ class GameManager():
         """
         Finalize setup for all players and start the game.
         """
-        print("setup_called")
-        for order, p in enumerate(self.players):
-                print("order:", order)
-                p_pieces = p.known_board.get_pieces(order)
-                self.set_unknowns_pieces(int(order), p_pieces)
-        for p in self.players:
-            if hasattr(p, "user"):
-                p.user.status = "PLAYING"
+        with self.game_lock:
+            print("setup_called")
+            for order, p in enumerate(self.players):
+                    print("order:", order)
+                    p_pieces = p.known_board.get_pieces(order)
+                    self.set_unknowns_pieces(int(order), p_pieces)
+            for p in self.players:
+                if hasattr(p, "user"):
+                    p.user.status = "PLAYING"
 
-        self.status = "PLAYING"
+            self.status = "PLAYING"
 
-        if self.timers:
-            self.timers.start(0)
+            if self.timers:
+                self.timers.start(0)
 
 
     def set_unknowns_pieces(self, player_order, pieces):
@@ -254,8 +280,38 @@ class GameManager():
         Returns:
             int: The player's order, or -1 if not found.
         """
+        if isinstance(player_id, int):
+            return player_id if 0 <= player_id < len(self.players) else -1
+
         player_order = next((i for i, obj in enumerate(self.players) if obj.key == player_id), -1)
         return player_order
+
+    def _schedule_ai_move_locked(self, ai_player):
+        if self.ai_move_future is not None and not self.ai_move_future.done():
+            return
+
+        self.ai_move_status = "queued"
+        self.ai_move_error = None
+        self.ai_move_future = self.AI_MOVE_EXECUTOR.submit(self.ai_move_thread, ai_player)
+        self.ai_move_future.add_done_callback(self._finalize_ai_move)
+
+    def _finalize_ai_move(self, future):
+        error_message = None
+        try:
+            future.result()
+        except Exception as exc:
+            error_message = str(exc)
+            print(f"AI move worker failed: {exc}")
+
+        with self.game_lock:
+            if self.ai_move_future is future:
+                self.ai_move_future = None
+                if error_message is None:
+                    if self.ai_move_status == "thinking":
+                        self.ai_move_status = "idle"
+                else:
+                    self.ai_move_status = "error"
+                    self.ai_move_error = error_message
     
     def make_move(self, player_id, move):
         """
@@ -266,58 +322,65 @@ class GameManager():
         Returns:
             Tuple[int, str]: (status, message)
         """
-        if self.status == "PLAYING":
-            player = self.players[self.get_order(player_id)]
-            if player.order == -1:
-                return (0, "INVALID_KEY")
-            
-            if player.order == 1 and not isinstance(player, AIPlayer):
-                move.invert()
+        with self.game_lock:
+            if self.status == "PLAYING":
+                player_order = self.get_order(player_id)
+                if player_order == -1:
+                    return (0, "INVALID_KEY")
+
+                player = self.players[player_order]
                 
-            valid_move = self.game_rules.validate_move(player.order, move, self.board)
-            if valid_move[0] == 0:
-                return valid_move
-            
-            player.last_moves.append(move)
+                if player.order == 1 and not isinstance(player, AIPlayer):
+                    move.invert()
+                    
+                valid_move = self.game_rules.validate_move(player.order, move, self.board)
+                if valid_move[0] == 0:
+                    return valid_move
+                
+                player.last_moves.append(move)
 
-            tileFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]]
-            pieceFrom = tileFrom.piece
-            tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
+                tileFrom = self.board.tiles[move.moveFrom[1]][move.moveFrom[0]]
+                pieceFrom = tileFrom.piece
+                tileTo = self.board.tiles[move.moveTo[1]][move.moveTo[0]]
 
-            if tileTo.piece and tileTo.piece.owner != player.order:
-                self.battle = [pieceFrom.send(), tileTo.piece.send()]
-                self.combat(pieceFrom, tileTo.piece, tileTo)
-                self.status = "BATTLE"
-                self.timers.stop(5)
-                self.turn_change_timer = threading.Timer(4, self.change_turn)
-                self.turn_change_timer.start()
-            else:
-                distance = tileFrom.get_distance(tileTo)
-                self.board.move(move)
-                for player in self.players:
-                    if player.order != self.player_to_move:
-                        player.update_belief_state_move(tileFrom.x, tileFrom.y, distance)
-                    player.move(move)
-                    player.sync_owned_pieces()
-                self.change_turn()
-                return (1, "MOVE_SUCCESS")
-            
-        return (0, "BATTLE_HAPPENING")
+                if tileTo.piece and tileTo.piece.owner != player.order:
+                    self.battle = [pieceFrom.send(), tileTo.piece.send()]
+                    self.combat(pieceFrom, tileTo.piece, tileTo)
+                    self.status = "BATTLE"
+                    self.timers.stop(5)
+                    self.turn_change_timer = threading.Timer(4, self.change_turn)
+                    self.turn_change_timer.start()
+                else:
+                    distance = tileFrom.get_distance(tileTo)
+                    self.board.move(move)
+                    for player in self.players:
+                        if player.order != self.player_to_move:
+                            player.update_belief_state_move(tileFrom.x, tileFrom.y, distance)
+                        player.move(move)
+                        player.sync_owned_pieces()
+                    self.change_turn()
+                    return (1, "MOVE_SUCCESS")
+                
+            return (0, "BATTLE_HAPPENING")
     
     def change_turn(self):
         """
         Change the turn to the next player, or end the game if finished.
         """
-        self.status = "PLAYING"
-        if not self.check_end_state(): 
-            self.player_to_move = (self.player_to_move + 1) % len(self.players)
-            self.timers.switch_player(self.player_to_move)
-            player = self.players[self.player_to_move]
-            if isinstance(player, AIPlayer):
-                threading.Thread(target=self.ai_move_thread, args=(player,), daemon=True).start()
+        with self.game_lock:
+            self.status = "PLAYING"
+            if not self.check_end_state(): 
+                self.player_to_move = (self.player_to_move + 1) % len(self.players)
+                self.timers.switch_player(self.player_to_move)
+                player = self.players[self.player_to_move]
+                if isinstance(player, AIPlayer):
+                    self._schedule_ai_move_locked(player)
+                else:
+                    self.ai_move_status = "idle"
+                    self.ai_move_error = None
 
-        else:
-            print("GAME OVER")
+            else:
+                print("GAME OVER")
 
     def ai_move_thread(self, ai_player):
         """
@@ -325,9 +388,14 @@ class GameManager():
         Args:
             ai_player: The AIPlayer object.
         """
-        ai_player.player_to_move = self.player_to_move
+        with self.game_lock:
+            if not self.players or self.status != "PLAYING":
+                return
+            self.ai_move_status = "thinking"
+            self.ai_move_error = None
+            ai_player.player_to_move = self.player_to_move
         move = ai_player.choose_move()
-        self.make_move(self.player_to_move, move)
+        self.make_move(ai_player.order, move)
 
     def combat(self, attacker, defender, defender_tile):
         """
@@ -443,45 +511,51 @@ class GameManager():
         Returns:
             dict: Status information for the player/game.
         """
-        player = self.players[self.get_order(player_id)]
-        if player.order == -1:
-            return {"status": "INVALID_KEY"}
-        
-        list_pieces = player.known_board.return_pieces()
+        with self.game_lock:
+            player_order = self.get_order(player_id)
+            if player_order == -1:
+                return {"status": "INVALID_KEY"}
 
-        if player.order == 1:
-            list_pieces = self.invert_piece_dicts_y(list_pieces)
+            player = self.players[player_order]
+            list_pieces = player.known_board.return_pieces()
 
-        opponent = self.players[self.get_order(1 - player.order)].user.username
+            if player.order == 1:
+                list_pieces = self.invert_piece_dicts_y(list_pieces)
 
-        if opponent is None:
-            opponent = ""
+            opponent_order = self.get_order(1 - player.order)
+            opponent = self.players[opponent_order].user.username if opponent_order != -1 else ""
 
-        status = {
-                "status": self.status, 
-                "opponent" : opponent,
-                "board": list_pieces,
-                "turn": "blue" if self.player_to_move == 0 else "red",
-                "order" : player.order}
-        
-        if self.status != "WAITING":
-            times_remaining = [player.time_remaining for player in self.players]
-            status["battle"] = None,
-            scores = [self.players[0].score, self.players[1].score] 
+            if opponent is None:
+                opponent = ""
+
+            status = {
+                    "status": self.status, 
+                    "opponent" : opponent,
+                    "board": list_pieces,
+                    "turn": "blue" if self.player_to_move == 0 else "red",
+                    "order" : player.order,
+                    "ai_status": self.ai_move_status,
+                    "ai_error": self.ai_move_error,
+                }
             
-            if self.status == "BATTLE":
-                status["battle"] = self.battle
-            
-        else:
-            elapsed = time.time() - self.wait_timer_start
-            time_left = max(0, self.wait_timer_duration - elapsed)
-            times_remaining = [time_left, time_left]
-            scores = [0, 0]
-            status["battle"] = None 
+            if self.status != "WAITING":
+                times_remaining = [player.time_remaining for player in self.players]
+                status["battle"] = None,
+                scores = [self.players[0].score, self.players[1].score] 
+                
+                if self.status == "BATTLE":
+                    status["battle"] = self.battle
+                
+            else:
+                elapsed = time.time() - self.wait_timer_start
+                time_left = max(0, self.wait_timer_duration - elapsed)
+                times_remaining = [time_left, time_left]
+                scores = [0, 0]
+                status["battle"] = None 
 
-        status["scores"] = scores
-        status["time_remaining"] = times_remaining
-        return status
+            status["scores"] = scores
+            status["time_remaining"] = times_remaining
+            return status
 
     
 
@@ -492,14 +566,15 @@ class GameManager():
         Returns:
             bool: True if the game ended, False otherwise.
         """
-        for player in self.players:
-            ended, result = self.game_rules.check_player_end_state(player, self.players, self.board)
-            if ended:
-                self.timers.stop()
-                winner, loser, reason = result
-                self.declare_winner(winner, loser, reason)
-                return True
-        return False
+        with self.game_lock:
+            for player in self.players:
+                ended, result = self.game_rules.check_player_end_state(player, self.players, self.board)
+                if ended:
+                    self.timers.stop()
+                    winner, loser, reason = result
+                    self.declare_winner(winner, loser, reason)
+                    return True
+            return False
             
 
     def declare_winner(self, winner, loser, reason):
@@ -510,10 +585,13 @@ class GameManager():
             loser: The Player or AIPlayer who lost.
             reason: The reason for the game's end.
         """
-        self.winner = winner
-        self.loser = loser
-        self.end_reason = reason
-        self.end_game()
+        with self.game_lock:
+            self.winner = winner
+            self.loser = loser
+            self.end_reason = reason
+            self.ai_move_status = "idle"
+            self.ai_move_error = None
+            self.end_game()
 
     def end_game(self):
         """
@@ -528,24 +606,28 @@ class GameManager():
         """
         Clean up game resources and timers after the game ends.
         """
-        self.cancel_wait_timer()
+        with self.game_lock:
+            self.cancel_wait_timer()
 
-        if self.turn_change_timer is not None:
-            self.turn_change_timer.cancel()
-            self.turn_change_timer = None
+            if self.turn_change_timer is not None:
+                self.turn_change_timer.cancel()
+                self.turn_change_timer = None
 
-        if self.timers is not None:
-            self.timers.shutdown()
-            self.timers = None
+            if self.timers is not None:
+                self.timers.shutdown()
+                self.timers = None
 
-        self.players_ready.clear()
-        self.players = []
-        self.board = None
-        self.game_rules = None
-        self.battle = None
-        self.winner = None
-        self.loser = None
-        self.end_reason = None
+            self.ai_move_future = None
+            self.ai_move_status = "idle"
+            self.ai_move_error = None
+            self.players_ready.clear()
+            self.players = []
+            self.board = None
+            self.game_rules = None
+            self.battle = None
+            self.winner = None
+            self.loser = None
+            self.end_reason = None
 
     def timer_expired(self, player):
         """
@@ -561,13 +643,16 @@ class GameManager():
         Args:
             my_key: The session key of the surrendering player.
         """
-        self.status = "SURRENDER"
-        self.timers.stop()
-        surrenderer = self.get_player(my_key)
-        winner = self.players[1 - surrenderer.order]
-        print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
-        winner.score += self.game_rules.calc_score_surrender()
-        threading.Timer(5, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
+        with self.game_lock:
+            self.status = "SURRENDER"
+            self.ai_move_status = "idle"
+            self.ai_move_error = None
+            self.timers.stop()
+            surrenderer = self.get_player(my_key)
+            winner = self.players[1 - surrenderer.order]
+            print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
+            winner.score += self.game_rules.calc_score_surrender()
+            threading.Timer(5, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
 
     def save(self, my_key):
         """
@@ -577,35 +662,38 @@ class GameManager():
         Returns:
             Tuple: (user_id, ai_difficulty, player_to_move, game_state_json)
         """
-        player = self.get_player(my_key)
-        my_order = player.order
+        with self.game_lock:
+            player = self.get_player(my_key)
+            my_order = player.order
 
-        opponent = self.players[1-my_order]
-        
-        if not isinstance(opponent, AIPlayer):
-            return (0, "CANNOT_PAUSE_VS_PLAYER")
-        
-        self.status = "SAVING"
-        self.timers.stop()
-        
-        user_id = player.user.account_id
-        ai_difficulty = opponent.difficulty
-        player_to_move = self.player_to_move
+            opponent = self.players[1-my_order]
+            
+            if not isinstance(opponent, AIPlayer):
+                return (0, "CANNOT_PAUSE_VS_PLAYER")
+            
+            self.status = "SAVING"
+            self.ai_move_status = "idle"
+            self.ai_move_error = None
+            self.timers.stop()
+            
+            user_id = player.user.account_id
+            ai_difficulty = opponent.difficulty
+            player_to_move = self.player_to_move
 
-        # Gather all game state into a single dict
-        game_state = {
-            "player_boards": [player.known_board.save_board() for player in self.players],
-            "board": self.board.return_pieces(),
-            "scores": [player.score for player in self.players],
-            "times": [player.time_remaining for player in self.players],
-            "last_moves": [
-                [move.to_dict() for move in player.last_moves]
-                for player in self.players
-            ]
-        }
-        # Serialize to a single JSON string
-        game_state_json = json.dumps(game_state)
-        return user_id, ai_difficulty, player_to_move, game_state_json
+            # Gather all game state into a single dict
+            game_state = {
+                "player_boards": [player.known_board.save_board() for player in self.players],
+                "board": self.board.return_pieces(),
+                "scores": [player.score for player in self.players],
+                "times": [player.time_remaining for player in self.players],
+                "last_moves": [
+                    [move.to_dict() for move in player.last_moves]
+                    for player in self.players
+                ]
+            }
+            # Serialize to a single JSON string
+            game_state_json = json.dumps(game_state)
+            return user_id, ai_difficulty, player_to_move, game_state_json
         
 
     
