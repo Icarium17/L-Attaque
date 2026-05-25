@@ -4,11 +4,12 @@ import cellSelected from '../assets/images/cell-selected.png';
 import cellValid from '../assets/images/cell-valid.png';
 import cellBattle from '../assets/images/cell-battle.png';
 import Piece from "../components/piece.jsx";
+import MoveArrow from "./moveArrow.jsx";
 import React, { useState } from 'react';
 
 export default function Cell({ 
   row, col, isLake, piece, onClick, isSelected, 
-  isValidMove, playerColor, onDragStart, onDrop, isBattle 
+  isValidMove, playerColor, onDragStart, onDrop, isBattle,arrow    
 }) {
   
   const [isDragOver, setIsDragOver] = useState(false);
@@ -104,6 +105,7 @@ export default function Cell({
             playerColor={playerColor} 
           />
         )}
+       {arrow && <MoveArrow from={arrow.from} to={arrow.to} color={arrow.color} />}
       </div>
     </>
   );

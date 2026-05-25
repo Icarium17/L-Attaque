@@ -84,6 +84,12 @@ export default function Game() {
 
   const [pingMs, setPingMs] = useState(null);
 
+  // Dernier etat de la piece
+  const [lastMoves, setLastMoves] = useState([null, null]);
+  const [arrows, setArrows] = useState({});  
+
+  const [opponentName, setOpponentName] = useState("Adversaire");
+
   // Affiche la popup "Your Turn" quand le tour passe à BLUE après RED
   const setTurnWithPop = (newTurn) => {
   setTurn(prev => {
@@ -94,6 +100,70 @@ export default function Game() {
     return newTurn;
   });
 };
+
+// Logique dernier mouvement
+useEffect(() => {
+  if (!lastMoves || playerOrder == null) return;
+  setArrows(prev => {
+    const next = { ...prev };
+    let changed = false;
+    lastMoves.forEach((m, owner) => {
+      if (!m || !m.moveFrom || !m.moveTo) return;
+      const color = owner == playerOrder ? playerColor : opponentColor;
+      const key = `${m.moveFrom[0]},${m.moveFrom[1]}->${m.moveTo[0]},${m.moveTo[1]}`;
+      if (prev[color] && prev[color].key == key) return;  
+      next[color] = {
+        from: { row: m.moveFrom[1], col: m.moveFrom[0] },
+        to:   { row: m.moveTo[1],   col: m.moveTo[0] },
+        key,
+        ts: Date.now(),
+      };
+      changed = true;
+    });
+    return changed ? next : prev;
+  });
+}, [lastMoves, playerOrder, playerColor, opponentColor]);
+
+  // Fleche
+   useEffect(() => {
+    if (!lastMoves || playerOrder == null) return;
+    setArrows(prev => {
+      const next = { ...prev };
+      let changed = false;
+      lastMoves.forEach((m, owner) => {
+        if (!m || !m.moveFrom || !m.moveTo) return;
+        const color = owner == playerOrder ? playerColor : opponentColor;
+        const key = `${m.moveFrom[0]},${m.moveFrom[1]}->${m.moveTo[0]},${m.moveTo[1]}`;
+        if (prev[color] && prev[color].key == key) return;  
+        next[color] = {
+          from: { row: m.moveFrom[1], col: m.moveFrom[0] },
+          to:   { row: m.moveTo[1],   col: m.moveTo[0] },
+          key,
+          ts: Date.now(),
+        };
+        changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [lastMoves, playerOrder, playerColor, opponentColor]);
+
+  useEffect(() => {
+    const timers = [];
+    for (const color of Object.keys(arrows)) {
+      const arrow = arrows[color];
+      const remaining = 3000 - (Date.now() - arrow.ts);
+      if (remaining <= 0) continue;
+      timers.push(setTimeout(() => {
+        setArrows(prev => {
+          if (!prev[color] || prev[color].ts != arrow.ts) return prev;
+          const cp = { ...prev };
+          delete cp[color];
+          return cp;
+        });
+      }, remaining));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [arrows]);
 
  // Affiche la popup au début de la phase PLAYING si c'est déjà le tour du joueur
   useEffect(() => {
@@ -112,8 +182,15 @@ export default function Game() {
   }, [navigate]);
 
   // Hook custom : Sync serveur (polling) : board, turn, timers, scores, battle, fin de partie
-  useGameSync({ phase, setPhase, setTurn: setTurnWithPop, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor });
- 
+  useGameSync({ 
+    phase, setPhase, 
+    setTurn: setTurnWithPop, 
+    setTimeRemaining, setBoard, setBattleData, setGameResult, 
+    setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, 
+    playerOrder, setPlayerOrder, playerColor, opponentColor,
+    setLastMoves,
+    setOpponentName 
+  });
   
   // Destructuration de usePlacement : retourne le pool de pièces à placer,l'index sélectionné, et les fonctions de placement (clic, drag & drop, auto, reset, envoi au serveur)
   // { propriétés extraites } = usePlacement(params)  | handleDragStart/handleBoardDrop renommés pour éviter conflit avec useCellClick
@@ -292,24 +369,27 @@ return (
         {/* Timers */}
         {phase != "PLACEMENT" && phase != "WAITING" && (
             <div className={`flex flex-col justify-between h-[80vh] py-4 ${phase != "PLAYING" ? "invisible" : ""}`}>
-            <Timer timeLeft={timeRemaining[1] || 0} color={opponentColor} turn={turn} isPaused={isPaused} onExpire={() => setError("Temps écoulé pour " + opponentColor + "!")} />
+            <Timer timeLeft={timeRemaining[1] || 0} 
+                   color={opponentColor} 
+                   turn={turn} 
+                   isPaused={isPaused}/>
             <Panel 
-              variant="name" 
-              title="Adversaire"
-              className="absolute top-[32%] left-[18%]"
-              style={{
-                backgroundImage: `url(${opponentColor == "RED" ? redName : blueName})`,
-                backgroundSize: "contain",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                width: "400px",
-                height: "150px",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }} 
-            />
+            variant="name" 
+            title={opponentName} 
+            className={`absolute top-[32%] left-[18%] ${turn == opponentColor ? "animate-pulse" : ""}`}
+            style={{
+              backgroundImage: `url(${opponentColor == "RED" ? redName : blueName})`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              width: "400px",
+              height: "150px",
+              padding: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }} 
+          />
             <Panel variant="score" title="SCORE" message={(opponentColor == "RED" ? scoreRed : scoreBlue).toString()}
               className="absolute top-[15%] left-[15%] "
               style={{
@@ -320,24 +400,24 @@ return (
                 height: "120px",
               }} />
             <Panel 
-              variant="name" 
-              title={session.username}
-              className="absolute top-[60%] left-[18%]"
-              style={{
-                backgroundImage: `url(${playerColor == "RED" ? redName : blueName})`,
-                backgroundSize: "contain",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                width: "400px",
-                height: "150px",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }} 
-            />
+            variant="name" 
+            title={session.username}
+            className={`absolute top-[60%] left-[18%] ${turn == playerColor ? "animate-pulse" : ""}`}
+            style={{
+              backgroundImage: `url(${playerColor == "RED" ? redName : blueName})`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              width: "400px",
+              height: "150px",
+              padding: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }} 
+          />
 
-            <TurnIndicator turn={turn} playerColor={playerColor} playerName={session.username} opponentName="Adversaire"/>
+            <TurnIndicator turn={turn} playerColor={playerColor} playerName={session.username}  title={opponentName} />
             <Panel variant="score" title="SCORE" message={(playerColor == "RED" ? scoreRed : scoreBlue).toString()}
               className="absolute bottom-[15%] left-[15%] "
               style={{
@@ -347,7 +427,10 @@ return (
                 width: "120px",
                 height: "120px",
               }} />
-            <Timer timeLeft={timeRemaining[0] || 0} color={playerColor} turn={turn} isPaused={isPaused} onExpire={surrenderGame} />
+            <Timer timeLeft={timeRemaining[0] || 0} 
+                   color={playerColor}
+                   turn={turn} 
+                   isPaused={isPaused} />
           </div>
         )}
         
@@ -363,8 +446,29 @@ return (
               <span className="text-yellow-400 text-4xl font-bold">PAUSE</span>
             </div>
           )}
-          {board.map((row, rowIndex) =>
-            row.map((cell, colIndex) => (
+         {board.map((row, rowIndex) =>
+          row.map((cell, colIndex) => {
+            let arrow = null;
+            const battleInProgress = battleData != null || battleCell != null || phase == "BATTLE";
+            
+            if (!battleInProgress) {
+              for (const color of Object.keys(arrows)) {
+                const a = arrows[color];
+                if (a.from.row != rowIndex || a.from.col != colIndex) continue;
+                
+                const pieceOnFrom = board[a.from.row]?.[a.from.col];
+                const pieceOnTo   = board[a.to.row]?.[a.to.col];
+                const aliveOnFrom = pieceOnFrom && pieceOnFrom.player == color;
+                const aliveOnTo   = pieceOnTo   && pieceOnTo.player   == color;
+                
+                if (!aliveOnFrom && !aliveOnTo) break;
+                
+                arrow = { from: a.from, to: a.to, color };
+                break;
+              }
+            }
+            
+            return (
               <Cell
                 key={`${rowIndex}-${colIndex}`}
                 row={rowIndex}
@@ -372,14 +476,16 @@ return (
                 isLake={isLake(rowIndex, colIndex)}
                 isSelected={selectedCell && selectedCell.row == rowIndex && selectedCell.col == colIndex}
                 piece={cell}
-                playerColor = {playerColor}
+                playerColor={playerColor}
                 onClick={handleCellClick}
                 onDragStart={activeDragStart}
                 onDrop={activeBoardDrop}
                 isBattle={battleCells.some(c => c.row == rowIndex && c.col == colIndex)}
+                arrow={arrow}
               />
-            ))
-          )}
+            );
+          })
+        )}
           {battleData?.attacker && battleData?.defender && (
             <Battle
               attacker={battleData.attacker}
