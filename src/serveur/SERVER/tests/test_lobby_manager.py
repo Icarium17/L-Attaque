@@ -83,5 +83,16 @@ class TestLobbyManager(unittest.TestCase):
         self.lobby.DAOUsers.update_score.assert_any_call(1, 0, 1)
         self.lobby.DAOUsers.update_score.assert_any_call(2, 0, 0)
 
+    def test_get_status_reattaches_user_from_session_key(self):
+        self.lobby.active_users.clear()
+        self.lobby.DAOUsers.get_user_by_session_key = MagicMock(return_value=(True, 3, "RecoveredUser", 42))
+
+        status = self.lobby.get_status(("RECOVERED_KEY",))
+
+        self.assertEqual(status, {"status": "IDLE"})
+        self.assertIn("RECOVERED_KEY", self.lobby.active_users)
+        self.assertEqual(self.lobby.active_users["RECOVERED_KEY"].account_id, 3)
+        self.assertEqual(self.lobby.active_users["RECOVERED_KEY"].username, "RecoveredUser")
+
 if __name__ == "__main__":
     unittest.main()

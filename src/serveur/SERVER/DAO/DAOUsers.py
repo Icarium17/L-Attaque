@@ -29,20 +29,20 @@ class DAOUsers():
             # Check if username already exists
             existing_user = db.fetch("SELECT * FROM users WHERE username=%s", (username,))
             if existing_user:
-                return False, "USERNAME_ALREADY_EXISTS"  # Username already exists
+                return False, None, None, "USERNAME_ALREADY_EXISTS"
 
+            session_key = secrets.token_hex(32)
             sql = """
-            INSERT INTO users (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO users (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast, session_key)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
 
-            params = (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast)
+            params = (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast, session_key)
 
             if db.execute(sql, params):
                 user_id = db.cursor.lastrowid
-                session_key = secrets.token_hex(32)
                 return True, user_id, session_key, "ACCOUNT_CREATED"
-            return False, "ERROR"
+            return False, None, None, "ERROR"
 
     def connect(self, username, password):
         """
@@ -65,9 +65,9 @@ class DAOUsers():
             score = user[0]["score"]
             user_id = user[0]["_id"]
             if bcrypt.checkpw(password.encode(), stored_hash):
-                session_key = secrets.token_hex(32)  # Generates a random session key
+                session_key = secrets.token_hex(32) 
 
-                db.execute("UPDATE users SET game_status = 'IDLE' WHERE username=%s", (username,))
+                db.execute("UPDATE users SET game_status = 'IDLE', session_key = %s WHERE username=%s", (session_key, username))
 
                 return True, user_id, session_key, score
 
@@ -75,7 +75,10 @@ class DAOUsers():
         
     def logout(self, user_id):
         with Connection() as db:
-            db.execute("UPDATE users SET game_status = 'DISCONNECTED' WHERE _id=%s", (user_id,))
+            db.execute(
+                "UPDATE users SET game_status = %s, session_key = %s WHERE _id = %s",
+                ('DISCONNECTED', None, user_id)
+            )
 
 
     def delete_user(self, user_id):
@@ -122,3 +125,15 @@ class DAOUsers():
             difficulty = result[0]['ai_difficulty'] if result else None
             print(difficulty)
             return difficulty
+
+    def get_user_by_session_key(self, session_key):
+        with Connection() as db:
+            user = db.fetch("SELECT * from users WHERE session_key = %s", (session_key,))
+            if not user:
+                return False, None, None, None
+
+            score = user[0]["score"]
+            user_id = user[0]["_id"]
+            username = user[0]["username"]
+
+            return True, user_id, username, score

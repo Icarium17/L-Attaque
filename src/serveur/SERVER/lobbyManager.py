@@ -62,6 +62,19 @@ class LobbyManager:
         if action:
             return action(*args)
 
+    def _get_or_reattach_user(self, session_key):
+        user = self.active_users.get(session_key)
+        if user is not None:
+            return user
+
+        found, user_id, username, score = self.DAOUsers.get_user_by_session_key(session_key)
+        if not found:
+            return None
+
+        user = User(user_id, session_key, username, score, "IDLE")
+        self.active_users[user.key] = user
+        return user
+
     ## Authentication
     def create_profile(self, args) -> str:
         """
@@ -83,7 +96,7 @@ class LobbyManager:
             user = User(user_id, session_key, username, 0, "IDLE")
             self.active_users[user.key] = user
             return "USER_CREATED", session_key, status
-        return "ERROR", -1, "ERROR"
+        return status, -1, status
 
     def login(self, args):
         """
@@ -115,10 +128,13 @@ class LobbyManager:
             Status message.
         """
         (my_key,) = args
-        if my_key in self.active_users:
-            user = self.active_users[my_key]
+        user = self._get_or_reattach_user(my_key)
+        if user is not None:
             self.DAOUsers.logout(user.account_id)
-            del self.active_users[my_key]
+            self.active_users.pop(my_key, None)
+            self.games.pop(my_key, None)
+            if my_key in self.wait_list:
+                self.wait_list.remove(my_key)
             return "USER_DISCONNECTED"
         return "INVALID_KEY"
         
@@ -132,9 +148,13 @@ class LobbyManager:
             Result of DAOUsers.delete_user.
         """
         (my_key,) = args
+        user = self._get_or_reattach_user(my_key)
+        if user is None:
+            return False
+
         self.logout(args)
 
-        return self.DAOUsers.delete_user(my_key)
+        return self.DAOUsers.delete_user(user.account_id)
     
     def modify_profile(self):
         """
@@ -146,8 +166,8 @@ class LobbyManager:
         (my_key, difficulty) = args
         difficulty -= 1
 
-        if my_key in self.active_users:
-            user = self.active_users[my_key]
+        user = self._get_or_reattach_user(my_key)
+        if user is not None:
             result = self.DAOUsers.update_difficutly(user.account_id, difficulty)
 
             if result == 1 :
@@ -167,6 +187,9 @@ class LobbyManager:
             Tuple of (status, opponent_username or message).
         """
         (my_key, mode) = args
+
+        if self._get_or_reattach_user(my_key) is None:
+            return "INVALID_KEY", ""
 
         if mode == "ai":
             return self._start_ai_game(my_key)
@@ -229,6 +252,11 @@ class LobbyManager:
         Returns:
             List of user dicts with 'connected' status.
         """
+        if args:
+            (my_key,) = args
+            if self._get_or_reattach_user(my_key) is None:
+                return []
+
         users = self.DAOStats.get_all_users()
         active_usernames = [user.username for user in self.active_users.values()]
 
@@ -247,6 +275,9 @@ class LobbyManager:
             Status message.
         """
         (my_key,) = args
+        if self._get_or_reattach_user(my_key) is None:
+            return "INVALID_KEY"
+
         game = self.games[my_key] 
         game.surrender(my_key)
 
@@ -261,6 +292,9 @@ class LobbyManager:
             Result of game.pause.
         """
         (my_key,) = args
+        if self._get_or_reattach_user(my_key) is None:
+            return "INVALID_KEY"
+
         game = self.games[my_key]
 
         result = game.pause(my_key)
@@ -278,6 +312,9 @@ class LobbyManager:
         """
 
         (my_key,) = args
+        if self._get_or_reattach_user(my_key) is None:
+            return False
+
         game = self.games[my_key]
 
         user_id, ai_difficulty, player_to_move, game_state_json = game.save(my_key)
@@ -297,7 +334,9 @@ class LobbyManager:
         """
         (my_key,) = args
 
-        user = self.active_users[my_key]
+        user = self._get_or_reattach_user(my_key)
+        if user is None:
+            return (0, "INVALID_KEY")
 
         print(user.account_id)
 
@@ -362,15 +401,19 @@ class LobbyManager:
         """
         my_key, pieces_recieved = args
         pieces_set = []
+
+        user = self._get_or_reattach_user(my_key)
+        if user is None:
+            return "INVALID_KEY", "IDLE"
         
         game = self.games[my_key] 
-        player = game.get_player(self.active_users[my_key].key)
+        player = game.get_player(user.key)
         pieces_set = self.convert_pieces(pieces_recieved, player)
         valid = game.check_valid_setup(my_key, pieces_set)
 
         if valid:
-            return valid, self.active_users[my_key].status
-        return "INVALID_PIECE_SETUP", self.active_users[my_key].status
+            return valid, user.status
+        return "INVALID_PIECE_SETUP", user.status
     
     def convert_pieces(self, pieces_data, owner = None):
         """
@@ -431,6 +474,8 @@ class LobbyManager:
             Tuple of (status, message).
         """
         my_key, x_0, y_0, x_1, y_1 = args
+        if self._get_or_reattach_user(my_key) is None:
+            return "INVALID_KEY", "INVALID_KEY"
 
         move = Move((x_0, y_0), (x_1, y_1))
         game = self.games[my_key]
@@ -460,10 +505,13 @@ class LobbyManager:
             Status dict or result of game.get_status.
         """
         (my_key,) = args
+        user = self._get_or_reattach_user(my_key)
+        if user is None:
+            return {"status": "IDLE"}
+
         game = self.games.get(my_key)
         if game is None or not game.players:
-            user = self.active_users.get(my_key)
-            return {"status": user.status if user is not None else "IDLE"}
+            return {"status": user.status}
         return game.get_status(my_key)
 
 
