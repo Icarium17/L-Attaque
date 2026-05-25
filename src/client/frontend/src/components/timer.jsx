@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import timerBlue from '../assets/images/timer-blue.png';
 import timerRed from '../assets/images/timer_red.png';
 
-export default function Timer({ timeLeft = 0, color = "BLUE", onExpire, turn, isPaused }) {
+export default function Timer({ timeLeft = 0, color = "BLUE", turn, isPaused }) {
   const [display, setDisplay] = useState(Math.floor(timeLeft));
 
   // Sync serveur : seulement si écart >3s
@@ -19,14 +19,7 @@ export default function Timer({ timeLeft = 0, color = "BLUE", onExpire, turn, is
     if (color != turn || isPaused) return;
 
     const id = setInterval(() => {
-      setDisplay(prev => {
-        if (prev <= 0) return 0;
-        if (prev === 1) {
-          onExpire?.();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setDisplay(prev => (prev <= 0 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(id);

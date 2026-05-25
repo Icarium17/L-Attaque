@@ -503,6 +503,24 @@ class GameManager():
             x, y = piece['position']
             piece['position'] = (9 - x, 9 - y)
         return list_pieces
+    
+    def get_last_moves(self, viewer_order):
+        """
+        Return last moves of player.
+        """
+        result = []
+        for p in self.players:
+            if not p.last_moves:
+                result.append(None)
+                continue
+            d = p.last_moves[-1].to_dict()
+            move_from = list(d["moveFrom"])
+            move_to = list(d["moveTo"])
+            if viewer_order == 1:
+                move_from = [9 - move_from[0], 9 - move_from[1]]
+                move_to   = [9 - move_to[0],   9 - move_to[1]]
+            result.append({"moveFrom": move_from, "moveTo": move_to})
+        return result
         
     def get_status(self, player_id):
         """
@@ -537,6 +555,7 @@ class GameManager():
                     "order" : player.order,
                     "ai_status": self.ai_move_status,
                     "ai_error": self.ai_move_error,
+                    "last_moves": self.get_last_moves(player.order),
                 }
             
             if self.status != "WAITING":

@@ -11,7 +11,7 @@ function addToCounts(prev, type) {
   return { ...prev, [type]: (prev[type] ?? 0) + 1 };
 }
 
-export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor }) {
+export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setOpponentName , setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor,setLastMoves }) {
   const navigate = useNavigate();
   const lastBattleRef = useRef(null);
 
@@ -46,6 +46,13 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setBoa
           if (gameData?.turn) setTurn(gameData.turn.toUpperCase());
           if (gameData?.time_remaining)
             setTimeRemaining(gameData.time_remaining.map(val => Number(val)));
+          
+          if (gameData?.last_moves) setLastMoves(gameData.last_moves);
+          if (gameData?.opponent) {
+          const name = gameData.opponent;
+          const displayName = name == "AI_Opponent" ? "Ordinateur" : name;
+          setOpponentName(displayName);
+        }
 
           const currentOrder = gameData?.order != undefined ? gameData.order : playerOrder;
           const currentPlayerColor = currentOrder == 1 ? "RED" : "BLUE";
