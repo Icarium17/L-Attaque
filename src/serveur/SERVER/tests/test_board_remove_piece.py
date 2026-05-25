@@ -25,6 +25,9 @@ class DummyPlayer:
     def __init__(self):
         self.pieces = {}
 
+    def remove_piece(self, piece):
+        self.pieces.pop(piece.id, None)
+
 
 def make_player(account_id, order, username):
     return Player(User(account_id, f"KEY{account_id}", username, 0), order)

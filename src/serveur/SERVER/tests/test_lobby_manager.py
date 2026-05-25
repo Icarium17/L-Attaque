@@ -1,7 +1,7 @@
 import unittest
 import sys
 import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, BASE_DIR)
 sys.path.insert(0, os.path.join(BASE_DIR, 'SERVER'))
@@ -10,6 +10,20 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'USERS'))
 sys.path.insert(0, os.path.join(BASE_DIR, 'GAME'))
 from SERVER.lobbyManager import LobbyManager
 from USERS.user import User
+
+
+class ImmediateTimer:
+    def __init__(self, interval, callback, args=None, kwargs=None):
+        self.interval = interval
+        self.callback = callback
+        self.args = args or ()
+        self.kwargs = kwargs or {}
+
+    def start(self):
+        self.callback(*self.args, **self.kwargs)
+
+    def cancel(self):
+        return None
 
 class TestLobbyManager(unittest.TestCase):
     def setUp(self):
@@ -57,7 +71,8 @@ class TestLobbyManager(unittest.TestCase):
         winner = game.players[0]
         loser = game.players[1]
 
-        self.lobby.end_game(winner, loser, "test")
+        with patch("SERVER.lobbyManager.threading.Timer", ImmediateTimer):
+            self.lobby.end_game(winner, loser, "test")
 
         self.assertEqual(self.lobby.active_users["KEY1"].status, "LAST_GAME_WON")
         self.assertEqual(self.lobby.active_users["KEY2"].status, "LAST_GAME_LOST")
@@ -65,8 +80,8 @@ class TestLobbyManager(unittest.TestCase):
         self.assertEqual(self.lobby.get_status(("KEY2",))["status"], "LAST_GAME_LOST")
         self.assertIsNone(game.timers)
         self.assertEqual(game.players, [])
-        self.lobby.DAOUsers.update_score.assert_any_call(1, 0)
-        self.lobby.DAOUsers.update_score.assert_any_call(2, 0)
+        self.lobby.DAOUsers.update_score.assert_any_call(1, 0, 1)
+        self.lobby.DAOUsers.update_score.assert_any_call(2, 0, 0)
 
 if __name__ == "__main__":
     unittest.main()

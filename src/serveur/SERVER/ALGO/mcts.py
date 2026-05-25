@@ -78,7 +78,7 @@ class MCTS:
         Args:
             ai: The AI player owning this search instance.
         """
-        self.root_node = Node(None, None)
+        self.root_node = Node(None, None, self.ai.order)
         self.current_node = self.root_node
 
         self.hidden_belief_pieces = self.ai.get_hidden_belief_pieces()
@@ -100,7 +100,7 @@ class MCTS:
         self.score_revealed_opponent_pieces = 0
         self.lost_combats = 0
 
-        if self.rollout_index % 5 == 0:
+        if self.rollout_index % 3 == 0:
             self.determinized_root = copy.deepcopy(self.infoSet_main)
             self.determinized_root.actualize_belief_pieces(
                 self.hidden_belief_pieces,
@@ -151,12 +151,20 @@ class MCTS:
             if len(filtered_untried_moves) > 0:
                 return filtered_untried_moves
 
-            next_node = self.current_node.select_best_child()
-            if next_node is not None:
-                self.current_node = next_node
-                self.update_infoSet(next_node.move)
-            else:
-                return None
+            skipped_children = set()
+            while True:
+                next_node = self.current_node.select_best_child(
+                    maximize=self.current_node.player_turn == self.order,
+                    excluded_children=skipped_children,
+                )
+                if next_node is None:
+                    return None
+
+                if self.update_infoSet(next_node.move):
+                    self.current_node = next_node
+                    break
+
+                skipped_children.add(next_node)
             
     def update_infoSet(self, move):
         """
@@ -166,17 +174,18 @@ class MCTS:
             move: The move to apply inside the rollout state.
 
         Returns:
-            None
+            bool: ``True`` when the move was applied, else ``False``.
         """
         result, undo_record = self.algo_infoSet.apply_move(move, self.confidence_by_level[self.difficulty])
 
         if result is None:
-            return
+            return False
 
         self.undo_stack.append(undo_record)
         self.score_revealed_opponent_pieces += result["encounter_score"]
         self.lost_combats += int(result["encounter_score"] < 0)
         self.previous_moves_algo.append(move)
+        return True
 
     def expansion(self, filtered_untried_moves):
         """
@@ -186,25 +195,32 @@ class MCTS:
             filtered_untried_moves (list): Candidate moves not yet expanded from
             the current node.
         """
-        if len(filtered_untried_moves) == 0:
+        if not filtered_untried_moves:
             return
 
-        next_move = random.choice(filtered_untried_moves)
+        skipped_moves = set()
 
-        self.update_infoSet(next_move)
-        self.current_node.tried_moves.add(next_move)
+        while True:
+            remaining_moves = [
+                move for move in filtered_untried_moves
+                if move not in skipped_moves
+            ]
+            if not remaining_moves:
+                return
 
-        next_node = Node(self.current_node, next_move)
+            next_move, next_prior = self._choose_expansion_move(remaining_moves)
 
-        if self.difficulty == 0:
-            next_node.prior = 1.0
-        elif self.difficulty == 1:
-            next_node.prior = self.prior_evaluate_medium_move(next_move)
-        else:
-            next_node.prior = self.prior_evaluate_difficult_move(next_move)
+            if self.update_infoSet(next_move):
+                self.current_node.tried_moves.add(next_move)
 
-        self.current_node.children.append(next_node)
-        self.current_node = next_node
+                next_node = Node(self.current_node, next_move, self.algo_infoSet.player_turn)
+                next_node.prior = next_prior
+
+                self.current_node.children.append(next_node)
+                self.current_node = next_node
+                return
+
+            skipped_moves.add(next_move)
                 
 
     def simulation(self):
@@ -233,12 +249,50 @@ class MCTS:
             value: The result of the simulation to propagate.
         """
         node = self.current_node
+
         while node is not None:
             node.visit_count += 1
             node.value += value
             node = node.parent
 
-    
+    def _choose_expansion_move(self, candidate_moves):
+        if not candidate_moves:
+            return None, None
+
+        if self.current_node.player_turn != self.order:
+            return random.choice(candidate_moves), 1.0
+
+        if self.difficulty == 0:
+            return random.choice(candidate_moves), 1.0
+
+        if self.difficulty == 1:
+            scored_moves = [
+                (move, self.prior_evaluate_medium_move(move))
+                for move in candidate_moves
+            ]
+        else:
+            scored_moves = [
+                (move, self.prior_evaluate_difficult_move(move))
+                for move in candidate_moves
+            ]
+
+        scored_moves.sort(key=lambda item: item[1], reverse=True)
+        top_moves = scored_moves[:3]
+
+        min_score = min(score for _, score in top_moves)
+        shifted_weights = [
+            score - min_score + 0.01
+            for _, score in top_moves
+        ]
+
+        chosen_move, chosen_prior = random.choices(
+            top_moves,
+            weights=shifted_weights,
+            k=1,
+        )[0]
+
+        return chosen_move, chosen_prior
+
 
     def simulation_easy(self):
         """
@@ -381,6 +435,9 @@ class MCTS:
         Returns:
             float: Base prior score before difficulty-specific adjustments.
         """
+        if my_piece is None:
+            return -5.0
+
         score = 0.0
 
         if their_piece is not None:
@@ -443,6 +500,9 @@ class MCTS:
         """
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
 
+        if my_piece is None:
+            return -5.0
+
         confidence = (
             1.0
             if their_piece is not None and their_piece.revealed
@@ -477,6 +537,9 @@ class MCTS:
         direction = -1 if start_row > 4 else 1
 
         my_piece, their_piece = self.algo_infoSet.return_pieces(move)
+
+        if my_piece is None:
+            return -5.0
 
         my_val = self._piece_value(my_piece)
         their_val = self._piece_value(their_piece)
@@ -639,13 +702,17 @@ class MCTS:
         Returns:
             Move: The selected move to play.
         """
-        if self.root_node.children:
-            best_child = max(self.root_node.children, key=lambda x: x.win_score)
+        best_child = self.root_node.get_best_move_child()
+        if best_child is not None:
+            best_move = best_child.move
         else:
-            best_child = self.root_node.get_random_child()
+            fallback_moves = self.infoSet_main.get_all_possible_moves()
+            if not fallback_moves:
+                return None
+            best_move = random.choice(fallback_moves)
 
-        self.ai.last_moves.append(best_child.move)
-        return best_child.move
+        self.ai.last_moves.append(best_move)
+        return best_move
     
 
         

@@ -32,7 +32,7 @@ class LobbyManager:
             "getStatus" : self.get_status,
             "deleteProfile" : self.delete_profile,
             "modifyProfile" : self.modify_profile,
-            "update_difficulty" : self.update_difficulty,
+            "difficulty" : self.update_difficulty,
             "startGame" : self.start_game,
             "setPieces" : self.set_pieces,
             "surrender" : self.surrender,
@@ -144,6 +144,7 @@ class LobbyManager:
 
     def update_difficulty(self, args):
         (my_key, difficulty) = args
+        difficulty -= 1
 
         if my_key in self.active_users:
             user = self.active_users[my_key]
@@ -459,10 +460,10 @@ class LobbyManager:
             Status dict or result of game.get_status.
         """
         (my_key,) = args
-        if my_key not in self.games:
+        game = self.games.get(my_key)
+        if game is None or not game.players:
             user = self.active_users.get(my_key)
             return {"status": user.status if user is not None else "IDLE"}
-        game = self.games[my_key]
         return game.get_status(my_key)
 
 
@@ -487,10 +488,10 @@ class LobbyManager:
         # Set statuses immediately
         if not isinstance(winner, AIPlayer):
             winner.user.status = "LAST_GAME_WON"
-            threading.Timer(10, self._cleanup, args=(winner.user, 1)).start()
+            self._cleanup(winner.user, 1)
         if not isinstance(loser, AIPlayer):
             loser.user.status = "LAST_GAME_LOST"
-            threading.Timer(10, self._cleanup, args=(loser.user, 0)).start()
+            self._cleanup(loser.user, 0)
 
     def _cleanup(self, user, win):
         """

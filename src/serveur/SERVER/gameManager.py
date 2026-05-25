@@ -637,6 +637,20 @@ class PlayerTimer:
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.timer_expired_callback = timer_expired_callback
         self.last_switch_time = None
+        self.resume_token = 0
+        self.resume_timer = None
+
+    def _cancel_resume_timer_locked(self):
+        if self.resume_timer is not None:
+            self.resume_timer.cancel()
+            self.resume_timer = None
+
+    def _resume_after_delay(self, player_idx, token):
+        with self.lock:
+            if self.closed or token != self.resume_token:
+                return
+            self.resume_timer = None
+        self.start(player_idx)
 
     def start(self, player):
         """
@@ -647,6 +661,8 @@ class PlayerTimer:
         with self.lock:
             if self.closed:
                 return
+            self._cancel_resume_timer_locked()
+            self.resume_token += 1
             self.current_player = player
             self.running = True
             self.last_switch_time = time.time()
@@ -675,23 +691,11 @@ class PlayerTimer:
         Args:
             duration: Optional delay in seconds before resuming the timer.
         """
-        def resume_after_delay(player_idx, delay):
-            """
-            Resume the timer for a player after a fixed delay.
-
-            Args:
-                player_idx: Index of the player whose timer should resume.
-                delay: Number of seconds to wait before resuming.
-
-            Returns:
-                None
-            """
-            time.sleep(delay)
-            self.start(player_idx)
-
         with self.lock:
             if self.closed:
                 return
+            self._cancel_resume_timer_locked()
+            self.resume_token += 1
             if self.running and self.last_switch_time is not None:
                 elapsed = time.time() - self.last_switch_time
                 self.times[self.current_player] -= elapsed
@@ -699,7 +703,15 @@ class PlayerTimer:
             self.last_switch_time = None
 
             if duration is not None:
-                threading.Thread(target=resume_after_delay, args=(self.current_player, duration), daemon=True).start()
+                token = self.resume_token
+                player_idx = self.current_player
+
+                def resume_callback():
+                    self._resume_after_delay(player_idx, token)
+
+                self.resume_timer = threading.Timer(duration, resume_callback)
+                self.resume_timer.daemon = True
+                self.resume_timer.start()
 
     def shutdown(self):
         """
@@ -707,6 +719,8 @@ class PlayerTimer:
         """
         with self.lock:
             self.closed = True
+            self._cancel_resume_timer_locked()
+            self.resume_token += 1
             self.running = False
             self.last_switch_time = None
             self.players = []

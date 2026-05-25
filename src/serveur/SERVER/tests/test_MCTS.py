@@ -8,6 +8,8 @@ import time
 import unittest
 from ALGO.mcts import MCTS
 from ALGO.infoSet import InfoSet
+from ALGO.node import Node
+from GAME.move import Move
 from USERS.aiPlayer import AIPlayer
 from USERS.user import User
 from GAME.piece import BeliefPiece, PieceType
@@ -91,6 +93,64 @@ class TestMCTS(unittest.TestCase):
         self.assertTrue(stats["used_random_fallback"])
         self.assertEqual(stats["recursive_calls"], 0)
         self.assertTrue(all(piece.type is not None for piece in opponent_pieces.values()))
+
+    def test_prior_evaluate_medium_move_ignores_stale_move_with_empty_source(self):
+        self.game.finish_set_up()
+        ai = self.players[0]
+        self.mcts = MCTS(ai, self.game.game_rules, self.players)
+        self.mcts._reset_rollout_state()
+
+        stale_move = Move((0, 4), (0, 5))
+
+        score = self.mcts.prior_evaluate_medium_move(stale_move)
+
+        self.assertLess(score, 0)
+
+    def test_prior_evaluate_difficult_move_ignores_stale_move_with_empty_source(self):
+        self.game.finish_set_up()
+        ai = self.players[0]
+        ai.difficulty = 2
+        self.mcts = MCTS(ai, self.game.game_rules, self.players)
+        self.mcts._reset_rollout_state()
+
+        stale_move = Move((0, 4), (0, 5))
+
+        score = self.mcts.prior_evaluate_difficult_move(stale_move)
+
+        self.assertLess(score, 0)
+
+    def test_selection_soft_skips_stale_child_and_keeps_it_in_tree(self):
+        self.game.finish_set_up()
+        ai = self.players[0]
+        self.mcts = MCTS(ai, self.game.game_rules, self.players)
+        self.mcts._reset_rollout_state()
+
+        legal_moves = self.mcts.algo_infoSet.get_all_possible_moves()
+        self.assertTrue(legal_moves, "Expected at least one legal move for selection test")
+
+        valid_move = legal_moves[0]
+        stale_move = Move((0, 4), (0, 5))
+
+        root = self.mcts.root_node
+        root.tried_moves = set(legal_moves)
+
+        stale_child = Node(root, stale_move, 1 - ai.order)
+        stale_child.visit_count = 5
+        stale_child.value = 5
+        stale_child.prior = 1.0
+
+        valid_child = Node(root, valid_move, 1 - ai.order)
+        valid_child.visit_count = 1
+        valid_child.value = 0
+        valid_child.prior = 0.0
+
+        root.children = [stale_child, valid_child]
+
+        filtered_untried_moves = self.mcts.selection()
+
+        self.assertIsNotNone(filtered_untried_moves)
+        self.assertIs(self.mcts.current_node, valid_child)
+        self.assertIn(stale_child, root.children)
 
 if __name__ == "__main__":
     unittest.main()

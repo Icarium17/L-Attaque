@@ -11,6 +11,7 @@ from USERS.user import User
 from USERS.player import Player
 from USERS.aiPlayer import AIPlayer
 from gameManager import GameManager
+from lobbyManager import LobbyManager
 
 class TestGameSaveLoad(unittest.TestCase):
     def setUp(self):
@@ -43,8 +44,8 @@ class TestGameSaveLoad(unittest.TestCase):
         self.game.player_to_move = 0
         self.player.time_remaining = 100
         self.ai_player.time_remaining = 100
-        self.player.last_moves = None
-        self.ai_player.last_moves = None
+        self.player.last_moves.clear()
+        self.ai_player.last_moves.clear()
         self.player.score = 10
         self.ai_player.score = 20
 
@@ -53,13 +54,16 @@ class TestGameSaveLoad(unittest.TestCase):
         user_id, ai_difficulty, player_to_move, game_state_json = self.game.save(self.player.key)
         # Simulate loading
         game_state = json.loads(game_state_json)
+        lobby = LobbyManager()
+        boards = [lobby.convert_pieces(board) for board in game_state["player_boards"]]
+        main_board = lobby.convert_pieces(game_state["board"])
         loaded_players = [
-            Player(self.player.user, self.player.score),
-            AIPlayer(self.ai_player.user, 1, ai_difficulty)
+            Player(self.player.user, 0, self.player.score),
+            AIPlayer(self.ai_player.user, 1, ai_difficulty, self.ai_player.score)
         ]
-        loaded_players[0].load(game_state["player_boards"][0], game_state["times"][0], game_state["last_moves"][0])
-        loaded_players[1].load(game_state["player_boards"][1], game_state["times"][1], game_state["last_moves"][1])
-        loaded_game = GameManager.load(None, loaded_players, player_to_move, game_state["board"])
+        loaded_players[0].load(boards[0], game_state["times"][0], game_state["last_moves"][0])
+        loaded_players[1].load(boards[1], game_state["times"][1], game_state["last_moves"][1])
+        loaded_game = GameManager.load(None, loaded_players, player_to_move, main_board)
         # Check player info
         self.assertEqual(loaded_game.players[0].user.username, self.player.user.username)
         self.assertEqual(loaded_game.players[1].user.username, self.ai_player.user.username)

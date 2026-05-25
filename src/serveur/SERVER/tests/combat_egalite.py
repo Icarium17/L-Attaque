@@ -64,7 +64,7 @@ class TestCombatEgalite(unittest.TestCase):
         self.gm = GameManager(self.lobby, self.players)
         self.gm.board = self.board
         self.gm.players = self.players
-        self.gm.game_rules = GameRules(self.board, "original")
+        self.gm.game_rules = GameRules("original")
 
     def test_draw_removes_both(self):
         # Place two pieces of equal power
@@ -125,7 +125,7 @@ class TestGameManagerMakeMoveCombat(unittest.TestCase):
         defender = Piece(2, PieceType.Lieutenant, (2, 3), 1)
 
         self.gm.board = Board("original")
-        self.gm.game_rules = GameRules(self.gm.board, "original")
+        self.gm.game_rules = GameRules("original")
         self.gm.board.set_pieces([attacker, defender])
 
         for player in self.gm.players:
@@ -154,7 +154,7 @@ class TestGameManagerMakeMoveCombat(unittest.TestCase):
         defender = Piece(4, PieceType.Major, (4, 5), 1)
 
         self.gm.board = Board("original")
-        self.gm.game_rules = GameRules(self.gm.board, "original")
+        self.gm.game_rules = GameRules("original")
         self.gm.board.set_pieces([attacker, defender])
 
         for player in self.gm.players:
@@ -183,7 +183,7 @@ class TestGameManagerMakeMoveCombat(unittest.TestCase):
         defender = Piece(6, PieceType.Colonel, (6, 7), 1)
 
         self.gm.board = Board("original")
-        self.gm.game_rules = GameRules(self.gm.board, "original")
+        self.gm.game_rules = GameRules("original")
         self.gm.board.set_pieces([attacker, defender])
 
         for player in self.gm.players:

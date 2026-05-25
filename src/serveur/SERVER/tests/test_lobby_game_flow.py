@@ -44,6 +44,7 @@ class TestLobbyGameFlow(unittest.TestCase):
     def setUp(self):
         self.lobby = LobbyManager()
         self.lobby.DAOUsers.update_score = MagicMock()
+        self.lobby.DAOUsers.get_difficulty = MagicMock(return_value=0)
         self.user = User(1, "HUMAN_KEY", "Human", 0, "IDLE")
         self.lobby.active_users[self.user.key] = self.user
 
@@ -71,8 +72,10 @@ class TestLobbyGameFlow(unittest.TestCase):
         self.fail("expected at least one legal non-combat opening move")
 
     def test_pvai_lobby_flow_does_not_end_after_setup_and_first_move(self):
-        for seed, variant in ((0, 0), (1, 2)):
-            with self.subTest(seed=seed, variant=variant):
+        for difficulty in (0, 1, 2):
+            for seed, variant in ((0, 0), (1, 2)):
+                with self.subTest(difficulty=difficulty, seed=seed, variant=variant):
+                    self.lobby.DAOUsers.get_difficulty.return_value = difficulty
                 random.seed(seed)
 
                 status, opponent = self.lobby.start_game((self.user.key, "ai"))

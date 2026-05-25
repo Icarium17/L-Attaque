@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import time
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +14,7 @@ from GAME.piece import Piece, PieceType
 from USERS.aiPlayer import AIPlayer
 from USERS.player import Player
 from USERS.user import User
-from gameManager import GameManager
+from gameManager import GameManager, PlayerTimer
 
 
 class DummyLobbyManager:
@@ -444,6 +445,25 @@ class TestGameEndRegressions(unittest.TestCase):
         ]
 
         self._run_scripted_sequence(game, lobby, scripted_moves)
+
+
+class TestPlayerTimerRegressions(unittest.TestCase):
+    def test_shutdown_cancels_pending_delayed_resume(self):
+        players = [
+            Player(User(1, "key1", "Alice", 0, "IDLE"), 0),
+            Player(User(2, "key2", "Bob", 0, "IDLE"), 1),
+        ]
+        timer = PlayerTimer(players, [player.time_remaining for player in players], MagicMock())
+
+        timer.start(0)
+        original_start = timer.start
+        timer.start = MagicMock(wraps=original_start)
+
+        timer.stop(0.05)
+        timer.shutdown()
+        time.sleep(0.1)
+
+        timer.start.assert_not_called()
 
 
 if __name__ == "__main__":

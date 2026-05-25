@@ -1,0 +1,450 @@
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                    STRATEGO BELIEF SYSTEM OVERVIEW                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+                         Enemy Piece Observed
+                                   │
+                                   ▼
+                          ┌────────────────┐
+                          │  BeliefPiece   │
+                          │  Unknown Type  │
+                          └────────────────┘
+                                   │
+                 ┌─────────────────┼─────────────────┐
+                 │                 │                 │
+                 ▼                 ▼                 ▼
+           Enemy Moves       Enemy Wins       Enemy Loses
+                 │                 │                 │
+                 ▼                 ▼                 ▼
+       Remove Impossible     Reveal Type       Remove Piece
+             Types                │                 │
+                 │                ▼                 │
+                 └────────► Update Inventory ◄──────┘
+                                   │
+                                   ▼
+                     Recalculate Probabilities
+                                   │
+                                   ▼
+                    Upgrade If Type Is Certain
+                                   │
+                                   ▼
+                         Revealed Opponent Piece
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+1. MOVE OBSERVATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Before Move
+
+┌──────────────────────────┐
+│ BeliefPiece #101         │
+├──────────────────────────┤
+│ Marshal        2.5%      │
+│ General        2.5%      │
+│ Scout         20.0%      │
+│ Bomb          15.0%      │
+│ Flag           2.5%      │
+└──────────────────────────┘
+
+
+Enemy moves 1 tile
+
+
+update_belief_state_move()
+
+
+┌──────────────────────────┐
+│ BeliefPiece #101         │
+├──────────────────────────┤
+│ Marshal        3.0%      │
+│ General        3.0%      │
+│ Scout         24.0%      │
+│ Bomb          0.0%  ❌   │
+│ Flag          0.0%  ❌   │
+└──────────────────────────┘
+
+
+Knowledge gained:
+
+Bomb cannot move
+Flag cannot move
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+2. SCOUT IDENTIFICATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Observed Move
+
+A ─────────────────────────────► B
+
+Distance = 5
+
+
+Stratego Rule
+
+Only Scouts can move more than one tile
+
+
+update_belief_state_move(distance=5)
+
+
+Before
+
+┌────────────────────┐
+│ Unknown Piece      │
+└────────────────────┘
+
+
+Possible Types
+
+Marshal
+General
+Captain
+Scout
+Bomb
+Flag
+...
+
+
+After
+
+Scout = 100%
+Everything Else = 0%
+
+
+Automatic Upgrade
+
+
+      BeliefPiece
+           │
+           ▼
+      Revealed Scout
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+3. ENEMY LOSES A BATTLE
+═══════════════════════════════════════════════════════════════════════════════
+
+Combat
+
+Your Captain attacks
+
+
+        Captain
+           │
+           ▼
+     Enemy Piece
+
+
+Enemy Loses
+
+
+Actual Type
+
+Lieutenant
+
+
+update_belief_state_loser()
+
+
+Before
+
+belief_pieces
+
+#101
+#102
+#103
+#104
+
+
+Remaining Enemy Inventory
+
+Lieutenant = 4
+Captain    = 4
+Major      = 3
+...
+
+
+After
+
+belief_pieces
+
+#102
+#103
+#104
+
+
+Remaining Enemy Inventory
+
+Lieutenant = 3
+Captain    = 4
+Major      = 3
+...
+
+
+Effect
+
+One Lieutenant is gone
+
+↓
+
+
+All remaining hidden pieces become
+slightly less likely to be Lieutenant
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+4. ENEMY WINS A BATTLE
+═══════════════════════════════════════════════════════════════════════════════
+
+Combat
+
+Enemy Piece Wins
+
+
+Actual Type Revealed
+
+Major
+
+
+update_belief_state_winner()
+
+
+Before
+
+┌──────────────────────────┐
+│ BeliefPiece #42          │
+├──────────────────────────┤
+│ Major        20%         │
+│ Captain      25%         │
+│ Scout         5%         │
+│ ...                      │
+└──────────────────────────┘
+
+
+Step 1
+
+Remove hidden belief piece
+
+
+belief_pieces
+
+#42 removed
+
+
+Step 2
+
+Decrease inventory count
+
+
+Major
+
+2 → 1
+
+
+Step 3
+
+Convert to real piece
+
+
+BeliefPiece #42
+       │
+       ▼
+Piece #42
+Type = Major
+
+
+Step 4
+
+Store permanently
+
+
+opponent_pieces
+
+#42 = Major
+
+
+Step 5
+
+Refresh all hidden pieces
+
+
+Every remaining hidden piece becomes
+less likely to be a Major
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+5. GLOBAL CONSTRAINT PROPAGATION
+═══════════════════════════════════════════════════════════════════════════════
+
+               Hidden Enemy Pieces
+
+
+     ┌────────┐
+     │ BP #1  │
+     └────┬───┘
+          │
+
+     ┌────▼───┐
+     │ BP #2  │
+     └────┬───┘
+          │
+
+     ┌────▼───┐
+     │ BP #3  │
+     └────┬───┘
+          │
+
+     ┌────▼───┐
+     │ BP #4  │
+     └────────┘
+          │
+          │
+          ▼
+
+
+      Remaining Enemy Inventory
+
+      Marshal      1
+      General      1
+      Colonel      2
+      Major        2
+      Captain      4
+      Scout        8
+      Bomb         6
+      Flag         1
+
+
+One Major Revealed
+
+
+      Major
+
+      2 → 1
+
+
+             ▼
+
+
+BP #1 probabilities updated
+BP #2 probabilities updated
+BP #3 probabilities updated
+BP #4 probabilities updated
+
+
+All hidden pieces are linked through
+the same remaining inventory counts.
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+6. BELIEF PIECE LIFECYCLE
+═══════════════════════════════════════════════════════════════════════════════
+
+            Game Start
+                 │
+                 ▼
+         ┌─────────────┐
+         │ BeliefPiece │
+         └─────────────┘
+                 │
+                 │
+         Enemy Observed
+                 │
+                 ▼
+      Probability Updates
+                 │
+      ┌──────────┴──────────┐
+      │                     │
+      ▼                     ▼
+
+  Not Certain          Certain
+
+      │                     │
+
+      ▼                     ▼
+
+ BeliefPiece         Real Piece
+  Remains             Revealed
+
+      │                     │
+
+      ▼                     ▼
+
+ Future Info       Stored Forever
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+7. COMPLETE INFORMATION FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+                         Enemy Action
+                               │
+           ┌───────────────────┼───────────────────┐
+           │                   │                   │
+           ▼                   ▼                   ▼
+
+         Move                Win                Lose
+           │                   │                   │
+           ▼                   ▼                   ▼
+
+ Remove Impossible      Reveal Actual       Remove Piece
+      Types                 Type
+           │                   │                   │
+           └───────────┬───────┴───────────┬───────┘
+                       │                   │
+                       ▼                   ▼
+
+                 Update Inventory Counts
+
+                       │
+
+                       ▼
+
+            Recompute All Probabilities
+
+                       │
+
+                       ▼
+
+            Upgrade If Certainty Reached
+
+                       │
+
+                       ▼
+
+               Revealed Opponent Piece
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+KEY IDEA
+═══════════════════════════════════════════════════════════════════════════════
+
+Observed Moves
+        +
+Observed Battles
+        +
+Remaining Piece Counts
+        +
+Stratego Rules
+        =
+Probability Distribution
+For Every Hidden Enemy Piece
+
+
+The opponent_belief_pieces_left dictionary acts as the global constraint
+that connects every hidden piece together. Whenever a piece is revealed or
+destroyed, every remaining BeliefPiece updates its probabilities to reflect
+
+
+
+the new state of the enemy army.

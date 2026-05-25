@@ -22,7 +22,10 @@ class TestGameSaveLoadIntegration(unittest.TestCase):
             "board": game.board.return_pieces(),
             "scores": [player.score for player in game.players],
             "times": [player.time_remaining for player in game.players],
-            "last_moves": [player.last_move for player in game.players]
+            "last_moves": [
+                [move.to_dict() for move in player.last_moves]
+                for player in game.players
+            ]
         }
         game_state_json = json.dumps(game_state)
         # Simulate DB save success
@@ -74,8 +77,8 @@ class TestGameSaveLoadIntegration(unittest.TestCase):
         self.lobby.games[self.user.key].player_to_move = 0
         self.player.time_remaining = 100
         self.ai_player.time_remaining = 100
-        self.player.last_moves = None
-        self.ai_player.last_moves = None
+        self.player.last_moves.clear()
+        self.ai_player.last_moves.clear()
         self.player.score = 10
         self.ai_player.score = 20
 

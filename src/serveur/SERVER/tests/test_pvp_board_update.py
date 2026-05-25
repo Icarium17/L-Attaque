@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import sys
 import os
@@ -21,6 +21,18 @@ class DummyLobbyManager:
     def too_long_wait(self, key):
         return None
 
+
+class FakeTimer:
+    def __init__(self, interval, callback):
+        self.interval = interval
+        self.callback = callback
+
+    def start(self):
+        return None
+
+    def cancel(self):
+        return None
+
 class TestPVPBoardUpdate(unittest.TestCase):
     def setUp(self):
         user1 = User(1, "key1", "Alice", 0, "IDLE")
@@ -29,6 +41,7 @@ class TestPVPBoardUpdate(unittest.TestCase):
         player2 = Player(user2, 1)
         self.players = [player1, player2]
         self.gm = GameManager(DummyLobbyManager(), self.players)
+        self.gm.timers = MagicMock()
         # Place one piece for each player in adjacent positions
         self.p0_piece = Piece(id=10, type=PieceType.Marechal, position=(5, 5), owner=0)
         self.p1_piece = Piece(id=20, type=PieceType.General, position=(5, 6), owner=1)
@@ -49,7 +62,8 @@ class TestPVPBoardUpdate(unittest.TestCase):
         move = DummyMove()
         # Patch game rules so p0 always wins
         self.gm.game_rules.combat = lambda a, d: a
-        self.gm.make_move(self.players[0].key, move)
+        with patch("gameManager.threading.Timer", FakeTimer):
+            self.gm.make_move(self.players[0].key, move)
         # Check main board
         tile = self.gm.board.tiles[6][5]
         self.assertIsNotNone(tile.piece)
@@ -84,7 +98,8 @@ class TestPVPBoardUpdate(unittest.TestCase):
             moveTo = (2, 3)
         move2 = DummyMove2()
         self.gm.game_rules.combat = lambda a, d: a
-        self.gm.make_move(self.players[0].key, move2)
+        with patch("gameManager.threading.Timer", FakeTimer):
+            self.gm.make_move(self.players[0].key, move2)
         # Check p1's known board: p0_piece1 should be at (2,3), not at (2,2)
         tile_p1_old = self.gm.players[1].known_board.tiles[2][2]
         self.assertIsNone(tile_p1_old.piece)
@@ -103,7 +118,8 @@ class TestPVPBoardUpdate(unittest.TestCase):
         move = DummyMove()
         # Patch game rules so p1 always wins
         self.gm.game_rules.combat = lambda a, d: d
-        self.gm.make_move(self.players[0].key, move)
+        with patch("gameManager.threading.Timer", FakeTimer):
+            self.gm.make_move(self.players[0].key, move)
         # Check p0's known board: p0's piece should be removed from (5,5)
         tile_p0_old = self.gm.players[0].known_board.tiles[5][5]
         self.assertIsNone(tile_p0_old.piece)
