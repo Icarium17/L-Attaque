@@ -60,7 +60,7 @@ protected function executeAction() {
                 return ["result" => compact("error")];
             }
 
-            $apiResult = parent::callPython("signup", [
+            $apiResult = parent::callPython("register", [
                 "key" => $key,
                 "username" => $username,
                 "password" => $password,
