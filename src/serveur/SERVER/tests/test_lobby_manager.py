@@ -94,5 +94,27 @@ class TestLobbyManager(unittest.TestCase):
         self.assertEqual(self.lobby.active_users["RECOVERED_KEY"].account_id, 3)
         self.assertEqual(self.lobby.active_users["RECOVERED_KEY"].username, "RecoveredUser")
 
+    def test_login_starts_session_after_duplicate_check(self):
+        self.lobby.active_users.clear()
+        self.lobby.DAOUsers.connect = MagicMock(return_value=(True, 3, 42))
+        self.lobby.DAOUsers.start_session = MagicMock(return_value="NEW_KEY")
+
+        status, key = self.lobby.login(("RecoveredUser", "password"))
+
+        self.assertEqual((status, key), ("USER_CONNECTED", "NEW_KEY"))
+        self.lobby.DAOUsers.start_session.assert_called_once_with(3)
+        self.assertEqual(self.lobby.active_users["NEW_KEY"].status, "IDLE")
+
+    def test_login_does_not_rotate_session_for_connected_user(self):
+        self.lobby.active_users.clear()
+        self.lobby.active_users["EXISTING_KEY"] = User(3, "EXISTING_KEY", "RecoveredUser", 42, "PLAYING")
+        self.lobby.DAOUsers.connect = MagicMock(return_value=(True, 3, 42))
+        self.lobby.DAOUsers.start_session = MagicMock()
+
+        status, key = self.lobby.login(("RecoveredUser", "password"))
+
+        self.assertEqual((status, key), ("USER_ALREADY_CONNECTED", -1))
+        self.lobby.DAOUsers.start_session.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

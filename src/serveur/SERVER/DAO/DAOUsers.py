@@ -5,7 +5,7 @@ from DAO.DAOConnection import Connection
 
 class DAOUsers():
     """
-    Data-access helpers for user accounts, authentication, and score updates.
+    Data-access helpers for user accounts, authentication, sessions, and score updates.
     """
     def create_user(self, username, password, preferred_language, id_avatar, rights, animation, contrast):
         """
@@ -53,7 +53,7 @@ class DAOUsers():
             password: Plaintext password to verify.
 
         Returns:
-            tuple: Success payload with user id, session key, and score, or a failure marker.
+            tuple: Success payload with user id and score, or a failure marker.
         """
         with Connection() as db:
             user = db.fetch("SELECT * FROM users WHERE username=%s", (username,))
@@ -65,20 +65,33 @@ class DAOUsers():
             score = user[0]["score"]
             user_id = user[0]["_id"]
             if bcrypt.checkpw(password.encode(), stored_hash):
-                session_key = secrets.token_hex(32) 
-
-                db.execute("UPDATE users SET game_status = 'IDLE', session_key = %s WHERE username=%s", (session_key, username))
-
-                return True, user_id, session_key, score
+                return True, user_id, score
 
             return False, 0
+
+    def start_session(self, user_id):
+        """
+        Issue a new session key for one authenticated user.
+
+        Args:
+            user_id: Database id of the authenticated user.
+
+        Returns:
+            str | None: The newly issued session key when persisted successfully.
+        """
+        session_key = secrets.token_hex(32)
+
+        with Connection() as db:
+            updated = db.execute(
+                "UPDATE users SET session_key = %s WHERE _id = %s",
+                (session_key, user_id)
+            )
+
+        return session_key if updated else None
         
     def logout(self, user_id):
         with Connection() as db:
-            db.execute(
-                "UPDATE users SET game_status = %s, session_key = %s WHERE _id = %s",
-                ('DISCONNECTED', None, user_id)
-            )
+            db.execute("UPDATE users SET session_key = %s WHERE _id = %s", (None, user_id))
 
 
     def delete_user(self, user_id):

@@ -110,11 +110,16 @@ class LobbyManager:
         result = self.DAOUsers.connect(username, password)
         if not result[0]:
             return "INVALID_USERNAME_PASSWORD", -1
-        _, user_id, session_key, score = result
-        user = User(user_id, session_key, username, score, "IDLE")
+        _, user_id, score = result
 
-        if any(active_user.account_id == user.account_id for active_user in self.active_users.values()):
+        if any(active_user.account_id == user_id for active_user in self.active_users.values()):
             return "USER_ALREADY_CONNECTED", -1
+
+        session_key = self.DAOUsers.start_session(user_id)
+        if session_key is None:
+            return "ERROR", -1
+
+        user = User(user_id, session_key, username, score, "IDLE")
 
         self.active_users[user.key] = user
         return "USER_CONNECTED", session_key

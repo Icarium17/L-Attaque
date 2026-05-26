@@ -41,8 +41,8 @@ Routes (endpoint -> HTTP method):
 
 - POST /get_status
     - Payload: {"key": session_key}
-    - Response when in a game: {"status": game_status, "board": [...], "turn": "blue" | "red", "order": 0 | 1, "scores": [...], "time_remaining": [...], "battle": ...}
-    - Response when not in a game: {"status": user_status}
+    - Response when in a game: {"status": current game state, "board": [...], "turn": "blue" | "red", "order": 0 | 1, "scores": [...], "time_remaining": [...], "battle": ...}
+    - Response when not in a game: {"status": current in-memory user state}
 
     - `status` meanings:
         - `IDLE`: the user is connected but not currently attached to a game.
@@ -77,6 +77,7 @@ Routes (endpoint -> HTTP method):
 
 Notes:
  - All endpoints expect JSON payloads unless noted otherwise.
+ - Connection state is tracked by the persisted session key: users with a session key are connected, users without one are disconnected.
  - Exact response contents and types are determined by LobbyManager and DAO implementations.
 """
 
