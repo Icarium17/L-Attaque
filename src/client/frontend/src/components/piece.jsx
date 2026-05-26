@@ -28,10 +28,44 @@ const PIECE_COMPONENTS = {
   'Drapeau': Flag
 };
 
-export default function Piece({ rank, player, type, revealed, playerColor}) {
+export default function Piece({ rank, player, type, revealed, playerColor }) {
   const isBlue = player == "BLUE";
-  const isVisible = (player == playerColor) || revealed;   
+  const isVisible = (player == playerColor) || revealed;
   const Aspect = PIECE_COMPONENTS[type];
+
+  const isFlag = type == 'Drapeau';
+  const isBomb = type == 'Bombe';
+  const isSpecial = isFlag || isBomb;
+ 
+  let specialRing = '';
+  if (isVisible) {
+    if (isFlag) {
+      specialRing = 'shadow-[0_0_14px_rgba(254,240,138,0.85)]';
+    } else if (isBomb) {
+      specialRing = isBlue 
+        ? 'shadow-[0_0_14px_rgba(153,27,27,0.85)]'
+        : 'shadow-[0_0_14px_rgba(0,0,0,0.7)]';
+    }
+  }
+
+  // Couleur du SVG  
+  let svgColor;
+  if (isVisible && isFlag) {
+    svgColor = isBlue ? 'text-yellow-100' : 'text-yellow-600';
+  } else if (isVisible && isBomb) {
+    svgColor = isBlue ? 'text-red-700' : 'text-slate-900';
+  } else {
+    svgColor = 'text-slate-900';
+  }
+
+  // Outline autour du SVG
+  const outlineColor = isBlue ? 'rgba(255,255,255,0.95)' : 'rgba(254,202,202,0.9)';
+  const svgFilter = isSpecial 
+    ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))'
+    : `drop-shadow(1px 0 0 ${outlineColor}) 
+       drop-shadow(-1px 0 0 ${outlineColor}) 
+       drop-shadow(0 1px 0 ${outlineColor}) 
+       drop-shadow(0 -1px 0 ${outlineColor})`;
 
   return (
     <div
@@ -39,31 +73,36 @@ export default function Piece({ rank, player, type, revealed, playerColor}) {
         relative w-[92%] h-[92%] rounded-sm flex items-center justify-center
         text-white font-bold text-[clamp(8px,1.3vw,16px)]
         bg-cover bg-center select-none shadow-sm transition-all duration-300
+        ${specialRing}
       `}
       style={{ backgroundImage: `url(${isBlue ? pieceBlue : pieceRed})` }}
-   >
-    {/* Le Grade*/}
-    <span 
-      className={`
-        absolute top-2 left-3 z-10 
-        text-[clamp(14px,1.6vw,17px)] text-white
-        ${isVisible ? "opacity-100" : "opacity-0"}
-      `}
+    >
+      <span
+        className={`
+          absolute top-2 left-3 z-10
+          text-[clamp(14px,1.6vw,17px)] text-white
+          ${isVisible && !isSpecial ? "opacity-100" : "opacity-0"}
+        `}
       >
-      {isVisible ? rank : "?"}
+        {isVisible ? rank : "?"}
       </span>
-    {/* Le visuel SVG si visible*/} 
-      {isVisible && Aspect && ( 
-         <div className="w-9 h-11 object-contain pointer-events-none">
-          <Aspect className="text-blue-950 w-full h-full" />
+
+      {isVisible && Aspect && (
+        <div
+          className={`object-contain pointer-events-none ${
+            isSpecial ? 'w-11 h-12' : 'w-9 h-11'
+          }`}
+          style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
+        >
+          <Aspect className={`w-full h-full ${svgColor}`} />
         </div>
-      )}     
-      {/* ? si invisible*/} 
-      {!isVisible &&(
-        <div className= "absolute inset-0 bg-black/10 rounded-sm flex items-center justify-center">
-        <span className="text-white text-xl">?</span>
+      )}
+
+      {!isVisible && (
+        <div className="absolute inset-0 bg-black/10 rounded-sm flex items-center justify-center">
+          <span className="text-white text-xl">?</span>
         </div>
-      )}    
+      )}
     </div>
   );
 }
