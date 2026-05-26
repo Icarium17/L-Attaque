@@ -94,17 +94,17 @@ class AIPlayer(Player):
             f"{phase}_avg_ms={duration:.3f}"
             for phase, duration in average_phase_times_ms.items()
         )
-        print(
-            "AI debug: "
-            f"difficulty={search_snapshot.difficulty}, "
-            f"budget={move_time:.2f}s, "
-            f"elapsed={elapsed:.2f}s, "
-            f"initial_possible_moves={mcts.initial_possible_moves}, "
-            f"iterations={iteration_nb}, "
-            f"iter_per_sec={iterations_per_second:.2f}, "
-            f"move={move}, "
-            f"{phase_summary}"
-        )
+        # print(
+        #     "AI debug: "
+        #     f"difficulty={search_snapshot.difficulty}, "
+        #     f"budget={move_time:.2f}s, "
+        #     f"elapsed={elapsed:.2f}s, "
+        #     f"initial_possible_moves={mcts.initial_possible_moves}, "
+        #     f"iterations={iteration_nb}, "
+        #     f"iter_per_sec={iterations_per_second:.2f}, "
+        #     f"move={move}, "
+        #     f"{phase_summary}"
+        # )
         return move
 
 

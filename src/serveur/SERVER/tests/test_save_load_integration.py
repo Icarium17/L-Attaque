@@ -2,6 +2,7 @@ import unittest
 import json
 import sys
 import os
+from unittest.mock import MagicMock
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from USERS.user import User
@@ -58,20 +59,25 @@ class TestGameSaveLoadIntegration(unittest.TestCase):
         self.ai_player = AIPlayer(self.ai_user, 1, 2)
         self.lobby.active_users[self.user.key] = self.user
         self.lobby.games[self.user.key] = GameManager(self.lobby, [self.player, self.ai_player])
+        setup_positions = {
+            0: ((0, 6), (1, 6)),
+            1: ((0, 3), (1, 3)),
+        }
         # Set up some pieces for both players
         for p in [self.player, self.ai_player]:
+            marechal_pos, flag_pos = setup_positions[p.order]
             pieces = [
-                Piece(0, PieceType.Marechal, (0, 0), p.order),
-                Piece(1, PieceType.Drapeau, (1, 0), p.order)
+                Piece(0, PieceType.Marechal, marechal_pos, p.order),
+                Piece(1, PieceType.Drapeau, flag_pos, p.order)
             ]
             p.known_board.set_pieces(pieces)
             p.position_pieces(pieces)
             p.sync_owned_pieces()
         all_pieces = [
-            Piece(0, PieceType.Marechal, (0, 0), 0),
-            Piece(1, PieceType.Drapeau, (1, 0), 0),
-            Piece(0, PieceType.Marechal, (0, 0), 1),
-            Piece(1, PieceType.Drapeau, (1, 0), 1)
+            Piece(0, PieceType.Marechal, (0, 6), 0),
+            Piece(1, PieceType.Drapeau, (1, 6), 0),
+            Piece(0, PieceType.Marechal, (0, 3), 1),
+            Piece(1, PieceType.Drapeau, (1, 3), 1)
         ]
         self.lobby.games[self.user.key].board.set_pieces(all_pieces)
         self.lobby.games[self.user.key].player_to_move = 0
@@ -110,6 +116,32 @@ class TestGameSaveLoadIntegration(unittest.TestCase):
         # Check belief pieces for both player and ai_player
         self.assert_belief_pieces_equal(self.player, loaded_game.players[0])
         self.assert_belief_pieces_equal(self.ai_player, loaded_game.players[1])
+
+    def test_load_resets_active_user_status_to_playing(self):
+        self.user.status = "LAST_GAME_LOST"
+
+        save_result, saved_tuple = self.local_save(self.user.key)
+        self.assertEqual(save_result[0], 1)
+
+        user_id, ai_difficulty, player_to_move, game_state_json = saved_tuple
+        game_state = json.loads(game_state_json)
+        saved_game = {
+            "ai_difficulty": ai_difficulty,
+            "player_to_move": player_to_move,
+            "player_boards": game_state["player_boards"],
+            "board": game_state["board"],
+            "scores": game_state["scores"],
+            "times": game_state["times"],
+            "last_moves": game_state["last_moves"],
+        }
+
+        self.lobby.DAOSave.load_game = MagicMock(return_value=saved_game)
+
+        del self.lobby.games[self.user.key]
+
+        load_result = self.lobby.load((self.user.key,))
+        self.assertEqual(load_result[0], 1)
+        self.assertEqual(self.user.status, "PLAYING")
 
     def assert_belief_pieces_equal(self, orig_player, loaded_player):
             # Compare keys

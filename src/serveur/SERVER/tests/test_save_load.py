@@ -2,6 +2,7 @@ import unittest
 import json
 import sys
 import os
+from unittest.mock import patch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -24,21 +25,26 @@ class TestGameSaveLoad(unittest.TestCase):
         self.players = [self.player, self.ai_player]
         # Create game
         self.game = GameManager(None, self.players)
+        setup_positions = {
+            0: ((0, 6), (1, 6)),
+            1: ((0, 3), (1, 3)),
+        }
         # Set up some pieces for both players
         from GAME.piece import Piece, PieceType
         for p in self.players:
+            marechal_pos, flag_pos = setup_positions[p.order]
             pieces = [
-                Piece(0, PieceType.Marechal, (0, 0), p.order),
-                Piece(1, PieceType.Drapeau, (1, 0), p.order)
+                Piece(0, PieceType.Marechal, marechal_pos, p.order),
+                Piece(1, PieceType.Drapeau, flag_pos, p.order)
             ]
             p.known_board.set_pieces(pieces)
             p.position_pieces(pieces)
             p.sync_owned_pieces()
         all_pieces = [
-            Piece(0, PieceType.Marechal, (0, 0), 0),
-            Piece(1, PieceType.Drapeau, (1, 0), 0),
-            Piece(0, PieceType.Marechal, (0, 0), 1),
-            Piece(1, PieceType.Drapeau, (1, 0), 1)
+            Piece(0, PieceType.Marechal, (0, 6), 0),
+            Piece(1, PieceType.Drapeau, (1, 6), 0),
+            Piece(0, PieceType.Marechal, (0, 3), 1),
+            Piece(1, PieceType.Drapeau, (1, 3), 1)
         ]
         self.game.board.set_pieces(all_pieces)
         self.game.player_to_move = 0
@@ -64,6 +70,7 @@ class TestGameSaveLoad(unittest.TestCase):
         loaded_players[0].load(boards[0], game_state["times"][0], game_state["last_moves"][0])
         loaded_players[1].load(boards[1], game_state["times"][1], game_state["last_moves"][1])
         loaded_game = GameManager.load(None, loaded_players, player_to_move, main_board)
+        self.assertFalse(loaded_game.check_end_state())
         # Check player info
         self.assertEqual(loaded_game.players[0].user.username, self.player.user.username)
         self.assertEqual(loaded_game.players[1].user.username, self.ai_player.user.username)
@@ -78,6 +85,26 @@ class TestGameSaveLoad(unittest.TestCase):
             self.assertEqual(op["type"], lp["type"])
             self.assertEqual(op["position"], lp["position"])
             self.assertEqual(op["owner"], lp["owner"])
+
+    def test_load_queues_ai_when_restored_turn_is_ai(self):
+        self.game.player_to_move = 1
+
+        user_id, ai_difficulty, player_to_move, game_state_json = self.game.save(self.player.key)
+        game_state = json.loads(game_state_json)
+        lobby = LobbyManager()
+        boards = [lobby.convert_pieces(board) for board in game_state["player_boards"]]
+        main_board = lobby.convert_pieces(game_state["board"])
+        loaded_players = [
+            Player(self.player.user, 0, self.player.score),
+            AIPlayer(self.ai_player.user, 1, ai_difficulty, self.ai_player.score)
+        ]
+        loaded_players[0].load(boards[0], game_state["times"][0], game_state["last_moves"][0])
+        loaded_players[1].load(boards[1], game_state["times"][1], game_state["last_moves"][1])
+
+        with patch.object(GameManager, "_schedule_ai_move_locked") as schedule_ai_move:
+            loaded_game = GameManager.load(None, loaded_players, player_to_move, main_board)
+
+        schedule_ai_move.assert_called_once_with(loaded_game.players[1])
 
 if __name__ == "__main__":
     unittest.main()

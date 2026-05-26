@@ -138,8 +138,7 @@ class LobbyManager:
             self.DAOUsers.logout(user.account_id)
             self.active_users.pop(my_key, None)
             self.games.pop(my_key, None)
-            if my_key in self.wait_list:
-                self.wait_list.remove(my_key)
+            self.wait_list = [(key, player) for key, player in self.wait_list if key != my_key]
             return "USER_DISCONNECTED"
         return "INVALID_KEY"
         
@@ -213,8 +212,7 @@ class LobbyManager:
             Tuple of (status, opponent_username or message).
         """
         if self.wait_list:
-            player1_key = self.wait_list.pop(0)
-            player1 = Player(self.active_users[player1_key], 0)
+            player1_key, player1 = self.wait_list.pop(0)
             player2 = Player(self.active_users[my_key], 1)
             if player1_key in self.games and len(self.games[player1_key].players) == 1:
                 game = self.games[player1_key]
@@ -226,8 +224,8 @@ class LobbyManager:
             self.games[my_key] = game
             return "GAME_STARTED", player2.username
         else:
-            self.wait_list.append(my_key)
             player1 = Player(self.active_users[my_key], 0)
+            self.wait_list.append((my_key, player1))
             game = GameManager(self, [player1])
             self.games[my_key] = game
             return "WAITING_FOR_OPPONENT", ""
@@ -366,6 +364,7 @@ class LobbyManager:
         for b in [board, player_boards[0], player_boards[1]]:
             boards.append(self.convert_pieces(b))
 
+        user.status = "PLAYING"
 
         player = Player(user, 0, player_score)
         player.load(boards[1], times_remaining[0], last_moves[0])

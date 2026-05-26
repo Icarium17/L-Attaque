@@ -161,6 +161,27 @@ class Player(User):
         self.pieces = self.known_board.get_pieces(self.order)
         self.rebuild_piece_counts()
 
+    def restore_owned_pieces_from_board(self, board):
+        """
+        Rebuild the player's own side on the known board from the authoritative live board.
+
+        This preserves the player's saved opponent knowledge while ensuring owned-piece caches,
+        flag position, and move generation reflect the real restored game state.
+
+        Args:
+            board: The authoritative game board to restore from.
+
+        Returns:
+            None
+        """
+        for piece in list(self.known_board.get_pieces(self.order).values()):
+            self.known_board.remove_piece(piece)
+
+        self.known_board.set_pieces(
+            [piece.clone() for piece in board.get_pieces(self.order).values()]
+        )
+        self.sync_owned_pieces()
+
     def remove_owned_piece(self, piece_id):
         """
         Remove one of the player's own pieces and update cached piece counts.

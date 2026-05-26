@@ -87,12 +87,18 @@ class GameManager():
         )
 
         game.board.set_pieces(board)
+        for player in game.players:
+            player.restore_owned_pieces_from_board(game.board)
         game.player_to_move = player_to_move
         game.timers.start(player_to_move)
 
         ai_player = game.players[1]
         ai_player.game_rules = game.game_rules
         ai_player.players = game.players
+
+        current_player = game.players[game.player_to_move]
+        if isinstance(current_player, AIPlayer):
+            game._schedule_ai_move_locked(current_player)
 
         return game
 
@@ -559,7 +565,7 @@ class GameManager():
                 }
             
             if self.status != "WAITING":
-                times_remaining = [player.time_remaining for player in self.players]
+                times_remaining = self.timers.times if self.timers else [player.time_remaining for player in self.players]
                 status["battle"] = None,
                 scores = [self.players[0].score, self.players[1].score] 
                 
@@ -790,6 +796,7 @@ class PlayerTimer:
             if self.running and self.last_switch_time is not None:
                 elapsed = now - self.last_switch_time
                 self.times[self.current_player] -= elapsed
+                self.players[self.current_player].time_remaining = self.times[self.current_player]
             self.current_player = next_player
             self.last_switch_time = now
 
@@ -807,6 +814,7 @@ class PlayerTimer:
             if self.running and self.last_switch_time is not None:
                 elapsed = time.time() - self.last_switch_time
                 self.times[self.current_player] -= elapsed
+                self.players[self.current_player].time_remaining = self.times[self.current_player]
             self.running = False
             self.last_switch_time = None
 
@@ -845,8 +853,12 @@ class PlayerTimer:
                 if self.closed:
                     return
                 if self.running and self.last_switch_time is not None:
-                    self.players[self.current_player].time_remaining -= self.delay
-                    if self.players[self.current_player].time_remaining <= 0:
+                    elapsed = time.time() - self.last_switch_time
+                    self.times[self.current_player] -= elapsed
+                    self.players[self.current_player].time_remaining = self.times[self.current_player]
+                    self.last_switch_time = time.time()
+                    if self.times[self.current_player] <= 0:
+                        self.times[self.current_player] = 0
                         self.players[self.current_player].time_remaining = 0
                         self.running = False
                         self.timer_expired_callback(self.current_player)
