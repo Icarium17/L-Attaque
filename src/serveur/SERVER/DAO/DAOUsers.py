@@ -7,7 +7,7 @@ class DAOUsers():
     """
     Data-access helpers for user accounts, authentication, sessions, and score updates.
     """
-    def create_user(self, username, password, preferred_language, id_avatar, rights, animation, contrast):
+    def create_user(self, username, password, preferred_language, id_avatar, rights, animation, contrast, connect = True):
         """
         Create a new user account when the username is still available.
 
@@ -36,6 +36,9 @@ class DAOUsers():
             INSERT INTO users (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast, session_key)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
+
+            if not connect:
+                session_key = None
 
             params = (username, hashed_password, preferred_language, id_avatar, rights, animation, contrast, session_key)
 

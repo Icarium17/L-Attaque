@@ -27,6 +27,7 @@ class LobbyManager:
 
         self.actions = {
             "signup": self.create_profile,
+            "register" : self.register_profile,
             "signin": self.login,
             "signout": self.logout,
             "getStatus" : self.get_status,
@@ -96,6 +97,18 @@ class LobbyManager:
             user = User(user_id, session_key, username, 0, "IDLE")
             self.active_users[user.key] = user
             return "USER_CREATED", session_key, status
+        return status, -1, status
+    
+    def register_profile(self, args):
+        username, password, *rest = args ## TODO : modifier pour que ça prenne en compte les autres paramètres (langue, etc)
+        rights = rest[0] if rest else 'User'
+        
+        user_created, _, _, status = self.DAOUsers.create_user(
+            username, password, 'French', 0, rights, True, True, False
+        )
+
+        if user_created:
+            return "USER_CREATED", None, status
         return status, -1, status
 
     def login(self, args):

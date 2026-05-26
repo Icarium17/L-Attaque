@@ -110,6 +110,28 @@ def handle_signup():
         "message" : message
     })
 
+@app.route('/register', methods=['POST'])
+def handle_register():
+    """
+    Create a new account from the incoming signup payload.
+
+    Returns:
+        Response: JSON response containing signup status, key, and message.
+    """
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    rights = data.get('rights', 'User')
+
+    status, key, message = lobby.execute_action("register", (username, password, rights))
+
+    return jsonify({
+        "status": status,
+        "key" : key,
+        "username": username, 
+        "message" : message
+    })
+
 @app.route('/signin', methods=['POST'])
 def handle_signin():
     """
