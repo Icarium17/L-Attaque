@@ -97,11 +97,17 @@ class GameRules():
         """
         x_0, y_0, x_1, y_1 = move.get_params()
 
+        if any(not isinstance(coord, int) or isinstance(coord, bool) for coord in (x_0, y_0, x_1, y_1)):
+            return (0, "INVALID_MOVE_FORMAT")
+
         d_x = abs(x_1 - x_0)
         d_y = abs(y_1 - y_0)
 
         if d_x == 0 and d_y == 0: ## if the mouvement is null
             return (0, "NO_MOVE")
+
+        if not (0 <= x_0 < board.cols) or not (0 <= y_0 < board.rows):
+            return (0, "OUT_OF_BOUNDS")
         
         if not (0 <= x_1 < board.cols) or not (0 <= y_1 < board.rows): ## if the move makes the piece fall off the edge of the battlefield
             return (0, "OUT_OF_BOUNDS")

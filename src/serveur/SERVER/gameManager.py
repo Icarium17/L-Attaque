@@ -139,7 +139,11 @@ class GameManager():
         """
         Remove the game from the lobby if the wait timer expires.
         """
-        self.lobbyManager.too_long_wait(self.players[0].key)
+        with self.game_lock:
+            if not self.players:
+                return
+            player_key = self.players[0].key
+        self.lobbyManager.too_long_wait(player_key)
 
     ###### Start and Setup ###### 
 
@@ -354,7 +358,8 @@ class GameManager():
                     self.battle = [pieceFrom.send(), tileTo.piece.send()]
                     self.combat(pieceFrom, tileTo.piece, tileTo)
                     self.status = "BATTLE"
-                    self.timers.stop(5)
+                    if self.timers is not None:
+                        self.timers.stop(5)
                     self.turn_change_timer = threading.Timer(4, self.change_turn)
                     self.turn_change_timer.start()
                 else:
@@ -378,7 +383,8 @@ class GameManager():
             self.status = "PLAYING"
             if not self.check_end_state(): 
                 self.player_to_move = (self.player_to_move + 1) % len(self.players)
-                self.timers.switch_player(self.player_to_move)
+                if self.timers is not None:
+                    self.timers.switch_player(self.player_to_move)
                 player = self.players[self.player_to_move]
                 if isinstance(player, AIPlayer):
                     self._schedule_ai_move_locked(player)
@@ -466,18 +472,26 @@ class GameManager():
             Tuple[int, str]: (status, message)
         """
         player = self.get_player(my_key)
+        if player is None:
+            return (0, "INVALID_KEY")
+
+        if len(self.players) < 2:
+            return (0, "NO_ACTIVE_GAME")
+
         opponent = self.players[1 - player.order]
         if not isinstance(opponent, AIPlayer):
             return (0, "CANNOT_PAUSE_VS_PLAYER")
         
         if self.status != "PAUSED":
             self.status = "PAUSED"
-            self.timers.stop()
+            if self.timers is not None:
+                self.timers.stop()
             return (1, "GAME_PAUSED")
         
         else :
             self.status = "PLAYING"
-            self.timers.start(player.order)
+            if self.timers is not None:
+                self.timers.start(player.order)
             return (1, "GAME_RESTARTED") 
         
     def invert_positions_if_needed(self, player_order, pieces):
@@ -566,8 +580,10 @@ class GameManager():
             
             if self.status != "WAITING":
                 times_remaining = self.timers.times if self.timers else [player.time_remaining for player in self.players]
-                status["battle"] = None,
-                scores = [self.players[0].score, self.players[1].score] 
+                status["battle"] = None
+                scores = [p.score for p in self.players[:2]]
+                if len(scores) < 2:
+                    scores += [0] * (2 - len(scores))
                 
                 if self.status == "BATTLE":
                     status["battle"] = self.battle
@@ -596,7 +612,8 @@ class GameManager():
             for player in self.players:
                 ended, result = self.game_rules.check_player_end_state(player, self.players, self.board)
                 if ended:
-                    self.timers.stop()
+                    if self.timers is not None:
+                        self.timers.stop()
                     winner, loser, reason = result
                     self.declare_winner(winner, loser, reason)
                     return True
@@ -661,7 +678,17 @@ class GameManager():
         Args:
             player: The index of the player whose timer expired.
         """
-        self.declare_winner(self.players[(player + 1) % len(self.players)], self.players[player], f"{self.players[player].username}'s timer expired")
+        with self.game_lock:
+            if len(self.players) < 2:
+                return
+            if player < 0 or player >= len(self.players):
+                return
+
+            loser = self.players[player]
+            winner = self.players[(player + 1) % len(self.players)]
+            reason = f"{loser.username}'s timer expired"
+
+        self.declare_winner(winner, loser, reason)
 
     def surrender(self, my_key):
         """
@@ -670,15 +697,23 @@ class GameManager():
             my_key: The session key of the surrendering player.
         """
         with self.game_lock:
+            surrenderer = self.get_player(my_key)
+            if surrenderer is None:
+                return (0, "INVALID_KEY")
+
+            if len(self.players) < 2:
+                return (0, "NO_ACTIVE_GAME")
+
             self.status = "SURRENDER"
             self.ai_move_status = "idle"
             self.ai_move_error = None
-            self.timers.stop()
-            surrenderer = self.get_player(my_key)
+            if self.timers is not None:
+                self.timers.stop()
             winner = self.players[1 - surrenderer.order]
             print(f"Game surrendered! Winner: {winner.username}, Loser: {surrenderer.username}, Reason: {"Surrender"}")
             winner.score += self.game_rules.calc_score_surrender()
             threading.Timer(5, self.lobbyManager.end_game, args=(winner, surrenderer, "Surrender")).start()
+            return (1, "GAME_SURRENDERED")
 
     def save(self, my_key):
         """
@@ -690,6 +725,12 @@ class GameManager():
         """
         with self.game_lock:
             player = self.get_player(my_key)
+            if player is None:
+                return (0, "INVALID_KEY")
+
+            if len(self.players) < 2:
+                return (0, "NO_ACTIVE_GAME")
+
             my_order = player.order
 
             opponent = self.players[1-my_order]
@@ -700,7 +741,8 @@ class GameManager():
             self.status = "SAVING"
             self.ai_move_status = "idle"
             self.ai_move_error = None
-            self.timers.stop()
+            if self.timers is not None:
+                self.timers.stop()
             
             user_id = player.user.account_id
             ai_difficulty = opponent.difficulty
@@ -849,6 +891,8 @@ class PlayerTimer:
         """
         while True:
             time.sleep(self.delay)
+            callback = None
+            expired_player = None
             with self.lock:
                 if self.closed:
                     return
@@ -861,8 +905,11 @@ class PlayerTimer:
                         self.times[self.current_player] = 0
                         self.players[self.current_player].time_remaining = 0
                         self.running = False
-                        self.timer_expired_callback(self.current_player)
+                        callback = self.timer_expired_callback
+                        expired_player = self.current_player
                         self.last_switch_time = None
+            if callback is not None:
+                callback(expired_player)
 
     def get_times(self):
         """
@@ -880,4 +927,8 @@ class PlayerTimer:
                 if times_copy[self.current_player] < 0:
                     times_copy[self.current_player] = 0
             return times_copy
+
+
+# Backward-compatible module alias used by legacy tests.
+AI_MOVE_EXECUTOR = GameManager.AI_MOVE_EXECUTOR
     

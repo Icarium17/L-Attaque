@@ -23,6 +23,9 @@ class DAOUsers():
         Returns:
             tuple: Success payload with new user id and session key, or an error code.
         """
+        if not isinstance(username, str) or not isinstance(password, str):
+            return False, None, None, "INVALID_INPUT"
+
         hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
         with Connection() as db:
@@ -58,6 +61,9 @@ class DAOUsers():
         Returns:
             tuple: Success payload with user id and score, or a failure marker.
         """
+        if not isinstance(username, str) or not isinstance(password, str):
+            return False, 0
+
         with Connection() as db:
             user = db.fetch("SELECT * FROM users WHERE username=%s", (username,))
 

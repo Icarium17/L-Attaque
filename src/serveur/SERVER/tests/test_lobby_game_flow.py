@@ -99,6 +99,20 @@ class TestLobbyGameFlow(unittest.TestCase):
                 self.lobby.games.pop(self.user.key, None)
                 self.user.status = "IDLE"
 
+    def test_move_rejects_non_integer_coordinates(self):
+        status, _ = self.lobby.start_game((self.user.key, "ai"))
+        self.assertEqual(status, "GAME_STARTED")
+
+        game = self.lobby.games[self.user.key]
+        game.timers = MagicMock()
+        game.ai_move_thread = MagicMock()
+
+        setup_result = self.lobby.set_pieces((self.user.key, build_setup_payload(0, 0)))
+        self.assertEqual(setup_result, ("SETUP_SUCCESS", "PLAYING"))
+
+        invalid_move_result = self.lobby.move((self.user.key, None, 6, 0, 5))
+        self.assertEqual(invalid_move_result, (0, "INVALID_MOVE_FORMAT"))
+
 
 if __name__ == "__main__":
     unittest.main()

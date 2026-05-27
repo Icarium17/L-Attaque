@@ -46,14 +46,36 @@ class DAOSave():
                 print("ohoh")
                 return None 
             saved_game = saved_games[0]
-            game_state = json.loads(saved_game["board"])
+            try:
+                game_state = json.loads(saved_game["board"])
+            except (TypeError, ValueError, json.JSONDecodeError):
+                return {
+                    "ai_difficulty": saved_game.get("ai_difficulty"),
+                    "player_to_move": saved_game.get("player_to_move"),
+                    "player_boards": None,
+                    "board": None,
+                    "scores": None,
+                    "times": None,
+                    "last_moves": None,
+                }
+
+            if not isinstance(game_state, dict):
+                return {
+                    "ai_difficulty": saved_game.get("ai_difficulty"),
+                    "player_to_move": saved_game.get("player_to_move"),
+                    "player_boards": None,
+                    "board": None,
+                    "scores": None,
+                    "times": None,
+                    "last_moves": None,
+                }
 
             return {
-                "ai_difficulty": saved_game["ai_difficulty"],
-                "player_to_move": saved_game["player_to_move"],
-                "player_boards": game_state["player_boards"],
-                "board": game_state["board"],
-                "scores": game_state["scores"],
-                "times": game_state["times"],
-                "last_moves": game_state["last_moves"]
+                "ai_difficulty": saved_game.get("ai_difficulty"),
+                "player_to_move": saved_game.get("player_to_move"),
+                "player_boards": game_state.get("player_boards"),
+                "board": game_state.get("board"),
+                "scores": game_state.get("scores"),
+                "times": game_state.get("times"),
+                "last_moves": game_state.get("last_moves")
             }

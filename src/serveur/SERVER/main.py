@@ -88,6 +88,18 @@ app = Flask(__name__)
 lobby = LobbyManager()
 
 
+def _get_json_body():
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else None
+
+
+def _invalid_json_response():
+    return jsonify({
+        "status": "INVALID_REQUEST",
+        "message": "Expected JSON object body",
+    }), 400
+
+
 @app.route('/signup', methods=['POST'])
 def handle_signup():
     """
@@ -96,7 +108,9 @@ def handle_signup():
     Returns:
         Response: JSON response containing signup status, key, and message.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     username = data.get('username')
     password = data.get('password')
     rights = data.get('rights', 'User')
@@ -118,7 +132,9 @@ def handle_register():
     Returns:
         Response: JSON response containing signup status, key, and message.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     username = data.get('username')
     password = data.get('password')
     rights = data.get('rights', 'User')
@@ -140,7 +156,9 @@ def handle_signin():
     Returns:
         Response: JSON response containing signin status and session key.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     username = data.get('username')
     password = data.get('password')
 
@@ -160,7 +178,9 @@ def handle_signout():
     Returns:
         Response: JSON response containing the logout status.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     key = data.get('key')
 
     result = lobby.execute_action("signout", (key,))
@@ -187,7 +207,9 @@ def handle_get_all_users():
         Response: JSON response containing user summaries.
     """
     
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     users = lobby.execute_action("getActivePlayers", (my_key,))
     return jsonify({"users": users})
@@ -200,7 +222,9 @@ def handle_delete_user():
     Returns:
         Response: JSON response containing whether deletion succeeded.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     user_id = data.get('user_id')
     result = lobby.DAOUsers.delete_user(user_id)
     return jsonify({"deleted": result})
@@ -213,7 +237,9 @@ def handle_start_game():
     Returns:
         Response: JSON response containing game start status and opponent name.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     mode = data.get('mode')
     print(mode)
@@ -232,7 +258,9 @@ def handle_set_pieces():
     Returns:
         Response: JSON response containing setup status and resulting player status.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     my_pieces = data.get('pieces')
     result = lobby.execute_action("setPieces", (my_key, my_pieces))
@@ -251,7 +279,9 @@ def handle_valid_move():
     Returns:
         Response: JSON response containing the move status message.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     user_key = data.get('user_key')
     x_0 = data.get('colonne')
     y_0 = data.get('ligne')
@@ -272,7 +302,9 @@ def handle_get_status():
     Returns:
         Response: JSON response containing the status payload.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     key = data.get('key')
     result = lobby.execute_action("getStatus", (key,))
     
@@ -298,7 +330,9 @@ def surrender():
     Returns:
         Response: JSON response containing the surrender result.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     result = lobby.execute_action('surrender', (my_key,))
 
@@ -312,7 +346,9 @@ def pause():
     Returns:
         Response: JSON response containing the pause result.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     result = lobby.execute_action('pause', (my_key,))
 
@@ -326,7 +362,9 @@ def save():
     Returns:
         Response: JSON response containing the save result.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     result = lobby.execute_action('save', (my_key,))
 
@@ -340,7 +378,9 @@ def load():
     Returns:
         Response: JSON response indicating whether restoration succeeded.
     """
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     result = lobby.execute_action('load', (my_key,))
 
@@ -355,7 +395,9 @@ def load():
 
 @app.route('/difficulty', methods=['POST'])
 def difficulty():
-    data = request.get_json()
+    data = _get_json_body()
+    if data is None:
+        return _invalid_json_response()
     my_key = data.get('key')
     difficulty = data.get('difficulty')
     result = lobby.execute_action('difficulty', (my_key, difficulty))

@@ -116,5 +116,15 @@ class TestLobbyManager(unittest.TestCase):
         self.assertEqual((status, key), ("USER_ALREADY_CONNECTED", -1))
         self.lobby.DAOUsers.start_session.assert_not_called()
 
+    def test_update_difficulty_rejects_non_integer_input(self):
+        self.lobby.DAOUsers.update_difficutly = MagicMock()
+
+        result_none = self.lobby.update_difficulty(("KEY1", None))
+        result_text = self.lobby.update_difficulty(("KEY1", "2"))
+
+        self.assertEqual(result_none, "INVALID_DIFFICULTY")
+        self.assertEqual(result_text, "INVALID_DIFFICULTY")
+        self.lobby.DAOUsers.update_difficutly.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

@@ -76,6 +76,14 @@ class LobbyManager:
         self.active_users[user.key] = user
         return user
 
+    def _get_active_game(self, session_key):
+        game = self.games.get(session_key)
+        if game is None:
+            return None
+        if not getattr(game, "players", None):
+            return None
+        return game
+
     ## Authentication
     def create_profile(self, args) -> str:
         """
@@ -151,7 +159,12 @@ class LobbyManager:
             self.DAOUsers.logout(user.account_id)
             self.active_users.pop(my_key, None)
             self.games.pop(my_key, None)
-            self.wait_list = [(key, player) for key, player in self.wait_list if key != my_key]
+            normalized_wait_list = []
+            for entry in self.wait_list:
+                key = entry[0] if isinstance(entry, tuple) else entry
+                if key != my_key:
+                    normalized_wait_list.append(key)
+            self.wait_list = normalized_wait_list
             return "USER_DISCONNECTED"
         return "INVALID_KEY"
         
@@ -181,6 +194,10 @@ class LobbyManager:
 
     def update_difficulty(self, args):
         (my_key, difficulty) = args
+
+        if not isinstance(difficulty, int) or isinstance(difficulty, bool):
+            return "INVALID_DIFFICULTY"
+
         difficulty -= 1
 
         user = self._get_or_reattach_user(my_key)
@@ -225,20 +242,26 @@ class LobbyManager:
             Tuple of (status, opponent_username or message).
         """
         if self.wait_list:
-            player1_key, player1 = self.wait_list.pop(0)
+            entry = self.wait_list.pop(0)
+            player1_key = entry[0] if isinstance(entry, tuple) else entry
             player2 = Player(self.active_users[my_key], 1)
             if player1_key in self.games and len(self.games[player1_key].players) == 1:
                 game = self.games[player1_key]
                 self.games[my_key] = game
                 game.add_second_player(player2)
             else:
+                player1_user = self.active_users.get(player1_key)
+                if player1_user is None:
+                    self.wait_list.insert(0, player1_key)
+                    return "WAITING_FOR_OPPONENT", ""
+                player1 = Player(player1_user, 0)
                 game = GameManager(self, [player1, player2])
             self.games[player1_key] = game
             self.games[my_key] = game
             return "GAME_STARTED", player2.username
         else:
             player1 = Player(self.active_users[my_key], 0)
-            self.wait_list.append((my_key, player1))
+            self.wait_list.append(my_key)
             game = GameManager(self, [player1])
             self.games[my_key] = game
             return "WAITING_FOR_OPPONENT", ""
@@ -294,8 +317,15 @@ class LobbyManager:
         if self._get_or_reattach_user(my_key) is None:
             return "INVALID_KEY"
 
-        game = self.games[my_key] 
-        game.surrender(my_key)
+        game = self._get_active_game(my_key)
+        if game is None:
+            return "NO_ACTIVE_GAME"
+
+        result = game.surrender(my_key)
+        if isinstance(result, tuple):
+            if result[0] == 0:
+                return result[1]
+            return result[1]
 
         return ("GAME_SURRENDERED")
 
@@ -311,7 +341,9 @@ class LobbyManager:
         if self._get_or_reattach_user(my_key) is None:
             return "INVALID_KEY"
 
-        game = self.games[my_key]
+        game = self._get_active_game(my_key)
+        if game is None:
+            return (0, "NO_ACTIVE_GAME")
 
         result = game.pause(my_key)
 
@@ -329,11 +361,16 @@ class LobbyManager:
 
         (my_key,) = args
         if self._get_or_reattach_user(my_key) is None:
-            return False
+            return (0, "INVALID_KEY")
 
-        game = self.games[my_key]
+        game = self._get_active_game(my_key)
+        if game is None:
+            return (0, "NO_ACTIVE_GAME")
 
         user_id, ai_difficulty, player_to_move, game_state_json = game.save(my_key)
+
+        if user_id == 0:
+            return (0, ai_difficulty)
         
         result = self.DAOSave.save(ai_difficulty, game_state_json, player_to_move, user_id)
         print(user_id)
@@ -369,24 +406,52 @@ class LobbyManager:
         times_remaining = saved_game.get("times")
         last_moves = saved_game.get("last_moves")
 
-        player_score = scores[0] if scores else 0
-        ai_score = scores[1] if scores else 0
+        if (
+            not isinstance(player_boards, list) or len(player_boards) < 2
+            or not isinstance(board, list)
+            or not isinstance(times_remaining, list) or len(times_remaining) < 2
+            or not isinstance(last_moves, list) or len(last_moves) < 2
+        ):
+            return (0, "CORRUPTED_SAVE")
 
-        boards = []
+        board_p0 = player_boards[0]
+        board_p1 = player_boards[1]
+        if not isinstance(board_p0, list) or not isinstance(board_p1, list):
+            return (0, "CORRUPTED_SAVE")
 
-        for b in [board, player_boards[0], player_boards[1]]:
-            boards.append(self.convert_pieces(b))
+        time_p0 = times_remaining[0]
+        time_p1 = times_remaining[1]
+        if not isinstance(time_p0, (int, float)) or not isinstance(time_p1, (int, float)):
+            return (0, "CORRUPTED_SAVE")
+
+        moves_p0 = last_moves[0] if isinstance(last_moves[0], list) else []
+        moves_p1 = last_moves[1] if isinstance(last_moves[1], list) else []
+
+        player_to_move = player_to_move if player_to_move in (0, 1) else 0
+
+        valid_scores = scores if isinstance(scores, (list, tuple)) else []
+        player_score = valid_scores[0] if len(valid_scores) > 0 and isinstance(valid_scores[0], (int, float)) else 0
+        ai_score = valid_scores[1] if len(valid_scores) > 1 and isinstance(valid_scores[1], (int, float)) else 0
+
+        try:
+            boards = [
+                self.convert_pieces(board),
+                self.convert_pieces(board_p0),
+                self.convert_pieces(board_p1),
+            ]
+        except ValueError:
+            return (0, "CORRUPTED_SAVE")
 
         user.status = "PLAYING"
 
         player = Player(user, 0, player_score)
-        player.load(boards[1], times_remaining[0], last_moves[0])
+        player.load(boards[1], time_p0, moves_p0)
         player.status = "PLAYING"
 
 
         ai_user = User(-1, "AI_KEY", "AI_Opponent", ai_score, "IDLE")
         ai_player = AIPlayer(ai_user, 1, ai_difficulty)
-        ai_player.load(boards[2], times_remaining[1], last_moves[1])
+        ai_player.load(boards[2], time_p1, moves_p1)
 
         players = [player, ai_player]
 
@@ -404,7 +469,11 @@ class LobbyManager:
         Args:
             player_key: The session key of the waiting player.
         """
-        self.games[player_key] 
+        game = self.games.get(player_key)
+        if game is None:
+            return
+        game.cleanup()
+        self.games.pop(player_key, None)
 
 
     ## Play Game
@@ -423,9 +492,18 @@ class LobbyManager:
         if user is None:
             return "INVALID_KEY", "IDLE"
         
-        game = self.games[my_key] 
+        game = self._get_active_game(my_key)
+        if game is None:
+            return "NO_ACTIVE_GAME", user.status
+
         player = game.get_player(user.key)
-        pieces_set = self.convert_pieces(pieces_recieved, player)
+        if player is None:
+            return "INVALID_KEY", user.status
+
+        try:
+            pieces_set = self.convert_pieces(pieces_recieved, player)
+        except ValueError:
+            return "INVALID_PIECE_SETUP", user.status
         valid = game.check_valid_setup(my_key, pieces_set)
 
         if valid:
@@ -446,9 +524,15 @@ class LobbyManager:
         Raises:
             ValueError: Raised when the serialized payload is malformed.
         """
+        if not isinstance(pieces_data, list):
+            raise ValueError("Invalid piece data: expected a list of pieces")
+
         pieces = []
         for i, piece_dict in enumerate(pieces_data):
             try:
+                if not isinstance(piece_dict, dict):
+                    raise ValueError(f"Invalid piece data: expected object, got {type(piece_dict).__name__}")
+
                 if owner is not None:
                     piece_owner = owner.order
                 else:
@@ -494,8 +578,14 @@ class LobbyManager:
         if self._get_or_reattach_user(my_key) is None:
             return "INVALID_KEY", "INVALID_KEY"
 
+        if any(not isinstance(coord, int) or isinstance(coord, bool) for coord in (x_0, y_0, x_1, y_1)):
+            return 0, "INVALID_MOVE_FORMAT"
+
         move = Move((x_0, y_0), (x_1, y_1))
-        game = self.games[my_key]
+        game = self._get_active_game(my_key)
+        if game is None:
+            return 0, "NO_ACTIVE_GAME"
+
         status, message = game.make_move(my_key, move)
         return status, message
         
