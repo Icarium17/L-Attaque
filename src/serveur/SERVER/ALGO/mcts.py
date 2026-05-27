@@ -7,10 +7,14 @@ import collections
 import copy
 import time
 
+from ALGO.heuristics import CONFIDENCE_BY_LEVEL, HEURISTICS_WEIGHTS_BY_LEVEL, MCTSHeuristicMixin
 from GAME.gameRules import GameRules
 from GAME.piece import PieceType
 
-
+REDETERMINIZE_FREQUENCY = 3
+EXPANSION_TOP_MOVE_COUNT = 3
+EXPANSION_PRIOR_EPSILON = 0.01
+SIMULATION_MAX_STEPS = 25
 @dataclass(frozen=True)
 class MCTSPlayerIdentity:
     order: int
@@ -40,7 +44,7 @@ class MCTSSnapshot:
     opponent_belief_pieces_left: dict
     player_identities: tuple
 
-class MCTS:
+class MCTS(MCTSHeuristicMixin):
     """
     Monte Carlo Tree Search (MCTS) implementation for game AI.
     Handles selection, expansion, simulation, and backpropagation phases.
@@ -91,34 +95,8 @@ class MCTS:
             2: self.simulation_hard
         }
 
-        self.confidence_by_level = {
-            0 : 1.0,
-            1 : 0.5,
-            2: 0.75
-        }
-
-        self.heuristics_weights_by_level = {
-            0 : {
-                "material": 1.0
-            },
-            1 : {
-                "material": 1.0,
-                "mobility": 0.5,
-                "flag": 1.0,
-                "info": 1.0,
-                "trades": 1.0
-            },
-            2 : {
-                "material": 1.0,
-                "mobility": 0.3,
-                "flag": 2.0,
-                "info": 3.0,
-                "trades": 2.0,
-                "opp_confidence_material": 1.5,
-                "reveal_bonus": 2.0,
-                "self_reveal_penalty": 1.0
-            }
-        }
+        self.confidence_by_level = CONFIDENCE_BY_LEVEL
+        self.heuristics_weights_by_level = HEURISTICS_WEIGHTS_BY_LEVEL
 
         self._setup(snapshot)
 
@@ -186,7 +164,7 @@ class MCTS:
         self.phase_time_totals["reset"] += time.perf_counter() - reset_start
         self.phase_counts["reset"] += 1
 
-        if self.rollout_index % 3 == 0:
+        if self.rollout_index % REDETERMINIZE_FREQUENCY == 0:
             redeterminize_start = time.perf_counter()
             self.determinized_root = self.infoSet_main.clone_for_rollout()
             self.determinized_root.actualize_belief_pieces(
@@ -372,7 +350,7 @@ class MCTS:
         """
         game_over = 0
         s = 0
-        while game_over == 0 and s < 25:
+        while game_over == 0 and s < SIMULATION_MAX_STEPS:
             if not self.simulation_by_level[self.difficulty]():
                 return game_over
 
@@ -417,11 +395,11 @@ class MCTS:
             ]
 
         scored_moves.sort(key=lambda item: item[1], reverse=True)
-        top_moves = scored_moves[:3]
+        top_moves = scored_moves[:EXPANSION_TOP_MOVE_COUNT]
 
         min_score = min(score for _, score in top_moves)
         shifted_weights = [
-            score - min_score + 0.01
+            score - min_score + EXPANSION_PRIOR_EPSILON
             for _, score in top_moves
         ]
 
@@ -499,321 +477,6 @@ class MCTS:
             int: `1` when a move was applied, `0` when no legal move exists.
         """
         return self._simulation_with_priors(self.prior_evaluate_difficult_move)
-    
-    def _revisiting_count(self, move, weight):
-        count = 0
-        for prev in self.previous_moves_algo:
-            if move == prev:
-                count += 1
-        return weight * (1 - 0.5 ** count)
-    
-    def _resolve_combat(self, attacker, defender):
-        """
-        Classify the likely combat outcome between two concrete pieces.
-
-        Args:
-            attacker: Attacking piece in the simulated combat.
-            defender: Defending piece in the simulated combat.
-
-        Returns:
-            str: One of `"win"`, `"loss"`, `"draw"`, `"unknown"`, or `"invalid"`
-            from the AI perspective of the attacker/defender comparison logic.
-        """
-        if attacker is None or defender is None:
-            return "invalid"
-
-        a = attacker.type
-        d = defender.type
-
-        if d == PieceType.Drapeau:
-            return "win"
-
-        if d == PieceType.Bombe:
-            return "win" if a == PieceType.Demineur else "loss"
-
-        if a == PieceType.Espion and d == PieceType.Marechal:
-            return "win"
-
-        if a.power is None or d.power is None:
-            return "unknown"
-
-        if a.power > d.power:
-            return "win"
-        elif a.power < d.power:
-            return "loss"
-        else:
-            return "draw"
-            
-    def _piece_value(self, piece):
-        """
-        Return the heuristic score value of a piece.
-
-        Args:
-            piece: Piece to evaluate.
-
-        Returns:
-            int: Piece score value, or `-1` when no piece is present.
-        """
-        if piece is None:
-            return -1
-
-        return piece.type.score
-    
-    def _common_priors(self, move, my_piece, their_piece, eclaireur_bonus=0.1, espion_bonus=0.7):
-        """
-        Compute shared tactical priors used by medium and hard move scoring.
-
-        Args:
-            move: Candidate move being scored.
-            my_piece: Moving piece.
-            their_piece: Target piece, if any.
-            my_val: Numeric power of the moving piece.
-            their_val: Numeric power of the target piece.
-            eclaireur_bonus: Bonus applied to scout moves.
-            espion_bonus: Bonus applied to favorable spy attacks.
-
-        Returns:
-            float: Base prior score before difficulty-specific adjustments.
-        """
-        if my_piece is None:
-            return -5.0
-
-        score = 0.0
-
-        if their_piece is not None:
-            combat_result = self._resolve_combat(my_piece, their_piece)
-
-            if combat_result == "win":
-                score += 0.8
-
-            elif combat_result == "loss":
-                score -= 0.8
-
-            else:
-                score -= 0.1 
-
-            if their_piece.type == PieceType.Drapeau:
-                score += 1.5
-
-            if my_piece.type == PieceType.Espion and their_piece.type == PieceType.Marechal:
-                score += espion_bonus
-
-        if my_piece.type == PieceType.Eclaireur:
-            score += eclaireur_bonus
-
-        x, y = move.moveTo
-        center_x, center_y = 4.5, 4.5
-
-        dist_to_center = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
-        score -= 0.03 * dist_to_center
-
-        if x == 0 or x == 9 or y == 0 or y == 9:
-            score -= 0.2
-
-        board = self.algo_infoSet.board_state.tiles
-
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nx, ny = x + dx, y + dy
-
-            if 0 <= nx <= 9 and 0 <= ny <= 9:
-                neighbor = board[ny][nx].piece
-
-                if neighbor and neighbor.revealed:
-
-                    neighbor_power = self._piece_value(neighbor)
-                    my_power = self._piece_value(my_piece)
-
-                    if my_power < neighbor_power:
-                        score -= 0.4
-
-        return score
-
-    def prior_evaluate_medium_move(self, move):
-        """
-        Evaluate one candidate move with medium-difficulty priors.
-
-        Args:
-            move: Candidate move to score.
-
-        Returns:
-            float: Desirability score for the move.
-        """
-        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-
-        if my_piece is None:
-            return -5.0
-
-        confidence = (
-            1.0
-            if their_piece is not None and their_piece.revealed
-            else self.confidence_by_level[1]
-        )
-
-        score = self._common_priors(
-            move,
-            my_piece,
-            their_piece,
-            eclaireur_bonus=0.1,
-            espion_bonus=0.7,
-        )
-
-        score -= self._revisiting_count(move, 0.5)   
-
-        score *= confidence
-
-        return score
-    
-    def prior_evaluate_difficult_move(self, move):
-        """
-        Evaluate one candidate move with hard-difficulty priors.
-
-        Args:
-            move: Candidate move to score.
-
-        Returns:
-            float: Desirability score for the move.
-        """
-        start_row = self.rows[self.order][0]
-        direction = -1 if start_row > 4 else 1
-
-        my_piece, their_piece = self.algo_infoSet.return_pieces(move)
-
-        if my_piece is None:
-            return -5.0
-
-        my_val = self._piece_value(my_piece)
-        their_val = self._piece_value(their_piece)
-
-        confidence = (
-            1.0
-            if their_piece is not None and their_piece.revealed
-            else self.confidence_by_level[2]
-        )
-
-        score = self._common_priors(
-            move,
-            my_piece,
-            their_piece,
-            eclaireur_bonus=0.15,
-            espion_bonus=0.9,
-        )
-
-        if their_piece is not None and their_piece.type == PieceType.Drapeau:
-            return 1.5 * confidence
-
-        if their_piece is not None and their_piece.type == PieceType.Bombe:
-            if my_piece.type == PieceType.Demineur:
-                score += 0.7
-            else:
-                score -= 0.6
-
-        diff = my_val - their_val
-
-        if diff > 0:
-            score += 0.6 * (diff / 10)
-        elif diff < 0:
-            score -= 0.5 * (-diff / 10)
-
-        if their_piece is None or not their_piece.revealed:
-            score += 0.1
-
-            if my_val >= 7:
-                score -= 0.25
-
-        score += 0.05 * direction * (move.moveTo[1] - move.moveFrom[1])
-
-        score -= self._revisiting_count(move, 0.8)
-
-        score *= confidence
-
-        return score
-    
-    def _extract_features_heuristics(self):
-        """
-        Compute heuristic features from the current rollout board state.
-
-        Returns:
-            dict: Named feature values used by heuristic evaluation.
-        """
-        my_pieces = self.algo_infoSet.board_state.get_pieces(self.order)
-        opp_pieces = self.algo_infoSet.board_state.get_pieces(1 - self.order)
-
-        features = {}
-
-        features["material"] = (
-            sum(p.type.score for p in my_pieces.values())
-            - sum(p.type.score for p in opp_pieces.values())
-        )
-
-        features["mobility"] = (
-            len(self.algo_infoSet.get_all_possible_moves(self.order))
-            - len(self.algo_infoSet.get_all_possible_moves(1 - self.order))
-        )
-
-        features["flag"] = -self.algo_infoSet.closest_piece_to_flag()
-
-        features["info"] = self.score_revealed_opponent_pieces
-
-        features["trades"] = self.lost_combats
-
-        features["opp_confidence_material"] = sum(
-            -p.type.score * (1.0 if p.revealed else self.confidence_by_level[self.difficulty])
-            for p in opp_pieces.values()
-        )
-
-        features["reveal_bonus"] = sum(
-            p.type.score * 2
-            for p in opp_pieces.values()
-            if p.mcts_revealed
-        )
-
-        features["self_reveal_penalty"] = sum(
-            -p.type.score
-            for p in my_pieces.values()
-            if p.mcts_revealed
-        )
-
-        return features
-    
-    def _evaluate_heuristics(self, features, weights):
-        """
-        Combine extracted heuristic features with a difficulty-specific weight map.
-
-        Args:
-            features (dict): Feature values to aggregate.
-            weights (dict): Per-feature weights to apply.
-
-        Returns:
-            float: The weighted heuristic score.
-        """
-        return sum(
-            features[k] * weights.get(k, 0)
-            for k in features
-        )
-    
-    def heuristic_evaluation(self, ai_won, opp_won):
-        """
-        Evaluate the current rollout state from the AI perspective.
-
-        Args:
-            ai_won: Truthy when the rollout already ended in an AI win.
-            opp_won: Truthy when the rollout already ended in an AI loss.
-
-        Returns:
-            float: A terminal bonus or weighted heuristic score.
-        """
-        if ai_won:
-            return 1.0
-        if opp_won:
-            return -1.0
-
-        features = self._extract_features_heuristics()
-
-        weights = self.heuristics_weights_by_level[self.difficulty]
-
-        raw = self._evaluate_heuristics(features, weights)
-
-        return max(-1.0, min(1.0, raw / 5.0))
 
     def game_over(self):
         """

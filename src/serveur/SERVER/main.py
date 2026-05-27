@@ -290,8 +290,22 @@ def handle_valid_move():
 
     result = lobby.execute_action("move", (user_key, x_0, y_0, x_1, y_1))
 
+    raw_status = result[1]
+    status = str(raw_status).upper()
+
+    passthrough_statuses = {
+        "MOVE_SUCCESS",
+        "BATTLE_HAPPENING",
+        "INVALID_KEY",
+        "NOT_YOUR_TURN",
+    }
+
+    if status not in passthrough_statuses:
+        status = "INVALID_MOVE"
+
     return jsonify({
-        "status": result[1]
+        "status": status,
+        "raw_status": raw_status,
     })
 
 @app.route('/get_status', methods=['POST'])

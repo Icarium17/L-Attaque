@@ -165,10 +165,7 @@ return (
 
             <Button
               className="w-full max-w-sm mx-auto text-xl py-3"
-              onClick={() => {
-                localStorage.clear();
-                window.location.reload();
-              }}
+              onClick={() => auth("signout", session.key)}
             >
               RESET
             </Button>
