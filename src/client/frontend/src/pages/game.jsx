@@ -289,7 +289,7 @@ useEffect(() => {
               setPlayerOrder(null);
               setTurn("BLUE");
               navigate("/lobby");
-            }, 3000);
+            }, 1000);
 
           } else if (status == "SAVING") {
           }
@@ -518,6 +518,7 @@ return (
         variant="ghost" 
         text="Capituler"
         onClick={surrenderGame} 
+        disabled={loading || saveSuccess != ""}
         className="absolute bottom-[3%] left-[80%] fhd:left-[76%] [--btn-w:80px] [--btn-h:80px] fhd:[--btn-w:100px] fhd:[--btn-h:100px] 4k:[--btn-w:120px] 4k:[--btn-h:120px] text-[12px] fhd:text-[10px] 4k:text-[12px]"
         style={{ 
           width: "var(--btn-w)",
@@ -533,6 +534,7 @@ return (
         variant="ghost" 
         text={isPaused ? "Reprendre" : "Pause"} 
         onClick={togglePause} 
+        disabled={loading || saveSuccess != ""}
         className="absolute bottom-[3%] left-[83%] fhd:left-[82%] [--btn-w:80px] [--btn-h:80px] fhd:[--btn-w:100px] fhd:[--btn-h:100px] 4k:[--btn-w:120px] 4k:[--btn-h:120px] text-[10px] fhd:text-[10px] 4k:text-[14x]"
         style={{ 
           width: "var(--btn-w)",
@@ -549,6 +551,7 @@ return (
         variant="ghost" 
         text="Sauver"
         onClick={saveGame}
+        disabled={loading || saveSuccess != ""}
         className="absolute bottom-[3%] left-[88%] fhd:left-[88%] [--btn-w:85px] [--btn-h:85px] fhd:[--btn-w:100px] fhd:[--btn-h:100px] 4k:[--btn-w:130px] 4k:[--btn-h:130px] text-[11px] fhd:text-[10px] 4k:text-[13px]"
         style={{ 
           width: "var(--btn-w)",
