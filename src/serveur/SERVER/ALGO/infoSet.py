@@ -29,6 +29,15 @@ class InfoSet:
 
     @staticmethod
     def _clone_piece_for_rollout(piece):
+        """
+        Clone one piece for use inside an isolated rollout board.
+
+        Args:
+            piece: Piece to duplicate.
+
+        Returns:
+            Piece | BeliefPiece | None: Cloned piece, or `None` when the input is empty.
+        """
         if piece is None:
             return None
 
@@ -346,17 +355,21 @@ class InfoSet:
         else:
             return -my_value
         
-    def closest_piece_to_flag(self):
+    def closest_piece_to_flag(self, attacker_order=0, defender_order=1):
         """
-        Measure how close player 0 is to player 1's flag.
+        Measure how close one side is to the opposing flag.
+
+        Args:
+            attacker_order: Player order of the side whose nearest piece is used.
+            defender_order: Player order of the side whose flag is targeted.
 
         Returns:
-            float: Euclidean distance from the nearest player 0 piece to player 1's
-            flag, or `0` when the relevant pieces are missing.
+            float: Euclidean distance from the nearest `attacker_order` piece to
+            the `defender_order` flag, or `0` when the relevant pieces are missing.
         """
-        player_1_pieces = self.board_state.get_pieces(1)
+        defender_pieces = self.board_state.get_pieces(defender_order)
         flag_piece = next(
-            (piece for piece in player_1_pieces.values() if piece.type == PieceType.Drapeau),
+            (piece for piece in defender_pieces.values() if piece.type == PieceType.Drapeau),
             None,
         )
 
@@ -365,13 +378,13 @@ class InfoSet:
         if flag_position is None:
             return 0
 
-        opp_pieces = self.board_state.get_pieces(0)
+        attacker_pieces = self.board_state.get_pieces(attacker_order)
 
-        if not opp_pieces:
+        if not attacker_pieces:
             return 0
 
         closest_piece = min(
-            opp_pieces.values(),
+            attacker_pieces.values(),
             key=lambda piece: abs(piece.position[0] - flag_position[0]) + abs(piece.position[1] - flag_position[1]),
             default=None,
         )

@@ -19,7 +19,7 @@ class Node:
         self.value = 0
         self.children = []
         self.tried_moves = set()
-        self.c_param = 1.4
+        self.c_param = 2.0
         self.move = move
         self.prior = 0.0
         self.player_turn = player_turn
@@ -80,7 +80,9 @@ class Node:
         """
         Return the child to play from this node after search.
 
-        Children are ranked first by visit count, then by average value.
+        Children are filtered by a visit-count band, then ranked by average
+        value to avoid selecting underexplored lucky outliers while still
+        letting a slightly better well-explored move win.
 
         Returns:
             Node | None: The chosen child, or ``None`` when no children exist.
@@ -88,10 +90,17 @@ class Node:
         if not self.children:
             return None
 
+        max_visits = max(child.visit_count for child in self.children)
+        min_visits = max(1, math.ceil(max_visits * 0.7))
+        candidate_children = [
+            child for child in self.children
+            if child.visit_count >= min_visits
+        ]
+
         return max(
-            self.children,
+            candidate_children,
             key=lambda child: (
-                child.visit_count,
                 child.value / child.visit_count if child.visit_count else float('-inf'),
+                child.visit_count,
             ),
         )

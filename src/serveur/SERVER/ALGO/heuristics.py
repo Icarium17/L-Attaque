@@ -1,14 +1,47 @@
+import math
 from typing import Any
 
 from GAME.piece import PieceType
 
-HEURISTIC_NORMALIZATION_DIVISOR = 75.0
+HEURISTIC_NORMALIZATION_DIVISOR = 15.0
 
 CONFIDENCE_BY_LEVEL = {
     0: 1.0,
     1: 0.5,
     2: 0.75,
 }
+
+"""
+    Feature meanings:
+        - `material`: Remaining piece-value balance between the AI and the
+            opponent.
+        - `mobility`: Difference between the number of legal moves available to
+            each side.
+        - `flag`: Pressure on the opposing flag, measured as proximity of the
+            closest attacking piece.
+        - `info`: Value gained from favorable encounters and information learned
+            about opposing pieces during search.
+        - `trades`: Count of unfavorable combats tracked during rollout.
+        - `reveal_bonus`: Bonus for opponent pieces whose identities became
+            known during search.
+        - `self_reveal_penalty`: Penalty for the AI revealing its own valuable
+            pieces.
+        - `revealed_hunt`: Bonus for credible pressure against known high-rank
+            enemy pieces when the AI has an effective nearby counter.
+
+    Difficulty levels:
+        - `level 0`: Only uses `material=1.0`, so evaluation is based
+            purely on piece-value balance.
+        - `level 1`: Emphasizes a balanced mix of board strength,
+            movement, flag pressure, information, and combat results
+            with `material=1.0`, `mobility=0.5`, `flag=1.0`,
+            `info=1.0`, `trades=1.0`.
+        - `level 2`: Emphasizes information gain, flag pressure, and
+            reveal-related tactics with `material=1.0`,
+            `mobility=0.3`, `flag=2.0`, `info=3.0`, `trades=2.0`,
+            `reveal_bonus=2.0`, `self_reveal_penalty=1.0`,
+            `revealed_hunt=1.2`.
+"""
 
 HEURISTICS_WEIGHTS_BY_LEVEL = {
     0: {
@@ -35,7 +68,24 @@ HEURISTICS_WEIGHTS_BY_LEVEL = {
 
 
 class MCTSHeuristicMixin:
+    """
+        Provide move-prior and rollout-evaluation helpers for the MCTS search.
+
+        Rollout evaluation is based on a weighted feature vector whose weights are
+        selected from `HEURISTICS_WEIGHTS_BY_LEVEL`.
+    """
+    
     def _revisiting_count(self, move, weight: float) -> float:
+        """
+        Penalize moves that repeat recently explored actions.
+
+        Args:
+            move: Candidate move being scored.
+            weight: Base penalty weight.
+
+        Returns:
+            float: Weighted repetition penalty.
+        """
         count = 0
         for prev in self.previous_moves_algo:
             if move == prev:
@@ -245,6 +295,12 @@ class MCTSHeuristicMixin:
     # ---- Heuristic Features ----
 
     def _extract_features_heuristics(self) -> dict[str, float]:
+        """
+        Build the heuristic feature vector for the current rollout state.
+
+        Returns:
+            dict[str, float]: Feature values keyed by heuristic name.
+        """
         my_pieces = self.algo_infoSet.board_state.get_pieces(self.order)
         opp_pieces = self.algo_infoSet.board_state.get_pieces(1 - self.order)
 
@@ -260,21 +316,62 @@ class MCTSHeuristicMixin:
         }
 
     def _material_feature(self, my_pieces, opp_pieces) -> float:
+        """
+        Measure the material balance between the AI and the opponent.
+
+        Args:
+            my_pieces: Mapping of the AI's pieces.
+            opp_pieces: Mapping of the opponent's pieces.
+
+        Returns:
+            float: Score difference based on remaining piece values.
+        """
         return (
             sum(p.type.score for p in my_pieces.values())
             - sum(p.type.score for p in opp_pieces.values())
         )
 
     def _mobility_feature(self) -> float:
+        """
+        Compare the number of legal moves available to both sides.
+
+        Returns:
+            float: Mobility advantage for the AI side.
+        """
         return (
             len(self.algo_infoSet.get_all_possible_moves(self.order))
             - len(self.algo_infoSet.get_all_possible_moves(1 - self.order))
         )
 
     def _flag_pressure_feature(self) -> float:
-        return -self.algo_infoSet.closest_piece_to_flag()
+        """
+        Compare flag pressure between the AI and the opponent.
+
+        Returns:
+            float: Opponent distance to the AI flag minus AI distance to the
+            opponent flag.
+        """
+        my_distance_to_enemy_flag = self.algo_infoSet.closest_piece_to_flag(
+            self.order,
+            1 - self.order,
+        )
+        enemy_distance_to_my_flag = self.algo_infoSet.closest_piece_to_flag(
+            1 - self.order,
+            self.order,
+        )
+
+        return enemy_distance_to_my_flag - my_distance_to_enemy_flag
 
     def _reveal_bonus_feature(self, opp_pieces) -> float:
+        """
+        Reward knowledge about opponent pieces revealed during search.
+
+        Args:
+            opp_pieces: Mapping of opponent pieces.
+
+        Returns:
+            float: Bonus proportional to revealed opponent value.
+        """
         return sum(
             p.type.score * 2
             for p in opp_pieces.values()
@@ -282,6 +379,15 @@ class MCTSHeuristicMixin:
         )
 
     def _self_reveal_penalty_feature(self, my_pieces) -> float:
+        """
+        Penalize exposing the AI's own valuable pieces.
+
+        Args:
+            my_pieces: Mapping of the AI's pieces.
+
+        Returns:
+            float: Negative score for revealed friendly pieces.
+        """
         return sum(
             -p.type.score
             for p in my_pieces.values()
@@ -289,9 +395,27 @@ class MCTSHeuristicMixin:
         )
 
     def _is_piece_known_to_ai(self, piece) -> bool:
+        """
+        Check whether the AI knows the identity of a piece.
+
+        Args:
+            piece: Piece to inspect.
+
+        Returns:
+            bool: True when the piece identity is revealed or inferred.
+        """
         return bool(getattr(piece, "revealed", False) or getattr(piece, "mcts_revealed", False))
 
     def _known_identity_confidence(self, piece) -> float:
+        """
+        Estimate how confident the AI is about a piece's identity.
+
+        Args:
+            piece: Piece to inspect.
+
+        Returns:
+            float: Confidence score in the range from `0.0` to `1.0`.
+        """
         if getattr(piece, "revealed", False):
             return 1.0
         if getattr(piece, "mcts_revealed", False):
@@ -299,6 +423,16 @@ class MCTSHeuristicMixin:
         return 0.0
 
     def _revealed_high_rank_hunt_bonus(self, my_pieces, opp_pieces) -> float:
+        """
+        Reward pressure on revealed high-value opposing pieces.
+
+        Args:
+            my_pieces: Mapping of the AI's pieces.
+            opp_pieces: Mapping of the opponent's pieces.
+
+        Returns:
+            float: Bonus for credible counter-attacks against known threats.
+        """
         hunt_pairs = {
             PieceType.Marechal: (PieceType.Espion,),
             PieceType.General: (PieceType.Marechal,),
@@ -371,6 +505,17 @@ class MCTSHeuristicMixin:
         return bonus
 
     def _is_immediate_recapture_risk(self, x: int, y: int, defended_piece: Any) -> bool:
+        """
+        Check whether a square can be immediately recaptured by the enemy.
+
+        Args:
+            x: Target x-coordinate.
+            y: Target y-coordinate.
+            defended_piece: Friendly piece that would occupy the square.
+
+        Returns:
+            bool: True when an adjacent enemy can win the recapture.
+        """
         tiles = self.algo_infoSet.board_state.tiles
         rows = len(tiles)
         cols = len(tiles[0]) if rows else 0
@@ -397,12 +542,32 @@ class MCTSHeuristicMixin:
         return False
 
     def _evaluate_heuristics(self, features: dict[str, float], weights: dict[str, float]) -> float:
+        """
+        Combine heuristic features with the configured weights.
+
+        Args:
+            features: Feature vector extracted from the board.
+            weights: Weights applied to each feature.
+
+        Returns:
+            float: Raw weighted heuristic score.
+        """
         return sum(
             features[k] * weights.get(k, 0)
             for k in features
         )
 
     def heuristic_evaluation(self, ai_won, opp_won) -> float:
+        """
+        Convert rollout end-state information into a bounded heuristic value.
+
+        Args:
+            ai_won: Whether the AI won the simulated game.
+            opp_won: Whether the opponent won the simulated game.
+
+        Returns:
+            float: Evaluation score clamped to the range `[-1.0, 1.0]`.
+        """
         if ai_won:
             return 1.0
         if opp_won:
@@ -414,4 +579,4 @@ class MCTSHeuristicMixin:
 
         raw = self._evaluate_heuristics(features, weights)
 
-        return max(-1.0, min(1.0, raw / HEURISTIC_NORMALIZATION_DIVISOR))
+        return math.tanh(raw / HEURISTIC_NORMALIZATION_DIVISOR)

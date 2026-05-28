@@ -540,6 +540,12 @@ class GameRules():
     
     ##TODO : Do an actual score for surrender
     def calc_score_surrender(self):
+        """
+        Return the provisional score bonus granted after a surrender.
+
+        Returns:
+            int: Temporary surrender score value.
+        """
         return PieceType.Drapeau.score
         
 
