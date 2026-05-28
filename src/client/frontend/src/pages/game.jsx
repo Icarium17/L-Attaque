@@ -391,7 +391,7 @@ return (
             }} 
           />
             <Panel variant="score" title="SCORE" message={(opponentColor == "RED" ? scoreRed : scoreBlue).toString()}
-              className="absolute top-[15%] left-[15%] w-20 h-[80px] fhd:w-[100px] fhd:h-[100px] 4k:w-[120px] 4k:h-[120px]"
+              className="absolute top-[15%] left-[15%] w-20 h-20 fhd:w-25 fhd:h-25 4k:w-30 4k:h-30"
               style={{
                 backgroundImage: `url(${backgroundScore})`,
                 backgroundSize: "cover",
@@ -417,7 +417,7 @@ return (
 
             <TurnIndicator turn={turn} playerColor={playerColor} playerName={session.username}  title={opponentName} />
             <Panel variant="score" title="SCORE" message={(playerColor == "RED" ? scoreRed : scoreBlue).toString()}
-              className="absolute bottom-[15%] left-[15%] w-[80px] h-[80px] fhd:w-[100px] fhd:h-[100px] 4k:w-[120px] 4k:h-[120px]"
+              className="absolute bottom-[15%] left-[15%] w-20 h-20 fhd:w-25 fhd:h-25 4k:w-30 4k:h-30"
               style={{
                 backgroundImage: `url(${backgroundScore})`,
                 backgroundSize: "cover",
@@ -431,7 +431,7 @@ return (
         )}
         
         {/* Board */}
-        <div className="relative grid grid-cols-10 gap-0.5 w-[min(600px,75vh)] fhd:w-[min(680px,72vh)] 4k:w-[min(900px,82vh)] shrink-0 aspect-square border-[4px] fhd:border-[5px] 4k:border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
+        <div className="relative grid grid-cols-10 gap-0.5 w-[min(600px,75vh)] fhd:w-[min(680px,72vh)] 4k:w-[min(900px,82vh)] shrink-0 aspect-square border-4 fhd:border-[5px] 4k:border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
           {/* Bloquer toutes les interactions si pas son tour */}
           {phase == "PLAYING" && turn != playerColor && (
             <div className="absolute inset-0 z-40 cursor-not-allowed" />
