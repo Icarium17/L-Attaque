@@ -102,13 +102,11 @@ class GameManager():
 
         return game
 
-        
-
     def wait_timer(self):
         """
         Start a timer for waiting for a second player to join.
         """
-        self.wait_timer_duration = 100
+        self.wait_timer_duration = 25
         self.wait_timer_start = time.time()
         self.wait_timer_handle = threading.Timer(self.wait_timer_duration, self.remove_game)
         self.wait_timer_handle.start()

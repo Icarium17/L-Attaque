@@ -463,9 +463,11 @@ class LobbyManager:
 
         return (1, "RESTORED")
 
-    def too_long_wait(self, player_key): #TODO : rework
+    def too_long_wait(self, player_key):
         """
-        Handle case where a player has waited too long. (Not implemented)
+        Handle case where a player has waited too long.
+        Cleans up the game immediately and sets the user status to TIMED_OUT
+        for 10 seconds, then resets it to IDLE.
         Args:
             player_key: The session key of the waiting player.
         """
@@ -474,6 +476,19 @@ class LobbyManager:
             return
         game.cleanup()
         self.games.pop(player_key, None)
+
+        user = self.active_users.get(player_key)
+        if user is None:
+            return
+        user.status = "TIMED_OUT"
+
+        def reset_status():
+            if user.status == "TIMED_OUT":
+                user.status = "IDLE"
+
+        timer = threading.Timer(10.0, reset_status)
+        timer.daemon = True
+        timer.start()
 
 
     ## Play Game
