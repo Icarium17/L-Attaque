@@ -11,7 +11,7 @@ function addToCounts(prev, type) {
   return { ...prev, [type]: (prev[type] ?? 0) + 1 };
 }
 
-export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setOpponentName , setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor,setLastMoves }) {
+export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setOpponentName , setBoard, setBattleData, setGameResult, setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, playerOrder, setPlayerOrder, playerColor, opponentColor,setLastMoves, setError }) {
   const navigate = useNavigate();
   const lastBattleRef = useRef(null);
 
@@ -36,6 +36,14 @@ export function useGameSync({ phase, setPhase, setTurn, setTimeRemaining, setOpp
           if (result.result?.error == "Session inactive" || gameData?.status == "INVALID_KEY") {
             return navigate("/");
           }
+
+          if (result.result?.status == "TIMED_OUT" || gameData?.status == "TIMED_OUT" ||
+            result.result?.status == "IDLE" || gameData?.status == "IDLE") {
+             setError("Aucun joueur trouvé");
+             setTimeout(() => navigate("/lobby"), 2500);
+          return;
+          }
+                
           // Ordre du joueur
           if (gameData?.order != undefined && playerOrder == null) {
             setPlayerOrder(gameData.order);

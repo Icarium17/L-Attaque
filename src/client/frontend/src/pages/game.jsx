@@ -189,7 +189,8 @@ useEffect(() => {
     setCapturedPieces, setLostPieces, setScoreBlue, setScoreRed, 
     playerOrder, setPlayerOrder, playerColor, opponentColor,
     setLastMoves,
-    setOpponentName 
+    setOpponentName,
+    setError
   });
   
   // Destructuration de usePlacement : retourne le pool de pièces à placer,l'index sélectionné, et les fonctions de placement (clic, drag & drop, auto, reset, envoi au serveur)
