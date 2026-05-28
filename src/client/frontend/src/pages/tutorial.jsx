@@ -6,6 +6,7 @@ import PieceGallery from "../components/pieceGallery.jsx";
 import backgroundtutorial from '../assets/images/background-tutorial.png';
 import placementVideo from '../assets/placement-video.mp4';
 import moveVideo from '../assets/move-video.mp4';
+import publiciteVideo from '../assets/publicite-video.mp4';
 import attackVideo from '../assets/attack-video.mp4';
 import texture from '../assets/images/parchemin-texture.png';
 import victory from '../assets/images/victory.png';
@@ -70,6 +71,25 @@ const STEPS = [
       "La mémoire et la déduction sont vos meilleurs atouts pour l'emporter."
     ],
   },
+    {
+     title: "Publicité",
+    type: "video",
+    video: publiciteVideo,  
+    texts: [
+      "Pour la première fois je m'inquiète pour la journée de demain",
+      "Nos troupes ont perdu beaucoup d'hommes ces derniers jours",
+      "même si j'ai bien préparé mes soldats pour cette bataille décisive",
+      "Ses adversaires sont plus forts que ce que nous pensions",
+      "Parce que dans un combat comme celui-ci une bonne stratégie est cruciale",
+      "Notre général garde toujours son sang-froid d'habitude",
+      "Mais j'ai l'impression que quelque chose a changé sur le champ de bataille",
+      "La tactique est parfois plus importante que le courage",
+      "Mais pas pour l'adversaire, leurs soldats se jettent dans le combat avec beaucoup d'ardeur",
+      "Il semble inspiré par une puissance supérieure",
+      "Est-ce que tu sauras vaincre l'ennemi ?",
+      "Attaque et conquiers le drapeau"
+    ],
+  },
 ];
 
 export default function Tutorial() {
@@ -91,6 +111,7 @@ export default function Tutorial() {
   };
 
   const currentStep = STEPS[activeStep];
+  const isPub = currentStep.title === "Publicité";
 
   return (
     <MainLayout
@@ -156,9 +177,16 @@ export default function Tutorial() {
             <div>
               {currentStep.texts.map((text, index) => (
                 <div key={index} className="flex flex-col justify-center h-full">
-                  <p className={`pop delay-${index} m+10`}>
-                  {text}
-                </p>
+                  <p
+                    className={isPub ? "pop-pub" : "pop"}
+                    style={
+                    isPub
+                      ? { animationDelay: `${2 + (42 / currentStep.texts.length) * index}s` }
+                      : { animationDelay: `${index * 7}s` }
+                  }
+                  >
+                    {text}
+                  </p>
                 </div>
               ))}
             </div>

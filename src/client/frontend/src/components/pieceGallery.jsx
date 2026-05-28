@@ -18,7 +18,7 @@ const PIECES_INFO = [
 export default function PieceGallery({ playerColor = "BLUE" }) {
   return (
     <div className="min-h-full w-full flex items-center justify-center py-4 fhd:py-6 4k:py-10">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 fhd:gap-x-10 fhd:gap-y-2 4k:gap-x-16 4k:gap-y-4 justify-items-center w-full max-w-6xl fhd:max-w-7xl 4k:max-w-[1600px]">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 fhd:gap-x-10 fhd:gap-y-2 4k:gap-x-16 4k:gap-y-4 justify-items-center w-full max-w-6xl fhd:max-w-7xl 4k:max-w-400">
         {PIECES_INFO.map((p) => (
           <div key={p.type} className="flex flex-col items-center text-center group">
             <div className="scale-65 fhd:scale-75 4k:scale-100 transition-transform">
