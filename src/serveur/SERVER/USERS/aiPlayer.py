@@ -34,7 +34,7 @@ class AIPlayer(Player):
             1: (0, 4) 
         }
 
-        self.move_timers = { ## TODO : tinker with the times, this doesnt look right
+        self.move_timers = {
             0:6,
             1:6,
             2:6
@@ -72,39 +72,19 @@ class AIPlayer(Player):
         Returns:
             The move selected by the MCTS search.
         """
-        iteration_nb = 0
         mcts = MCTS(search_snapshot)
         move_time = search_snapshot.move_time
         start = time.time()
 
         while time.time() - start < move_time:
             mcts.algo()
-            iteration_nb += 1
 
-        elapsed = time.time() - start
         root_visit_summary = mcts.get_root_visit_summary()
         print(
             "MCTS root visits: "
             + (" | ".join(root_visit_summary) if root_visit_summary else "no expanded root children")
         )
         move = mcts.get_best_move()
-        iterations_per_second = iteration_nb / elapsed if elapsed > 0 else 0
-        average_phase_times_ms = mcts.get_average_phase_times_ms()
-        phase_summary = ", ".join(
-            f"{phase}_avg_ms={duration:.3f}"
-            for phase, duration in average_phase_times_ms.items()
-        )
-        # print(
-        #     "AI debug: "
-        #     f"difficulty={search_snapshot.difficulty}, "
-        #     f"budget={move_time:.2f}s, "
-        #     f"elapsed={elapsed:.2f}s, "
-        #     f"initial_possible_moves={mcts.initial_possible_moves}, "
-        #     f"iterations={iteration_nb}, "
-        #     f"iter_per_sec={iterations_per_second:.2f}, "
-        #     f"move={move}, "
-        #     f"{phase_summary}"
-        # )
         return move
 
 
@@ -126,25 +106,55 @@ class AISetupBuilder:
         self.ai_player = ai_player
 
     def _player_rows(self):
+        """
+        Return the row interval reserved for this AI player's setup zone.
+
+        Returns:
+            tuple: Inclusive start and exclusive end rows for placement.
+        """
         return self.ai_player.rows[self.ai_player.order]
 
     def _is_top_side(self):
+        """
+        Check whether the AI is deploying from the top half of the board.
+
+        Returns:
+            bool: True when the AI starts on the top side.
+        """
         row_start, _ = self._player_rows()
         return row_start == 0
 
     def _front_row_range(self):
+        """
+        Return the two-row slice considered closest to the enemy.
+
+        Returns:
+            tuple: Inclusive start and exclusive end rows for the front band.
+        """
         row_start, row_end = self._player_rows()
         if self._is_top_side():
             return (row_end - 2, row_end)
         return (row_start, row_start + 2)
 
     def _front_rows(self):
+        """
+        Return the front rows ordered from nearest to farthest engagement line.
+
+        Returns:
+            list: Front-row indices for the current side.
+        """
         row_start, row_end = self._player_rows()
         if self._is_top_side():
             return [row_end - 1, row_end - 2]
         return [row_start, row_start + 1]
 
     def _back_rows(self):
+        """
+        Return the safer back rows used for defensive placements.
+
+        Returns:
+            list: Back-row indices for the current side.
+        """
         row_start, row_end = self._player_rows()
         if self._is_top_side():
             return [row_start + 1, row_start]

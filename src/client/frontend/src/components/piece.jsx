@@ -80,7 +80,7 @@ export default function Piece({ rank, player, type, revealed, playerColor }) {
       <span
         className={`
           absolute top-2 left-3 z-10
-          text-[clamp(14px,1.6vw,17px)] text-white
+          text-[clamp(8px,1.2vw,14px)] fhd:text-[clamp(10px,1.1vw,14px)] 4k:text-[clamp(14px,0.9vw,20px)]
           ${isVisible && !isSpecial ? "opacity-100" : "opacity-0"}
         `}
       >
@@ -90,7 +90,7 @@ export default function Piece({ rank, player, type, revealed, playerColor }) {
       {isVisible && Aspect && (
         <div
           className={`object-contain pointer-events-none ${
-            isSpecial ? 'w-11 h-12' : 'w-9 h-11'
+          isSpecial ? 'w-[60%] h-[65%]' : 'w-[55%] h-[62%]'
           }`}
           style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
         >

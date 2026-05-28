@@ -289,7 +289,7 @@ useEffect(() => {
               setPlayerOrder(null);
               setTurn("BLUE");
               navigate("/lobby");
-            }, 3000);
+            }, 1000);
 
           } else if (status == "SAVING") {
           }
@@ -318,13 +318,13 @@ return (
 
       {/* PLACEMENT */}
       {phase == "PLACEMENT" && (
-        <div className="absolute left-[15%] top-1/2 -translate-y-1/2 flex flex-col items-center w-96 z-20 space-y-5">
+       <div className="absolute left-[13%] top-1/2 -translate-y-1/2 flex flex-col items-center w-64 fhd:w-72 4k:w-96 z-20 space-y-3 fhd:space-y-4 4k:space-y-5">
           <GameMessage variant="title" title="Pièces à placer" />
           <Button variant="primary" onClick={handleAutoPlacement} disabled={pool.length == 0} fullWidth text="Placement Auto" />
           <Button variant="danger" onClick={handleResetPlacement} disabled={pool.length == 40} fullWidth text="Annuler" />
 
         {/* POOL */}
-          <div className="grid grid-cols-4 place-items-center gap-3 overflow-y-auto w-full mb-2 p-2.5 bg-black/40 backdrop-blur-md rounded border border-white/10"
+          <div className="grid grid-cols-4 place-items-center gap-2 fhd:gap-2 4k:gap-3 overflow-y-auto w-full mb-2 p-2 fhd:p-2.5 bg-black/40 backdrop-blur-md rounded border border-white/10"
             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
             onDrop={(e) => { e.preventDefault(); handlePoolDrop(); }}>
             {pool.map((piece, idx) => (
@@ -337,7 +337,7 @@ return (
                 }}
                 onClick={() => handlePoolClick(idx)}
 
-                className={`flex items-center justify-center w-16 h-16  rounded border-2 transition-all overflow-hidden
+                className={`flex items-center justify-center w-11 h-11 fhd:w-12 fhd:h-12 4k:w-16 4k:h-16 rounded border-2 transition-all overflow-hidden
                  ${selectedPoolIndex == idx
                     ? "border-yellow-400 bg-blue-600 text-white scale-115 shadow-cyan-500/50 shadow-md"
                     : "border-gray-500 bg-gray-800 text-blue-200 hover:border-blue-300"
@@ -365,7 +365,7 @@ return (
         </div>
       )}
 
-      <div className="flex items-center gap-10 z-10">
+      <div className="flex items-center gap-6 fhd:gap-8 4k:gap-10 z-10">
         {/* Timers */}
         {phase != "PLACEMENT" && phase != "WAITING" && (
             <div className={`flex flex-col justify-between h-[80vh] py-4 ${phase != "PLAYING" ? "invisible" : ""}`}>
@@ -376,14 +376,14 @@ return (
             <Panel 
             variant="name" 
             title={opponentName} 
-            className={`absolute top-[32%] left-[18%] ${turn == opponentColor ? "animate-pulse" : ""}`}
+            className={`absolute top-[32%] left-[18%] [--panel-w:260px] [--panel-h:95px] fhd:[--panel-w:280px] fhd:[--panel-h:100px] 4k:[--panel-w:400px] 4k:[--panel-h:150px] ${turn == opponentColor ? "animate-pulse" : ""}`}
             style={{
               backgroundImage: `url(${opponentColor == "RED" ? redName : blueName})`,
               backgroundSize: "contain",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
-              width: "400px",
-              height: "150px",
+              width: "var(--panel-w)",
+              height: "var(--panel-h)",
               padding: 0,
               display: "flex",
               alignItems: "center",
@@ -391,25 +391,23 @@ return (
             }} 
           />
             <Panel variant="score" title="SCORE" message={(opponentColor == "RED" ? scoreRed : scoreBlue).toString()}
-              className="absolute top-[15%] left-[15%] "
+              className="absolute top-[15%] left-[15%] w-20 h-20 fhd:w-25 fhd:h-25 4k:w-30 4k:h-30"
               style={{
                 backgroundImage: `url(${backgroundScore})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                width: "120px",
-                height: "120px",
               }} />
             <Panel 
             variant="name" 
             title={session.username}
-            className={`absolute top-[60%] left-[18%] ${turn == playerColor ? "animate-pulse" : ""}`}
+            className={`absolute top-[60%] left-[18%] [--panel-w:260px] [--panel-h:95px] fhd:[--panel-w:280px] fhd:[--panel-h:100px] 4k:[--panel-w:400px] 4k:[--panel-h:150px] ${turn == playerColor ? "animate-pulse" : ""}`}
             style={{
               backgroundImage: `url(${playerColor == "RED" ? redName : blueName})`,
               backgroundSize: "contain",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
-              width: "400px",
-              height: "150px",
+              width: "var(--panel-w)",
+              height: "var(--panel-h)",
               padding: 0,
               display: "flex",
               alignItems: "center",
@@ -419,13 +417,11 @@ return (
 
             <TurnIndicator turn={turn} playerColor={playerColor} playerName={session.username}  title={opponentName} />
             <Panel variant="score" title="SCORE" message={(playerColor == "RED" ? scoreRed : scoreBlue).toString()}
-              className="absolute bottom-[15%] left-[15%] "
+              className="absolute bottom-[15%] left-[15%] w-20 h-20 fhd:w-25 fhd:h-25 4k:w-30 4k:h-30"
               style={{
                 backgroundImage: `url(${backgroundScore})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                width: "120px",
-                height: "120px",
               }} />
             <Timer timeLeft={timeRemaining[0] || 0} 
                    color={playerColor}
@@ -435,7 +431,7 @@ return (
         )}
         
         {/* Board */}
-        <div className="relative grid grid-cols-10 gap-0.5 w-[min(900px,82vh)] shrink-0 aspect-square border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
+        <div className="relative grid grid-cols-10 gap-0.5 w-[min(600px,75vh)] fhd:w-[min(680px,72vh)] 4k:w-[min(900px,82vh)] shrink-0 aspect-square border-4 fhd:border-[5px] 4k:border-[6px] border-yellow-500/50 bg-gray-800 p-0.5 rounded shadow-2xl">
           {/* Bloquer toutes les interactions si pas son tour */}
           {phase == "PLAYING" && turn != playerColor && (
             <div className="absolute inset-0 z-40 cursor-not-allowed" />
@@ -443,7 +439,7 @@ return (
           {/* Bloquer toutes les interactions si en pause */}
           {phase == "PLAYING" && isPaused && (
             <div className="absolute inset-0 z-40 cursor-not-allowed bg-black/50 flex items-center justify-center">
-              <span className="text-yellow-400 text-4xl font-bold">PAUSE</span>
+              <span className="text-yellow-400 text-2xl fhd:text-3xl 4k:text-4xl font-bold">PAUSE</span>
             </div>
           )}
          {board.map((row, rowIndex) =>
@@ -514,76 +510,73 @@ return (
           <YourTurn show={showYourTurn} />
         </div>
       </div>
+    {/* Bouton surrender & pause */}
+    {phase == "PLAYING" && (
+    <div className="flex flex-col gap-2">
+      {/* Surrender Button */}
+      <Button 
+        variant="ghost" 
+        text="Capituler"
+        onClick={surrenderGame} 
+        disabled={loading || saveSuccess != ""}
+        className="absolute bottom-[3%] left-[80%] fhd:left-[76%] [--btn-w:80px] [--btn-h:80px] fhd:[--btn-w:100px] fhd:[--btn-h:100px] 4k:[--btn-w:120px] 4k:[--btn-h:120px] text-[12px] fhd:text-[10px] 4k:text-[12px]"
+        style={{ 
+          width: "var(--btn-w)",
+          height: "var(--btn-h)",
+          background: `url(${surrender}) center/cover no-repeat`, 
+          color: "#ffffff",
+          textShadow: "0 0 8px rgba(0,0,0,0.8)",
+          paddingTop: "70px",  
+        }}
+      />
+      {/* Pause/Play Button */}
+      <Button 
+        variant="ghost" 
+        text={isPaused ? "Reprendre" : "Pause"} 
+        onClick={togglePause} 
+        disabled={loading || saveSuccess != ""}
+        className="absolute bottom-[3%] left-[83%] fhd:left-[82%] [--btn-w:80px] [--btn-h:80px] fhd:[--btn-w:100px] fhd:[--btn-h:100px] 4k:[--btn-w:120px] 4k:[--btn-h:120px] text-[10px] fhd:text-[10px] 4k:text-[14x]"
+        style={{ 
+          width: "var(--btn-w)",
+          height: "var(--btn-h)",
+          background: `url(${isPaused ? play : pause}) center/cover no-repeat`,  
+          color: "#ffffff",
+          textShadow: "0 0 8px rgba(0,0,0,0.8)",
+          paddingTop: "70px",  
+        }}
+      />
 
-      {/* Bouton surrender & pause */}
-        {phase == "PLAYING" && (
-        <div className="flex flex-col gap-2">
-        
-        {/* Surrender Button */}
-        <Button 
-            variant="ghost" 
-            text="Capituler"
-            onClick={surrenderGame} 
-            className="absolute bottom-[4%] left-[78%] w-!"
-          style={{ 
-            width: "120px",
-            height: "120px",
-            background: `url(${surrender}) center/cover no-repeat`, 
-            color: "#ffffff",
-            textShadow: "0 0 8px rgba(0,0,0,0.8)",
-            fontSize: "12px",
-            paddingTop: "70px",  
+      {/* Save Button */}
+      <Button 
+        variant="ghost" 
+        text="Sauver"
+        onClick={saveGame}
+        disabled={loading || saveSuccess != ""}
+        className="absolute bottom-[3%] left-[88%] fhd:left-[88%] [--btn-w:85px] [--btn-h:85px] fhd:[--btn-w:100px] fhd:[--btn-h:100px] 4k:[--btn-w:130px] 4k:[--btn-h:130px] text-[11px] fhd:text-[10px] 4k:text-[13px]"
+        style={{ 
+          width: "var(--btn-w)",
+          height: "var(--btn-h)",
+          background: `url(${save}) center/cover no-repeat`, 
+          color: "#ffffff",
+          textShadow: "0 0 8px rgba(0,0,0,0.8)",
+          paddingTop: "70px",  
         }}
-        />
-
-        {/* Pause/Play Button */}
-        <Button 
-            variant="ghost" 
-            text={isPaused ? "Reprendre" : "Pause"} 
-            onClick={togglePause} 
-            className="absolute bottom-[4%] left-[83%] w-30!"  
-          style={{ 
-            width: "120px",
-            height: "120px",
-            background: `url(${isPaused ? play : pause}) center/cover no-repeat`,  
-            color: "#ffffff",
-            textShadow: "0 0 8px rgba(0,0,0,0.8)",
-            fontSize: "10px",
-            paddingTop: "70px",  
-        }}
-        />
-        {/* Save Button */}
-        <Button 
-            variant="ghost" 
-            text="Sauver"
-            onClick={saveGame}
-            className="absolute bottom-[3.5%] left-[88%] w-!"
-          style={{ 
-            width: "130px",
-            height: "130px",
-            background: `url(${save}) center/cover no-repeat`, 
-            color: "#ffffff",
-            textShadow: "0 0 8px rgba(0,0,0,0.8)",
-            fontSize: "11px",
-            paddingTop: "90px",  
-        }}
-        /> 
-        </div>
-        )} 
+      /> 
+    </div>
+    )}  
 
       {/*Cimetières  */}
       {phase == "PLAYING" && (
-        <div className="absolute left-[calc(57%+min(450px,41vh)+20px)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-2 h-[70vh] z-20">
+        <div className="absolute left-[calc(57%+min(300px,38vh)+10px)] fhd:left-[calc(55%+min(340px,36vh)+10px)] 4k:left-[calc(57%+min(450px,41vh)+20px)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-1 fhd:gap-1.5 4k:gap-2 h-[70vh] z-20">
           <Graveyard title="Pièces Capturées" counts={capturedPieces} />
           <Graveyard title="Pièces Perdues" counts={lostPieces} />
         </div>
       )}   
       {phase == "PLAYING" && (
-        <div className="absolute bottom-10 right-24">
-          <ConnectionStatus pingMs={pingMs} />
-        </div>
-      )}      
-
+      <div className="absolute bottom-4 right-10 fhd:bottom-6 fhd:right-6 4k:bottom-8 4k:right-6">
+        <ConnectionStatus pingMs={pingMs} />
+      </div>
+     )}   
       {/* Erreurs*/}
       {error && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm">

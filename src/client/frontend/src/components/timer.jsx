@@ -30,7 +30,7 @@ export default function Timer({ timeLeft = 0, color = "BLUE", turn, isPaused }) 
   const seconds = `${display % 60}`.padStart(2, '0');
 
   return (
-    <div className="relative flex items-center justify-center w-32 h-32">
+    <div className="relative flex items-center justify-center w-24 h-24 fhd:w-28 fhd:h-28 4k:w-36 4k:h-36">
       <img
         src={color == "RED" ? timerRed : timerBlue}
         alt="timer"
@@ -38,7 +38,7 @@ export default function Timer({ timeLeft = 0, color = "BLUE", turn, isPaused }) 
           ${isEnding ? 'animate-pulse brightness-150 hue-rotate-300 saturate-200' : ''}`}
       />
       <span
-        className={`relative z-10 font-black text-2xl select-none leading-none
+        className={`relative z-10 font-black text-xl fhd:text-2xl 4k:text-3xl select-none leading-none
           ${isEnding ? 'text-red-500' : 'text-white'}
           drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]`}
         style={{ transform: 'translate(2px, -6px)' }}

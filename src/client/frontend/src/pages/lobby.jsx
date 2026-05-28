@@ -14,6 +14,7 @@ export default function Lobby() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     const key = localStorage.getItem("sessionKey");
@@ -75,11 +76,15 @@ export default function Lobby() {
       });
   };
 
+
   const btnStyle = (key) => ({
     background: `url(${buttonBg}) center/100% 100% no-repeat`,
-    minHeight: '140px',
+    minHeight: 'var(--btn-h)',
     color: errors[key] ? '#8B0000' : undefined
   });
+
+   
+  const btnHeightClass = "[--btn-h:80px] fhd:[--btn-h:110px] 4k:[--btn-h:140px]";
 
   return (
     <MainLayout
@@ -88,20 +93,20 @@ export default function Lobby() {
       session={session}
       hideMenu={true}
     >
-      <div className="relative flex flex-col items-center justify-center ml-72">
+      <div className="relative flex flex-col items-center justify-center ml-40 fhd:ml-56 4k:ml-72">
         <div className="absolute inset-0 bg-gray-950/50" />
         <div className="relative z-10 flex flex-col items-center justify-center w-full px-6">
           <img
             src={logo}
             alt="Logo du Jeu"
-            className="max-w-full md:max-w-4xl h-auto drop-shadow-2xl mb-12"
+            className="max-w-full md:max-w-2xl fhd:max-w-3xl 4k:max-w-4xl h-auto drop-shadow-2xl mb-6 fhd:mb-8 4k:mb-12"
           />
         </div>
       </div>
 
       <div className="absolute top-[14%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
         <Button variant="ghost" onClick={() => startGame('ai')}
-          className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
+          className={`w-full fhd:w-full text-[clamp(16px,2.1vw,32px)] fhd:text-[1.3vw] fhd:tracking-wide ${btnHeightClass}`}
           style={btnStyle('ai')}>
           {errors['ai'] || "CONTRE L'IA"}
         </Button>
@@ -109,7 +114,7 @@ export default function Lobby() {
 
       <div className="absolute top-[26%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
         <Button variant="ghost" onClick={() => startGame('multiplayer')}
-          className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
+          className={`w-full fhd:w-full text-[clamp(16px,2.1vw,32px)] fhd:text-[1.3vw] fhd:tracking-wide ${btnHeightClass}`}
           style={btnStyle('multiplayer')}>
           {errors['multiplayer'] || "CONTRE LE JOUEUR"}
         </Button>
@@ -117,7 +122,7 @@ export default function Lobby() {
 
       <div className="absolute top-[38%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
         <Button variant="ghost" onClick={resumeGame}
-          className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
+          className={`w-full fhd:w-full text-[clamp(16px,2.1vw,32px)] fhd:text-[1.3vw] fhd:tracking-wide ${btnHeightClass}`}
           style={btnStyle('resume')}>
           {errors['resume'] || "REPRENDRE"}
         </Button>
@@ -125,24 +130,24 @@ export default function Lobby() {
 
       <div className="absolute top-[50%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
         <Button variant="ghost" onClick={() => navigate("/leaderboard")}
-          className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
-          style={{ background: `url(${buttonBg}) center/100% 100% no-repeat`, minHeight: '140px' }}>
+          className={`w-full fhd:w-full text-[clamp(16px,2.1vw,32px)] fhd:text-[1.3vw] fhd:tracking-wide ${btnHeightClass}`}
+          style={{ background: `url(${buttonBg}) center/100% 100% no-repeat`, minHeight: 'var(--btn-h)' }}>
           CLASSEMENT
         </Button>
       </div>
 
       <div className="absolute top-[62%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
         <Button variant="ghost" onClick={() => navigate("/options")}
-          className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
-          style={{ background: `url(${buttonBg}) center/100% 100% no-repeat`, minHeight: '140px' }}>
+          className={`w-full fhd:w-full text-[clamp(16px,2.1vw,32px)] fhd:text-[1.3vw] fhd:tracking-wide ${btnHeightClass}`}
+          style={{ background: `url(${buttonBg}) center/100% 100% no-repeat`, minHeight: 'var(--btn-h)' }}>
           OPTIONS
         </Button>
       </div>
 
       <div className="absolute top-[74%] left-[1.5%] w-[22%] flex flex-col gap-[3%] z-10">
         <Button variant="ghost" onClick={() => navigate("/")}
-          className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,32px)]"
-          style={{ background: `url(${buttonBg}) center/100% 100% no-repeat`, minHeight: '140px' }}>
+          className={`w-full fhd:w-full text-[clamp(16px,2.1vw,32px)] fhd:text-[1.3vw] fhd:tracking-wide ${btnHeightClass}`}
+          style={{ background: `url(${buttonBg}) center/100% 100% no-repeat`, minHeight: 'var(--btn-h)' }}>
           QUITTER
         </Button>
       </div>
@@ -155,12 +160,12 @@ export default function Lobby() {
       </div>
 
       <div className="absolute top-[89%] left-[81%] w-[14%] flex flex-col gap-[3%] z-10">
-        <Button variant="ghost" onClick={() => navigate("/admin")}
-          className="w-full sm:w-2/3 text-[clamp(16px,2.1vw,22px)]"
-          style={{ background: `url(${buttonAdminBg}) center/100% 100% no-repeat`, minHeight: '140px', color: 'grey' }}>
-          ADMINISTRATION
-        </Button>
-      </div>
+      <Button variant="ghost" onClick={() => navigate("/admin")}
+        className={`w-full fhd:w-full text-[clamp(2px,1.0vw,14px)] fhd:text-[0.8vw] fhd:tracking-wide 4k:text-[0.8vw] fhd:tracking-wide ${btnHeightClass}`}
+        style={{ background: `url(${buttonAdminBg}) center/100% 100% no-repeat`, minHeight: 'var(--btn-h)', color: 'grey' }}>
+        ADMINISTRATION
+      </Button>
+    </div>
 
     </MainLayout>
   );

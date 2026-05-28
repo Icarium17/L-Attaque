@@ -64,6 +64,15 @@ class LobbyManager:
             return action(*args)
 
     def _get_or_reattach_user(self, session_key):
+        """
+        Return an active user, rehydrating it from the database when needed.
+
+        Args:
+            session_key: Session token identifying the user.
+
+        Returns:
+            User | None: Active user instance, or `None` when the key is invalid.
+        """
         user = self.active_users.get(session_key)
         if user is not None:
             return user
@@ -77,6 +86,15 @@ class LobbyManager:
         return user
 
     def _get_active_game(self, session_key):
+        """
+        Return the current game associated with a session key when still valid.
+
+        Args:
+            session_key: Session token identifying the player.
+
+        Returns:
+            GameManager | None: Matching live game, or `None` when unavailable.
+        """
         game = self.games.get(session_key)
         if game is None:
             return None
@@ -108,6 +126,15 @@ class LobbyManager:
         return status, -1, status
     
     def register_profile(self, args):
+        """
+        Create a user profile without starting a connected session.
+
+        Args:
+            args: Tuple containing username, password, and optionally rights.
+
+        Returns:
+            tuple: Creation status, optional session key placeholder, and message.
+        """
         username, password, *rest = args ## TODO : modifier pour que ça prenne en compte les autres paramètres (langue, etc)
         rights = rest[0] if rest else 'User'
         
@@ -165,8 +192,7 @@ class LobbyManager:
                 if key != my_key:
                     normalized_wait_list.append(key)
             self.wait_list = normalized_wait_list
-            return "USER_DISCONNECTED"
-        return "INVALID_KEY"
+        return "USER_DISCONNECTED"
         
 
     def delete_profile(self, args):
@@ -193,6 +219,15 @@ class LobbyManager:
         pass
 
     def update_difficulty(self, args):
+        """
+        Persist the chosen AI difficulty for the requesting user.
+
+        Args:
+            args: Tuple containing session key and one-based difficulty.
+
+        Returns:
+            str: Status code describing the update result.
+        """
         (my_key, difficulty) = args
 
         if not isinstance(difficulty, int) or isinstance(difficulty, bool):

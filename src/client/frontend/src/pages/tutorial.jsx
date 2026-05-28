@@ -6,6 +6,7 @@ import PieceGallery from "../components/pieceGallery.jsx";
 import backgroundtutorial from '../assets/images/background-tutorial.png';
 import placementVideo from '../assets/placement-video.mp4';
 import moveVideo from '../assets/move-video.mp4';
+import publiciteVideo from '../assets/publicite-video.mp4';
 import attackVideo from '../assets/attack-video.mp4';
 import texture from '../assets/images/parchemin-texture.png';
 import victory from '../assets/images/victory.png';
@@ -70,6 +71,25 @@ const STEPS = [
       "La mémoire et la déduction sont vos meilleurs atouts pour l'emporter."
     ],
   },
+    {
+     title: "Publicité",
+    type: "video",
+    video: publiciteVideo,  
+    texts: [
+      "Pour la première fois je m'inquiète pour la journée de demain",
+      "Nos troupes ont perdu beaucoup d'hommes ces derniers jours",
+      "même si j'ai bien préparé mes soldats pour cette bataille décisive",
+      "Ses adversaires sont plus forts que ce que nous pensions",
+      "Parce que dans un combat comme celui-ci une bonne stratégie est cruciale",
+      "Notre général garde toujours son sang-froid d'habitude",
+      "Mais j'ai l'impression que quelque chose a changé sur le champ de bataille",
+      "La tactique est parfois plus importante que le courage",
+      "Mais pas pour l'adversaire, leurs soldats se jettent dans le combat avec beaucoup d'ardeur",
+      "Il semble inspiré par une puissance supérieure",
+      "Est-ce que tu sauras vaincre l'ennemi ?",
+      "Attaque et conquiers le drapeau"
+    ],
+  },
 ];
 
 export default function Tutorial() {
@@ -91,6 +111,7 @@ export default function Tutorial() {
   };
 
   const currentStep = STEPS[activeStep];
+  const isPub = currentStep.title === "Publicité";
 
   return (
     <MainLayout
@@ -98,16 +119,15 @@ export default function Tutorial() {
       background={backgroundtutorial}
       session={session}
       hideMenu={true}
-    >
-
-      <div className="absolute top-[7%] left-1/2 -translate-x-1/2 w-[70%] z-10 flex flex-col items-center">        
-        {/* Onglets de navigation*/}
-        <div className="flex justify-center gap-1 sm:gap-2 mb-2 flex-wrap">
+    >    
+      <div className="absolute inset-0 flex flex-col items-center px-4 py-[2%]">
+        {/* Onglets de navigation */}
+        <div className="flex justify-center gap-1 sm:gap-2 fhd:gap-3 4k:gap-4 flex-wrap shrink-0">
           {STEPS.map((step, index) => (
             <button
               key={index}
               onClick={() => setActiveStep(index)}
-              className={`px-3 py-2 sm:px-6 sm:py-2 text-sm sm:text-lg font-bold rounded-t-xl border-4 border-b-0 transition-colors ${
+              className={`px-3 py-2 sm:px-6 sm:py-2 fhd:px-7 fhd:py-3 4k:px-10 4k:py-4 text-sm sm:text-lg fhd:text-xl 4k:text-3xl font-bold rounded-t-xl border-4 4k:border-[6px] border-b-0 transition-colors ${
                 activeStep == index
                   ? "bg-yellow-700 text-white border-yellow-600 shadow-lg"
                   : "bg-black/60 text-gray-400 border-gray-800 hover:bg-black/80 hover:text-white"
@@ -119,61 +139,66 @@ export default function Tutorial() {
         </div>
 
         {/* Le Contenu : Galerie, Vidéo ou Image */}
-        <div className="w-full flex justify-center">
-          <div className="w-[76%] aspect-video relative">           
-            {currentStep.type == "gallery" ? (
-              <div className="absolute inset-0 bg-black/80 rounded-xl rounded-t-none border-4 border-yellow-700 overflow-y-auto">
-                <PieceGallery playerColor="RED" />
-              </div>
-            ) : currentStep.type == "image" ? (
-              <img 
-                src={currentStep.image} 
-                alt="Victoire"
-                className="absolute inset-0 w-full h-full object-contain border-4 border-yellow-600 rounded-xl rounded-t-none shadow-lg bg-black/40"
-              />
-            ) : (
-              <video 
-                key={activeStep} 
-                autoPlay 
-                loop 
-                muted 
-                playsInline 
-                className="absolute inset-0 w-full h-full object-cover border-4 border-yellow-600 rounded-xl rounded-t-none shadow-lg bg-black"
-              >
-                <source src={currentStep.video} type="video/mp4" />
-              </video>
-            )}
+        <div className="flex-1 min-h-0 w-full flex justify-center items-stretch py-2 fhd:py-3 4k:py-4">
+          {currentStep.type == "gallery" ? (
+            <div className="w-[58%] fhd:w-[56%] 4k:w-[54%] bg-black/80 rounded-xl rounded-t-none border-4 4k:border-[6px] border-yellow-700 overflow-y-auto">
+              <PieceGallery playerColor="RED" />
+            </div>
+          ) : currentStep.type == "image" ? (
+            <img 
+              src={currentStep.image} 
+              alt="Victoire"
+              className="h-full w-auto max-w-full object-contain border-4 4k:border-[6px] border-yellow-600 rounded-xl rounded-t-none shadow-lg bg-black/40"
+            />
+          ) : (
+            <video 
+              key={activeStep} 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="h-full w-auto max-w-full object-contain border-4 4k:border-[6px] border-yellow-600 rounded-xl rounded-t-none shadow-lg bg-black"
+            >
+              <source src={currentStep.video} type="video/mp4" />
+            </video>
+          )}
+        </div>
+
+        {/* ZONE DE TEXTE */}
+        <div
+          className="shrink-0 w-[54%] fhd:w-[52%] 4k:w-[50%] px-10 py-5 fhd:px-12 fhd:py-4 4k:px-16 4k:py-8 overflow-hidden border-4 4k:border-[6px] border-yellow-700 rounded-3xl"
+          style={{
+            backgroundImage: `url(${texture})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <div key={activeStep} className="relative h-28 fhd:h-28 4k:h-44 flex items-center justify-center text-lg sm:text-3xl fhd:text-3xl 4k:text-5xl text-center font-bold bg-black/40 text-white rounded-lg">
+            <div>
+              {currentStep.texts.map((text, index) => (
+                <div key={index} className="flex flex-col justify-center h-full">
+                  <p
+                    className={isPub ? "pop-pub" : "pop"}
+                    style={
+                    isPub
+                      ? { animationDelay: `${2 + (42 / currentStep.texts.length) * index}s` }
+                      : { animationDelay: `${index * 7}s` }
+                  }
+                  >
+                    {text}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ZONE DE TEXTE*/}
-      <div
-        className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[54%] px-10 py-5 overflow-hidden border-4 border-yellow-700 rounded-3xl"
-        style={{
-          backgroundImage: `url(${texture})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div key={activeStep} className="relative h-32 flex items-center justify-center sm:text-3xl text-center font-bold bg-black/40 text-white rounded-lg">
-          <div>
-            {currentStep.texts.map((text, index) => (
-              <div key={index} className="flex flex-col justify-center h-full">
-                <p className={`pop delay-${index} m+10`}>
-                {text}
-              </p>
-              </div>
-            ))}
-          </div>
+        {/* BOUTON RETOUR */}
+        <div className="shrink-0 w-[12%] fhd:w-[11%] 4k:w-[10%] mt-3 fhd:mt-4 4k:mt-5">
+          <Button variant="danger" onClick={goToLobby} className="w-full">
+            RETOUR
+          </Button>
         </div>
-      </div>
-
-      {/* BOUTON RETOUR*/}
-      <div className="absolute top-[90%] left-1/2 -translate-x-1/2 w-[12%] flex flex-col gap-[3%] z-10">
-        <Button variant="danger" onClick={goToLobby} className="w-full">
-          RETOUR
-        </Button>
       </div>
     </MainLayout>
   );

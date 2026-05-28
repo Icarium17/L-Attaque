@@ -71,6 +71,17 @@ export default function Panel({
   const [anim, setAnim] = useState({ glow: 0.3, pulse: 1 });
   const rafRef = useRef(null);
   const timerRef = useRef(null);
+  
+  const [screenW, setScreenW] = useState(
+    typeof window != "undefined" ? window.innerWidth : 1920
+  );
+  useEffect(() => {
+    const onResize = () => setScreenW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  
+  const nameFontSize = screenW >= 2560 ? "22px" : screenW >= 1920 ? "15px" : "14px";
 
   useEffect(() => {
     setVisible(true);
@@ -283,7 +294,10 @@ export default function Panel({
                 style={{
                   color: v.color,
                   fontWeight: 700,
-                  fontSize: variant == "title" ? "20px" : variant == "score" ? "15px" : variant == "name" ? "24px" : "16px",
+                  fontSize: variant == "title" ? "20px" 
+                  : variant == "score" ? "15px" 
+                  : variant == "name" ? nameFontSize 
+                  : "16px",
                   letterSpacing: variant == "title" ? "6px" : "3px",
                   textAlign: variant == "title" || variant == "name" ? "center" : "left",
                   textTransform: "uppercase",

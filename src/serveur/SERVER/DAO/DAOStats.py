@@ -25,7 +25,7 @@ class DAOStats():
             dict: Leaderboard entries keyed by username.
         """
         with Connection() as db:
-            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users WHERE username != 'MCTS_AI' ORDER BY score DESC LIMIT %s", (limit,))
+            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users WHERE username != 'admin' ORDER BY score DESC LIMIT %s",(limit,))
             return {
                 row["username"]: {
                     "username" : row["username"],

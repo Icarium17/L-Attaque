@@ -18,6 +18,12 @@ class GameManager():
 
     @staticmethod
     def _get_ai_worker_count():
+        """
+        Read the configured number of background AI worker threads.
+
+        Returns:
+            int: Positive worker count, defaulting to `1`.
+        """
         configured_workers = os.getenv("L_ATTAQUE_AI_WORKERS")
         if configured_workers is not None:
             try:
@@ -296,6 +302,15 @@ class GameManager():
         return player_order
 
     def _schedule_ai_move_locked(self, ai_player):
+        """
+        Queue an AI move computation while holding the game lock.
+
+        Args:
+            ai_player: AI player whose move should be computed.
+
+        Returns:
+            None
+        """
         if self.ai_move_future is not None and not self.ai_move_future.done():
             return
 
@@ -305,6 +320,15 @@ class GameManager():
         self.ai_move_future.add_done_callback(self._finalize_ai_move)
 
     def _finalize_ai_move(self, future):
+        """
+        Finalize AI worker completion and persist any resulting error state.
+
+        Args:
+            future: Completed future returned by the AI executor.
+
+        Returns:
+            None
+        """
         error_message = None
         try:
             future.result()
@@ -795,11 +819,27 @@ class PlayerTimer:
         self.resume_timer = None
 
     def _cancel_resume_timer_locked(self):
+        """
+        Cancel the delayed resume timer while the lock is already held.
+
+        Returns:
+            None
+        """
         if self.resume_timer is not None:
             self.resume_timer.cancel()
             self.resume_timer = None
 
     def _resume_after_delay(self, player_idx, token):
+        """
+        Resume the clock after a scheduled delay if the token still matches.
+
+        Args:
+            player_idx: Player whose timer should resume.
+            token: Resume token used to discard stale callbacks.
+
+        Returns:
+            None
+        """
         with self.lock:
             if self.closed or token != self.resume_token:
                 return

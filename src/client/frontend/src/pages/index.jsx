@@ -143,20 +143,20 @@ return (
         <div className="relative flex flex-col justify-center items-center min-h-screen w-full overflow-hidden">
           <div className="absolute inset-0 bg-gray-950/70" />
 
-          <div className="relative z-10 flex flex-col items-center gap-8 p-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+          <div className="relative z-10 flex flex-col items-center gap-5 fhd:gap-6 4k:gap-8 p-6 fhd:p-8 4k:p-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
             <img
               src={logo}
               alt="Logo"
-              className="max-w-3xl h-auto drop-shadow-2xl"
+              className="max-w-xl fhd:max-w-2xl 4k:max-w-3xl h-auto drop-shadow-2xl"
             />
 
-            <h1 className="text-white text-4xl md:text-5xl font-bold text-center">
+            <h1 className="text-white text-2xl fhd:text-3xl 4k:text-4xl md:text-5xl font-bold text-center">
               Bienvenue dans l'Attaque,{" "}
               <span className="text-primary">{session.username}</span> !
             </h1>
 
             <Button
-              className="w-full max-w-sm mx-auto text-xl py-3"
+              className="w-full max-w-sm mx-auto text-base fhd:text-lg 4k:text-xl py-2 fhd:py-2.5 4k:py-3"
               variant="secondary"
               onClick={() => auth("signout", session.key)}
             >
@@ -164,7 +164,7 @@ return (
             </Button>
 
             <Button
-              className="w-full max-w-sm mx-auto text-xl py-3"
+              className="w-full max-w-sm mx-auto text-base fhd:text-lg 4k:text-xl py-2 fhd:py-2.5 4k:py-3"
               onClick={() => auth("signout", session.key)}
             >
               RESET
@@ -175,22 +175,22 @@ return (
         <div className="relative flex flex-col justify-start items-center min-h-screen w-full overflow-hidden">
           <div className="absolute inset-0 bg-gray-950/70" />
 
-          <div className="relative z-10 flex flex-col items-center mt-32 w-full max-w-7xl">
+          <div className="relative z-10 flex flex-col items-center mt-12 fhd:mt-20 4k:mt-32 w-full max-w-7xl">
             <img
               src={logo}
               alt="Logo du Jeu"
-              className="max-w-3xl h-auto drop-shadow-2xl mb-12"
+              className="max-w-xl fhd:max-w-2xl 4k:max-w-3xl h-auto drop-shadow-2xl mb-6 fhd:mb-8 4k:mb-12"
             />
 
-            <div className="flex flex-col items-center gap-8 p-10 bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex flex-col items-center gap-5 fhd:gap-6 4k:gap-8 p-6 fhd:p-8 4k:p-10 bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md fhd:max-w-lg 4k:max-w-lg">
 
               {mode == "login" ? (
                 <>
-                  <h1 className="text-white text-3xl font-bold text-center">
+                  <h1 className="text-white text-xl fhd:text-2xl 4k:text-3xl font-bold text-center">
                     Vous avez déjà un compte
                   </h1>
 
-                  <div className="flex flex-col gap-6 items-center w-full max-w-sm">
+                  <div className="flex flex-col gap-4 fhd:gap-5 4k:gap-6 items-center w-full max-w-sm">
 
                     <input
                       type="text"
@@ -203,7 +203,7 @@ return (
                           nom: e.target.value
                         })
                       }
-                      className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
+                      className="w-full p-3 fhd:p-4 4k:p-5 text-base 4k:text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
                     />
 
                     <input
@@ -216,11 +216,11 @@ return (
                           motDePasse: e.target.value
                         })
                       }
-                      className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
+                      className="w-full p-3 fhd:p-4 4k:p-5 text-base 4k:text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-primary focus:outline-none transition-all"
                     />
 
                     <Button
-                      className="w-full text-lg py-3 mt-2"
+                      className="w-full text-base 4k:text-lg py-2 fhd:py-2.5 4k:py-3 mt-2"
                       variant="primary"
                       onClick={() =>
                         auth(
@@ -234,7 +234,7 @@ return (
                     </Button>
                   </div>
 
-                  <p className="text-gray-300 text-lg mt-2">
+                  <p className="text-gray-300 text-base 4k:text-lg mt-2">
                     Pas de compte ?{" "}
                     <span
                       className="text-blue-400 font-semibold cursor-pointer underline hover:text-blue-300"
@@ -246,11 +246,11 @@ return (
                 </>
               ) : (
                 <>
-                  <h1 className="text-white text-3xl font-bold text-center">
+                  <h1 className="text-white text-xl fhd:text-2xl 4k:text-3xl font-bold text-center">
                     Nouveau compte
                   </h1>
 
-                  <div className="flex flex-col gap-5 items-center w-full max-w-sm">
+                  <div className="flex flex-col gap-3 fhd:gap-4 4k:gap-5 items-center w-full max-w-sm">
 
                     <input
                       type="text"
@@ -262,7 +262,7 @@ return (
                           nom: e.target.value
                         })
                       }
-                      className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
+                      className="w-full p-3 fhd:p-4 4k:p-5 text-base 4k:text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
                     />
 
                     <input
@@ -275,10 +275,10 @@ return (
                           motDePasse: e.target.value
                         })
                       }
-                      className="w-full p-5 text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
+                      className="w-full p-3 fhd:p-4 4k:p-5 text-base 4k:text-lg rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-danger focus:outline-none transition-all"
                     />
 
-                    <div className="w-full text-base flex flex-col gap-2 p-4 bg-black/30 rounded-xl text-left shadow-inner">
+                    <div className="w-full text-sm 4k:text-base flex flex-col gap-1.5 fhd:gap-2 p-3 fhd:p-3.5 4k:p-4 bg-black/30 rounded-xl text-left shadow-inner">
 
                       <span className={passwordCriteria.length ? "text-green-400 font-medium" : "text-gray-300"}>
                         {passwordCriteria.length ? "✓" : "○"} 6 caractères minimum
@@ -302,7 +302,7 @@ return (
                     </div>
 
                     <Button
-                      className="w-full text-lg py-3 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full text-base 4k:text-lg py-2 fhd:py-2.5 4k:py-3 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       variant="secondary"
                       onClick={register}
                       disabled={
@@ -314,7 +314,7 @@ return (
                     </Button>
                   </div>
 
-                  <p className="text-gray-300 text-lg mt-2">
+                  <p className="text-gray-300 text-base 4k:text-lg mt-2">
                     Déjà un compte ?{" "}
                     <span
                       className="text-blue-400 font-semibold cursor-pointer underline hover:text-blue-300"
@@ -332,7 +332,7 @@ return (
       )}
 
       {error && (
-        <div className="fixed bottom-64 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
+        <div className="fixed bottom-32 fhd:bottom-48 4k:bottom-64 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
           <Notification
             variant="error"
             message={error}
@@ -343,7 +343,7 @@ return (
       )}
 
       {success && (
-        <div className="fixed bottom-64 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
+        <div className="fixed bottom-32 fhd:bottom-48 4k:bottom-64 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
           <Notification
             variant="success"
             message={success}

@@ -99,6 +99,15 @@ class DAOUsers():
         return session_key if updated else None
         
     def logout(self, user_id):
+        """
+        Clear the persisted session key for one user.
+
+        Args:
+            user_id: Database id of the user to disconnect.
+
+        Returns:
+            None
+        """
         with Connection() as db:
             db.execute("UPDATE users SET session_key = %s WHERE _id = %s", (None, user_id))
 
@@ -138,10 +147,29 @@ class DAOUsers():
             """, (new_score, win, win, user_id))
         
     def update_difficutly(self, user_id, difficulty):
+        """
+        Update the stored AI difficulty preference for one user.
+
+        Args:
+            user_id: Database id of the user to update.
+            difficulty: Difficulty value to persist.
+
+        Returns:
+            bool: True when the update succeeded, otherwise False.
+        """
         with Connection() as db:
             return db.execute("UPDATE users SET ai_difficulty =  %s WHERE _id=%s", (difficulty, user_id))
         
     def get_difficulty(self, user_id):
+        """
+        Read the saved AI difficulty preference for one user.
+
+        Args:
+            user_id: Database id of the user to look up.
+
+        Returns:
+            int | None: Stored difficulty when available, otherwise `None`.
+        """
         with Connection() as db:
             result = db.fetch("SELECT ai_difficulty FROM users WHERE _id=%s", (user_id,))
             difficulty = result[0]['ai_difficulty'] if result else None
@@ -149,6 +177,15 @@ class DAOUsers():
             return difficulty
 
     def get_user_by_session_key(self, session_key):
+        """
+        Look up a user record from an active session key.
+
+        Args:
+            session_key: Persisted session token.
+
+        Returns:
+            tuple: Success flag, user id, username, and score when found.
+        """
         with Connection() as db:
             user = db.fetch("SELECT * from users WHERE session_key = %s", (session_key,))
             if not user:

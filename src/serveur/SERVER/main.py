@@ -89,11 +89,23 @@ lobby = LobbyManager()
 
 
 def _get_json_body():
+    """
+    Parse the incoming request body as a JSON object.
+
+    Returns:
+        dict | None: Parsed JSON mapping, or `None` when the body is invalid.
+    """
     data = request.get_json(silent=True)
     return data if isinstance(data, dict) else None
 
 
 def _invalid_json_response():
+    """
+    Build the standard error response for invalid JSON request bodies.
+
+    Returns:
+        tuple: JSON error response and HTTP 400 status code.
+    """
     return jsonify({
         "status": "INVALID_REQUEST",
         "message": "Expected JSON object body",
@@ -409,6 +421,12 @@ def load():
 
 @app.route('/difficulty', methods=['POST'])
 def difficulty():
+    """
+    Update the AI difficulty preference for the provided session key.
+
+    Returns:
+        Response: JSON response containing the difficulty update status.
+    """
     data = _get_json_body()
     if data is None:
         return _invalid_json_response()

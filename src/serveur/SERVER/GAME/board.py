@@ -103,6 +103,12 @@ class Board():
         return list_pieces
     
     def save_board(self):
+        """
+        Serialize the current board contents for save persistence.
+
+        Returns:
+            list: Serializable payload for every occupied square on the board.
+        """
         list_pieces = []
         for row in self.tiles:
             for tile in row:
@@ -115,6 +121,16 @@ class Board():
         return list_pieces
 
     def _find_piece_tile(self, piece, position=None):
+        """
+        Locate the tile currently containing a given piece.
+
+        Args:
+            piece: Piece to locate.
+            position: Optional expected position used as a fast path.
+
+        Returns:
+            Tile | None: Matching tile when found, otherwise `None`.
+        """
         if position is not None:
             x, y = position
             if 0 <= x < self.cols and 0 <= y < self.rows:
@@ -152,6 +168,18 @@ class Board():
             player.remove_piece(piece)
 
     def move_post_combat(self, piece, y, x, source_position=None):
+        """
+        Reposition a surviving piece after combat resolution.
+
+        Args:
+            piece: Winning piece to move.
+            y: Destination row.
+            x: Destination column.
+            source_position: Optional original position to disambiguate lookup.
+
+        Returns:
+            None
+        """
         source_tile = None
         if source_position is not None:
             source_tile = self._find_piece_tile(piece, source_position)
@@ -186,4 +214,13 @@ class Tile():
         self.piece = None
     
     def get_distance(self, tileTo):
+        """
+        Compute the Manhattan distance to another tile.
+
+        Args:
+            tileTo: Destination tile.
+
+        Returns:
+            int: Manhattan distance between the two tiles.
+        """
         return abs(self.x - tileTo.x) + abs(self.y - tileTo.y)
