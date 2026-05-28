@@ -126,25 +126,55 @@ class AISetupBuilder:
         self.ai_player = ai_player
 
     def _player_rows(self):
+        """
+        Return the row interval reserved for this AI player's setup zone.
+
+        Returns:
+            tuple: Inclusive start and exclusive end rows for placement.
+        """
         return self.ai_player.rows[self.ai_player.order]
 
     def _is_top_side(self):
+        """
+        Check whether the AI is deploying from the top half of the board.
+
+        Returns:
+            bool: True when the AI starts on the top side.
+        """
         row_start, _ = self._player_rows()
         return row_start == 0
 
     def _front_row_range(self):
+        """
+        Return the two-row slice considered closest to the enemy.
+
+        Returns:
+            tuple: Inclusive start and exclusive end rows for the front band.
+        """
         row_start, row_end = self._player_rows()
         if self._is_top_side():
             return (row_end - 2, row_end)
         return (row_start, row_start + 2)
 
     def _front_rows(self):
+        """
+        Return the front rows ordered from nearest to farthest engagement line.
+
+        Returns:
+            list: Front-row indices for the current side.
+        """
         row_start, row_end = self._player_rows()
         if self._is_top_side():
             return [row_end - 1, row_end - 2]
         return [row_start, row_start + 1]
 
     def _back_rows(self):
+        """
+        Return the safer back rows used for defensive placements.
+
+        Returns:
+            list: Back-row indices for the current side.
+        """
         row_start, row_end = self._player_rows()
         if self._is_top_side():
             return [row_start + 1, row_start]

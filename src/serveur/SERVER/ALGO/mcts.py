@@ -17,12 +17,18 @@ EXPANSION_PRIOR_EPSILON = 0.01
 SIMULATION_MAX_STEPS = 25
 @dataclass(frozen=True)
 class MCTSPlayerIdentity:
+    """
+    Store immutable player metadata needed by detached MCTS searches.
+    """
     order: int
     username: str
 
 
 @dataclass
 class MCTSPlayerState:
+    """
+    Store one player's board-dependent state for terminal evaluation.
+    """
     order: int
     username: str
     pieces: dict
@@ -31,6 +37,9 @@ class MCTSPlayerState:
 
 @dataclass
 class MCTSSnapshot:
+    """
+    Capture all AI state required to run search outside the live game thread.
+    """
     game_type: str
     order: int
     difficulty: int
@@ -47,10 +56,34 @@ class MCTSSnapshot:
 class MCTS(MCTSHeuristicMixin):
     """
     Monte Carlo Tree Search (MCTS) implementation for game AI.
-    Handles selection, expansion, simulation, and backpropagation phases.
+
+     Search lifecycle:
+          1. Build a detached snapshot from the live game state.
+          2. Initialize the root node and the main information set.
+          3. For each rollout, reset local state and periodically redeterminize
+              hidden enemy information.
+          4. Run selection down the tree until an unexpanded move or dead end is
+              reached.
+          5. Expand one new child node.
+          6. Simulate forward with a rollout policy based on difficulty.
+          7. Evaluate the final state with terminal checks and heuristics.
+          8. Backpropagate the result up to the root.
+          9. Undo simulated moves and repeat until the time budget expires.
+         10. Play the root child with the strongest visit statistics.
     """
     @staticmethod
     def build_snapshot(ai, game_type, players):
+        """
+        Build a detached snapshot of the AI state for background search.
+
+        Args:
+            ai: AI player owning the search.
+            game_type: Active game type.
+            players: Live player objects for identity extraction.
+
+        Returns:
+            MCTSSnapshot: Immutable snapshot consumed by `MCTS`.
+        """
         return MCTSSnapshot(
             game_type=game_type,
             order=ai.order,
@@ -120,7 +153,10 @@ class MCTS(MCTSHeuristicMixin):
         self.initial_possible_moves = len(self.infoSet_main.get_all_possible_moves())
 
         self.rollout_index = 0
-        self.closest_dist_flag = self.infoSet_main.closest_piece_to_flag()
+        self.closest_dist_flag = self.infoSet_main.closest_piece_to_flag(
+            self.order,
+            1 - self.order,
+        )
         self.undo_stack = []
         self.phase_time_totals = {
             "reset": 0.0,
@@ -176,6 +212,15 @@ class MCTS(MCTSHeuristicMixin):
         self.algo_infoSet = self.determinized_root
 
     def _build_end_state_cache(self, pieces):
+        """
+        Precompute piece counts and flag location for end-state checks.
+
+        Args:
+            pieces: Mapping of piece ids to pieces.
+
+        Returns:
+            dict: Cached counts and flag position for one player.
+        """
         piece_counts = {piece_type: 0 for piece_type in PieceType}
         flag_position = None
 
@@ -193,6 +238,12 @@ class MCTS(MCTSHeuristicMixin):
         }
 
     def _build_end_state_players(self):
+        """
+        Build lightweight player states for game-over evaluation.
+
+        Returns:
+            list: `MCTSPlayerState` objects for both sides.
+        """
         players = []
         for identity in self.player_identities:
             pieces = self.algo_infoSet.board_state.get_pieces(identity.order)
@@ -374,6 +425,15 @@ class MCTS(MCTSHeuristicMixin):
             node = node.parent
 
     def _choose_expansion_move(self, candidate_moves):
+        """
+        Choose the next move to expand, using priors when available.
+
+        Args:
+            candidate_moves: Unexpanded legal moves from the current node.
+
+        Returns:
+            tuple: Selected move and its associated prior weight.
+        """
         if not candidate_moves:
             return None, None
 

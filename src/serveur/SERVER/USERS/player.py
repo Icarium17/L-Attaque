@@ -41,6 +41,17 @@ class Player(User):
         self.last_moves = collections.deque(maxlen=10)
 
     def load(self, known_pieces, time_remaining, last_moves):
+        """
+        Restore the player's known board, clock, and move history from saved data.
+
+        Args:
+            known_pieces: Pieces visible on the player's reconstructed board.
+            time_remaining: Remaining clock time to restore.
+            last_moves: Serialized move history for the player.
+
+        Returns:
+            None
+        """
         self.known_board = Board()
 
         self.populate_all_known_pieces(known_pieces)
