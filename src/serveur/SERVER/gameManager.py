@@ -112,7 +112,7 @@ class GameManager():
         """
         Start a timer for waiting for a second player to join.
         """
-        self.wait_timer_duration = 25
+        self.wait_timer_duration = 60
         self.wait_timer_start = time.time()
         self.wait_timer_handle = threading.Timer(self.wait_timer_duration, self.remove_game)
         self.wait_timer_handle.start()
@@ -797,6 +797,9 @@ class PlayerTimer:
         times: List of initial time values for each player (in seconds).
         timer_expired_callback: Function to call when a player's timer expires.
     """
+
+    AI_MOVE_EXECUTOR = GameManager.AI_MOVE_EXECUTOR
+
     def __init__(self, players, times, timer_expired_callback):
         """
         Initialize a PlayerTimer instance.
@@ -966,7 +969,4 @@ class PlayerTimer:
                     times_copy[self.current_player] = 0
             return times_copy
 
-
-# Backward-compatible module alias used by legacy tests.
-AI_MOVE_EXECUTOR = GameManager.AI_MOVE_EXECUTOR
     
