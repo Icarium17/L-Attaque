@@ -12,7 +12,7 @@ class DAOStats():
             list: User rows containing id, username, and rights.
         """
         with Connection() as db:
-            return db.fetch("SELECT _id, username, rights FROM users WHERE username != 'MCTS_AI' AND username != 'admin'")
+            return db.fetch("SELECT _id, username, rights FROM users")
         
     def get_high_scores(self, limit = 10):
         """
@@ -25,7 +25,7 @@ class DAOStats():
             dict: Leaderboard entries keyed by username.
         """
         with Connection() as db:
-            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users WHERE username != 'MCTS_AI' AND username != 'admin' ORDER BY score DESC LIMIT %s",(limit,))
+            rows = db.fetch("SELECT username, score, games_won, games_lost FROM users WHERE username != 'admin' ORDER BY score DESC LIMIT %s",(limit,))
             return {
                 row["username"]: {
                     "username" : row["username"],
