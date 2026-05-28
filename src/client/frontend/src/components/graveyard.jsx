@@ -23,9 +23,8 @@ export default function Graveyard({ title , counts ={}}) {
 
 
   return (
-    <div className="relative flex flex-col items-center justify-center w-52 fhd:w-64 4k:w-80 h-full">
-
-      {/* Titre */}
+    <div className="relative flex flex-col items-center justify-center w-52 fhd:w-64 4k:w-80 h-full 4k:h-[102%]">
+    {/* Titre */}
       <div className="w-full flex justify-center z-10 mb-1 fhd:mb-1.5 4k:mb-2">
         <img
           src={headerImg}
@@ -38,14 +37,13 @@ export default function Graveyard({ title , counts ={}}) {
       <div
         className="w-full flex-1 bg-contain bg-no-repeat bg-center flex flex-col items-center justify-center px-3 fhd:px-4 4k:px-5"
         style={{ backgroundImage: `url(${graveyardBg})` }}
-      >
-       
-        <div className="flex flex-col items-center gap-y-0.5 fhd:gap-y-1 w-full py-[15%] fhd:py-[18%] 4k:py-[20%] overflow-hidden">
+      >       
+        <div className="flex flex-col items-center gap-y-0.5 fhd:gap-y-1 w-full py-[15%] fhd:pt-[22%] fhd:pb-[0%] 4k:pt-[30%] 4k:pb-[10%] overflow-hidden">
           {PIECE_TYPES.map(({ type, total }) => {
             const count = counts[type] ?? 0;
             return(
-            <div key={type} className="flex items-center justify-center gap-1 fhd:gap-1.5 4k:gap-2 h-9 fhd:h-11 4k:h-16 w-full">
-              <div className="w-9 h-9 fhd:w-11 fhd:h-11 4k:w-16 4k:h-16 shrink-0">
+            <div key={type} className="flex items-center justify-center gap-1 fhd:gap-1.5 4k:gap-2 h-9 fhd:h-11 4k:h-14 w-full">
+              <div className="w-9 h-9 fhd:w-12 fhd:h-12 4k:w-16 4k:h-16 shrink-0">
                 <Piece
                   type={type}
                   player={isCapture ? "RED" : "BLUE"}

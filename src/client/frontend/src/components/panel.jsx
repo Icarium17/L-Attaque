@@ -283,7 +283,10 @@ export default function Panel({
                 style={{
                   color: v.color,
                   fontWeight: 700,
-                  fontSize: variant == "title" ? "20px" : variant == "score" ? "15px" : variant == "name" ? "24px" : "16px",
+                  fontSize: variant == "title" ? "20px" 
+                  : variant == "score" ? "15px" 
+                  : variant == "name" ? "clamp(16px, 0.9vw, 22px)" 
+                  : "16px",
                   letterSpacing: variant == "title" ? "6px" : "3px",
                   textAlign: variant == "title" || variant == "name" ? "center" : "left",
                   textTransform: "uppercase",

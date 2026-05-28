@@ -1,4 +1,3 @@
-
 export default function ConnectionStatus({ pingMs }) {
   if (!pingMs) return null;
   
@@ -7,7 +6,7 @@ export default function ConnectionStatus({ pingMs }) {
               : "text-red-400";
 
   return (
-    <div className={`text-xl ${color}`}>
+    <div className={`text-sm fhd:text-base 4k:text-xl ${color}`}>
       ping: {pingMs}ms
     </div>
   );
