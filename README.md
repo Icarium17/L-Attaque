@@ -1,3 +1,6 @@
+
+Le serveur sera désactivé et ne sera plus fonctionnel à partir de juin 2026. 
+
 # L-Attaque : Jeu Stratego
 **Projet Synthèse H-2026**
 
@@ -33,7 +36,7 @@ Le backend tourne sur un serveur distant DigitalOcean.
 
 # Comnexion SSH:
 ssh root@68.183.195.223
-Mot de passe : stratego
+Mot de passe : 
 
 # Démarrage du script:
 cd /root/LAttaque/Backend && /root/venv/bin/python3 main.py

@@ -1,5 +1,6 @@
 import math
 import random
+import time
 from dataclasses import dataclass
 from ALGO.infoSet import InfoSet
 from ALGO.node import Node
@@ -151,6 +152,18 @@ class MCTS(MCTSHeuristicMixin):
         )
 
         self.rollout_index = 0
+        self.iterations_completed = 0
+        self.rollout_steps_total = 0
+        self.step_times = {
+            "reset": 0.0,
+            "selection": 0.0,
+            "expansion": 0.0,
+            "simulation": 0.0,
+            "game_over": 0.0,
+            "backpropagation": 0.0,
+            "undo": 0.0,
+            "total": 0.0,
+        }
         self.closest_dist_flag = self.infoSet_main.closest_piece_to_flag(
             self.order,
             1 - self.order,
@@ -231,22 +244,40 @@ class MCTS(MCTSHeuristicMixin):
         expansion, simulates forward from the chosen node, evaluates terminal
         status, then backpropagates the resulting score.
         """
-        self._reset_rollout_state()
+        iteration_start = time.perf_counter()
 
+        step_start = time.perf_counter()
+        self._reset_rollout_state()
+        self.step_times["reset"] += time.perf_counter() - step_start
+
+        step_start = time.perf_counter()
         filtered_untried_moves = self.selection()
+        self.step_times["selection"] += time.perf_counter() - step_start
 
         if filtered_untried_moves is not None:
+            step_start = time.perf_counter()
             self.expansion(filtered_untried_moves)
+            self.step_times["expansion"] += time.perf_counter() - step_start
 
+            step_start = time.perf_counter()
             self.simulation()
+            self.step_times["simulation"] += time.perf_counter() - step_start
 
+        step_start = time.perf_counter()
         game_won = self.game_over()
+        self.step_times["game_over"] += time.perf_counter() - step_start
 
+        step_start = time.perf_counter()
         self.backpropagation(game_won)
+        self.step_times["backpropagation"] += time.perf_counter() - step_start
 
+        step_start = time.perf_counter()
         while self.undo_stack:
             self.algo_infoSet.undo_move(self.undo_stack.pop())
+        self.step_times["undo"] += time.perf_counter() - step_start
 
+        self.step_times["total"] += time.perf_counter() - iteration_start
+        self.iterations_completed += 1
         self.rollout_index += 1
 
         
@@ -348,11 +379,14 @@ class MCTS(MCTSHeuristicMixin):
         s = 0
         while game_over == 0 and s < SIMULATION_MAX_STEPS:
             if not self.simulation_by_level[self.difficulty]():
+                self.rollout_steps_total += s
                 return game_over
 
             game_over = self.game_over()
            
             s += 1
+
+        self.rollout_steps_total += s
     
 
     def backpropagation(self, value):

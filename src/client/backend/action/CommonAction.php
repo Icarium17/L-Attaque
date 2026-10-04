@@ -47,7 +47,7 @@ abstract class CommonAction {
     // Méthode utilitaire  appeler le backend Python (API Flask)
     // $service et $data (les données à envoyer en JSON)
     protected function callPython($service, $data) {
-        $url = "http://68.183.195.223:5000/" . $service; 
+        $url = "http://127.0.0.1:5000/" . $service; 
         
         // Configuration de la requete HTTP POST avec les donnees en JSON
         $options = [

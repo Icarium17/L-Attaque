@@ -74,10 +74,47 @@ class AIPlayer(Player):
         """
         mcts = MCTS(search_snapshot)
         move_time = search_snapshot.move_time
-        start = time.time()
+        start = time.perf_counter()
 
-        while time.time() - start < move_time:
+        while time.perf_counter() - start < move_time:
             mcts.algo()
+
+        elapsed = time.perf_counter() - start
+        average_rollout_length = (
+            mcts.rollout_steps_total / mcts.iterations_completed
+            if mcts.iterations_completed
+            else 0
+        )
+        print(
+            "MCTS search: "
+            f"iterations={mcts.iterations_completed}, "
+            f"elapsed={elapsed:.3f}s, "
+            f"avg_rollout_length={average_rollout_length:.2f}"
+        )
+        average_step_times = {
+            step: elapsed_time / mcts.iterations_completed * 1000
+            for step, elapsed_time in mcts.step_times.items()
+        }
+        simulation_ms_per_rollout_step = (
+            mcts.step_times["simulation"] / mcts.rollout_steps_total * 1000
+            if mcts.rollout_steps_total
+            else 0
+        )
+        unaccounted_ms_per_iteration = (
+            (elapsed - mcts.step_times["total"]) / mcts.iterations_completed * 1000
+            if mcts.iterations_completed
+            else 0
+        )
+        print(
+            "MCTS timing per iteration (ms): "
+            + ", ".join(
+                f"{step}={average_step_times[step]:.3f}"
+                for step in mcts.step_times
+            )
+            + f", simulation_step={simulation_ms_per_rollout_step:.3f}"
+            + f", unaccounted={unaccounted_ms_per_iteration:.3f}"
+            + f", iterations_per_second={mcts.iterations_completed / elapsed:.1f}"
+        )
 
         root_visit_summary = mcts.get_root_visit_summary()
         print(

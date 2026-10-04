@@ -13,8 +13,8 @@ class Connection():
         """
         self.conn = mysql.connector.connect(
             host="localhost",
-            user="lattaque_user",
-            password="stratego",
+            user="*****", ##à modifier pour le bon user
+            password="****", ##à modifier pour le bon pwd
             database="lattaque"
         )
         self.cursor = self.conn.cursor(dictionary=True)

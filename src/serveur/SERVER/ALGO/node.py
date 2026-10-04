@@ -19,7 +19,7 @@ class Node:
         self.value = 0
         self.children = []
         self.tried_moves = set()
-        self.c_param = 2.0
+        self.c_param = 1.0
         self.move = move
         self.prior = 0.0
         self.player_turn = player_turn
